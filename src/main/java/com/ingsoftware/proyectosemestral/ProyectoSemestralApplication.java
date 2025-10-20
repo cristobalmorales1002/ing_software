@@ -10,5 +10,4 @@ public class ProyectoSemestralApplication {
         SpringApplication.run(ProyectoSemestralApplication.class, args);
     }
     //Prueba de commit
-
 }

@@ -1,4 +1,4 @@
 package com.ingsoftware.proyectosemestral.Servicio;
 
-public class RegistroService {
+public class AutenticacionServicio {
 }

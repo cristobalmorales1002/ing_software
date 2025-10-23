@@ -1,4 +1,4 @@
 package com.ingsoftware.proyectosemestral.Controlador;
 
-public class PacienteController {
+public class PacienteControlador {
 }

@@ -1,4 +1,4 @@
 package com.ingsoftware.proyectosemestral.Repositorio;
 
-public class UsuarioRepository {
+public class RolRepositorio {
 }

@@ -1,4 +1,4 @@
 package com.ingsoftware.proyectosemestral.Controlador;
 
-public class ExportacionController {
+public class EstadisticasControlador {
 }

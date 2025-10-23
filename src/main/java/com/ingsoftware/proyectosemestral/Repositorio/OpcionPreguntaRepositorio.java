@@ -1,4 +1,4 @@
 package com.ingsoftware.proyectosemestral.Repositorio;
 
-public class PermisoRepository {
+public class OpcionPreguntaRepositorio {
 }

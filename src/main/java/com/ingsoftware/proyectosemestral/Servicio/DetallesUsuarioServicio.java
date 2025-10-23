@@ -1,4 +1,4 @@
 package com.ingsoftware.proyectosemestral.Servicio;
 
-public class EstadisticaService {
+public class DetallesUsuarioServicio {
 }

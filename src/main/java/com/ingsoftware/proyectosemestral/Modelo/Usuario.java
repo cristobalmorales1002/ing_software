@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -32,9 +32,18 @@ public class Usuario {
     @Email
     private String email;
 
+    @Column(nullable = false)
     private String contrasena;
+
+    @Column(nullable = false)
     private String telefono;
+
+    @Column
     private boolean activo;
+
+    @Column(nullable = false)
     private String tokenRecuperacion;
-    private LocalDateTime token_rec_expiracion;
+
+    @Column
+    private LocalDate token_rec_expiracion;
 }

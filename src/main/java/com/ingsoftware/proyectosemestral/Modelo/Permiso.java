@@ -1,9 +1,6 @@
 package com.ingsoftware.proyectosemestral.Modelo;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,7 +15,9 @@ import lombok.Setter;
 public class Permiso {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    long id_perm;
-    String nombre;
-    String descripcion;
+    private long id_perm;
+    @Column(nullable = false)
+    private String nombre;
+    @Column(nullable = false)
+    private String descripcion;
 }

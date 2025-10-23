@@ -13,15 +13,23 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
 public class Registro {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long registro_id;
+
     @Column(nullable = false)
     private String accion;
-    @Column(nullable = false)
+
+    @Column(nullable = false, length = 1024)
     private String detalles;
+
     @Column(nullable = false)
     private LocalDateTime registro_fecha;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario;
+
 }

@@ -6,13 +6,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-
 public class Categoria {
+
     @Id
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Long id_cat;
@@ -22,5 +25,8 @@ public class Categoria {
 
     @Column(nullable = false)
     private int orden;
+
+    @OneToMany(mappedBy = "categoria", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Pregunta> preguntas = new HashSet<>();
 
 }

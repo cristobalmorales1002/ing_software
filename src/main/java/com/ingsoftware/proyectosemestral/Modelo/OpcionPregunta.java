@@ -12,6 +12,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OpcionPregunta {
+
     @Id
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Long id_opcion;
@@ -21,4 +22,9 @@ public class OpcionPregunta {
 
     @Column(nullable = false)
     private int orden;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pregunta_id", nullable = false)
+    private Pregunta pregunta;
+
 }

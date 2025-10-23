@@ -1,4 +1,4 @@
 package com.ingsoftware.proyectosemestral.Seguridad;
 
-public class LoginRequest {
+public class FiltroAutenticacionJwt {
 }

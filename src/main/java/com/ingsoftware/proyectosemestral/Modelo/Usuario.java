@@ -31,10 +31,10 @@ public class Usuario {
     @Column(nullable = false)
     @Email
     private String email;
+
     private String contrasena;
     private String telefono;
     private boolean activo;
     private String tokenRecuperacion;
     private LocalDateTime token_rec_expiracion;
-
 }

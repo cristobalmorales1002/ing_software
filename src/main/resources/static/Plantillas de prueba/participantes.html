@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Participantes - Plataforma Cáncer Gástrico</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-container">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>CG Platform</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <span class="icon">📊</span>
+                Dashboard
+            </a>
+            <a href="participantes.html" class="nav-item active">
+                <span class="icon">👥</span>
+                Participantes
+            </a>
+            <a href="preguntas.html" class="nav-item">
+                <span class="icon">📋</span>
+                Variables
+            </a>
+            <a href="usuarios.html" class="nav-item" id="usuariosLink">
+                <span class="icon">👤</span>
+                Usuarios
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <span id="userName"></span>
+                <small id="userRole"></small>
+            </div>
+            <button id="logoutBtn" class="btn btn-secondary btn-sm">Cerrar Sesión</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h1>Gestión de Participantes</h1>
+            <button id="nuevoParticipanteBtn" class="btn btn-primary">
+                + Nuevo Participante
+            </button>
+        </header>
+
+        <div class="filters-section">
+            <div class="filter-group">
+                <label>Filtrar por tipo:</label>
+                <select id="filtroTipo">
+                    <option value="">Todos</option>
+                    <option value="CASO">Casos</option>
+                    <option value="CONTROL">Controles</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <input type="text" id="buscarParticipante" placeholder="Buscar por código...">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Tipo</th>
+                        <th>Fecha Inclusión</th>
+                        <th>Creado Por</th>
+                        <th>Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody id="participantesTableBody">
+                    <tr>
+                        <td colspan="5" class="text-center">Cargando participantes...</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal Nuevo/Editar Participante -->
+<div id="participanteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Nuevo Participante</h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="participanteForm">
+                <input type="hidden" id="participanteId">
+
+                <div class="form-group">
+                    <label for="tipo">Tipo de Participante *</label>
+                    <select id="tipo" name="tipo" required>
+                        <option value="CONTROL">Control</option>
+                        <option value="CASO" id="opcionCaso">Caso</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="fechaIncl">Fecha de Inclusión *</label>
+                    <input type="date" id="fechaIncl" name="fechaIncl" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelarBtn">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Respuestas -->
+<div id="respuestasModal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h2>Formulario CRF - <span id="participanteCodigo"></span></h2>
+            <span class="close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="respuestasForm">
+                <div id="preguntasContainer"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cerrarRespuestasBtn">Cerrar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Respuestas</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/participantes.js"></script>
+</body>
+</html>

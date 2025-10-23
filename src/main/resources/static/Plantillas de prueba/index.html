@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma Cáncer Gástrico</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<script>
+    // Redirigir automáticamente al login o dashboard según autenticación
+    const token = localStorage.getItem('token');
+    if (token) {
+        window.location.href = 'dashboard.html';
+    } else {
+        window.location.href = 'login.html';
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Plataforma Cáncer Gástrico</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>CG Platform</h2>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item active">
+                <span class="icon">📊</span>
+                Dashboard
+            </a>
+            <a href="participantes.html" class="nav-item">
+                <span class="icon">👥</span>
+                Participantes
+            </a>
+            <a href="preguntas.html" class="nav-item" id="preguntasLink">
+                <span class="icon">📋</span>
+                Variables
+            </a>
+            <a href="usuarios.html" class="nav-item" id="usuariosLink">
+                <span class="icon">👤</span>
+                Usuarios
+            </a>
+            <a href="logs.html" class="nav-item" id="logsLink">
+                <span class="icon">📜</span>
+                Auditoría
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <span id="userName"></span>
+                <small id="userRole"></small>
+            </div>
+            <button id="logoutBtn" class="btn btn-secondary btn-sm">Cerrar Sesión</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="page-header">
+            <h1>Dashboard</h1>
+        </header>
+
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <h3 id="totalCasos">0</h3>
+                    <p>Casos</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📉</div>
+                <div class="stat-content">
+                    <h3 id="totalControles">0</h3>
+                    <p>Controles</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <h3 id="totalParticipantes">0</h3>
+                    <p>Total Participantes</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                    <h3 id="totalVariables">0</h3>
+                    <p>Variables Activas</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Últimas Actividades</h2>
+                </div>
+                <div class="card-body">
+                    <div id="actividadesRecientes" class="activity-list">
+                        <p class="text-muted">Cargando actividades...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

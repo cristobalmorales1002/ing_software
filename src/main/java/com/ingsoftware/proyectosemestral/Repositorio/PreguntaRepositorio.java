@@ -1,4 +1,18 @@
 package com.ingsoftware.proyectosemestral.Repositorio;
 
-public class PreguntaRepositorio {
+import com.ingsoftware.proyectosemestral.Modelo.Categoria;
+import com.ingsoftware.proyectosemestral.Modelo.Pregunta;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface PreguntaRepositorio extends JpaRepository<Pregunta, Long> {
+
+    List<Pregunta> findByActivo(boolean activo);
+    List<Pregunta> findByCategoria(Categoria categoria);
+    List<Pregunta> findByCategoriaAndActivo(Categoria categoria, boolean activo);
+    Optional<Pregunta> findByEtiqueta(String etiqueta);
 }

@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Getter
 @Setter
@@ -28,4 +31,6 @@ public class Respuesta {
     @JoinColumn(name = "pregunta_id", nullable = false)
     private Pregunta pregunta;
 
+    @OneToMany(mappedBy = "respuesta", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Registro> historial = new HashSet<>();
 }

@@ -7,13 +7,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface RegistroRepositorio extends JpaRepository<Registro, Long> {
     List<Registro> findByUsuario(Usuario usuario);
     List<Registro> findByAccion(String accion);
-    List<Registro> findByRegistro_fechaBetween(LocalDate fechaInicio, LocalDate fechaFin);
     List<Registro> findByRespuesta(Respuesta respuesta);
-    List<Usuario> findByUsuarioAndRegistro_fechaBetween(Usuario usuario, LocalDate fechaInicio, LocalDate fechaFin);
+    List<Registro> findByRegistroFechaBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
+    List<Registro> findByUsuarioAndRegistroFechaBetween(Usuario usuario, LocalDateTime fechaInicio, LocalDateTime fechaFin);
 }

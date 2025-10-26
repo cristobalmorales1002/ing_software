@@ -22,13 +22,13 @@ public class Paciente {
     private Long participante_id;
 
     @Column(nullable = false, unique = true)
-    private String participante_cod;
+    private String participanteCod;
 
     @Column(nullable = false)
     private Boolean esCaso;
 
     @Column(nullable = false)
-    private LocalDate fecha_incl;
+    private LocalDate fechaIncl;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reclutador_id", nullable = false)

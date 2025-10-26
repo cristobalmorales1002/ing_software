@@ -26,7 +26,7 @@ public class Registro {
     private String detalles;
 
     @Column(nullable = false)
-    private LocalDateTime registro_fecha;
+    private LocalDateTime registroFecha;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)

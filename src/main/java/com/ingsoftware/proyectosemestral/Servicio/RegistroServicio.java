@@ -38,4 +38,13 @@ public class RegistroServicio {
         //LLama al metodo especialista
         this.registrarAccion(usuario, accion, detalles, null);
     }
+
+    public Registro log(String accion, String detalles, Usuario usuario) {
+        Registro r = new Registro();
+        r.setAccion(accion);
+        r.setDetalles(detalles);
+        r.setRegistroFecha(LocalDateTime.now());
+        r.setUsuario(usuario);
+        return registroRepositorio.save(r);
+    }
 }

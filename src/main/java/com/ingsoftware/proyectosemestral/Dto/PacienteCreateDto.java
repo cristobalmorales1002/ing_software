@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 public class PacienteCreateDto {
-    private boolean esCaso;
-    private LocalDate fecha_incl;
+    private Boolean esCaso;
+    private LocalDate fechaIncl;
     private List<RespuestaDto> respuestas;
 }

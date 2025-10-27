@@ -21,13 +21,13 @@ public class Paciente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long participante_id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, name = "participante_cod")
     private String participanteCod;
 
     @Column(nullable = false)
     private Boolean esCaso;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "fecha_incl")
     private LocalDate fechaIncl;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -2,19 +2,26 @@ package com.ingsoftware.proyectosemestral.Controlador;
 
 import com.ingsoftware.proyectosemestral.DTO.PreguntaDto;
 import com.ingsoftware.proyectosemestral.Modelo.Pregunta;
+import com.ingsoftware.proyectosemestral.Modelo.Usuario;
+import com.ingsoftware.proyectosemestral.Repositorio.UsuarioRepositorio;
+import com.ingsoftware.proyectosemestral.Servicio.UsuarioServicio;
 import com.ingsoftware.proyectosemestral.Servicio.VariableServicio;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/variables")
 @RequiredArgsConstructor
 public class VariableControlador {
 
-    private VariableServicio variableServicio;
+    private final VariableServicio variableServicio;
+    private final UsuarioRepositorio usuarioRepositorio;
 
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN')")
@@ -22,6 +29,22 @@ public class VariableControlador {
         Pregunta nuevaPregunta = variableServicio.crearPregunta(preguntaDto);
         PreguntaDto dtoRespuesta = mapearEntidadADto(nuevaPregunta);
         return ResponseEntity.status(HttpStatus.CREATED).body(dtoRespuesta);
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<List<PreguntaDto>> obtenerTodas() {
+
+        // 1. Obtenemos todas las entidades de la BDD
+        List<Pregunta> listaDePreguntas = variableServicio.obtenerTodasLasPreguntas();
+
+        // 2. Mapeamos esa lista de Entidades a una lista de DTOs
+        List<PreguntaDto> listaDeDtos = listaDePreguntas.stream()
+                .map(this::mapearEntidadADto)
+                .toList();
+
+        // 3. Devolvemos la lista de DTOs con un 200 OK
+        return ResponseEntity.ok(listaDeDtos);
     }
 
     @GetMapping("/{id}")
@@ -34,8 +57,19 @@ public class VariableControlador {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<Void> eliminar(@PathVariable("id") Long id) {
-        variableServicio.archivarPregunta(id);
+    public ResponseEntity<Void> archivar(@PathVariable("id") Long id, // <-- Este es el idPregunta
+                                         Authentication authentication) {
+
+        // 1. Obtenemos el RUT del usuario logueado
+        String rutUsuarioLogueado = authentication.getName();
+
+        // 2. Buscamos al usuario en la BDD para saber su ID
+        Usuario usuario = usuarioRepositorio.findByRut(rutUsuarioLogueado)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario de sesión no encontrado"));
+
+        // 3. Llamamos al servicio con AMBOS IDs
+        variableServicio.archivarPregunta(id, usuario.getIdUsuario()); // (O .getId(), tu getter de ID)
+
         return ResponseEntity.noContent().build();
     }
 

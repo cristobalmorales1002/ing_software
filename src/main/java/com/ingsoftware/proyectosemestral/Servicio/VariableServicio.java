@@ -82,13 +82,16 @@ public class VariableServicio {
     }
 
     @Transactional
-    public void archivarPregunta(Long id) {
-        Pregunta p = obtenerPorId(id);
-        p.setActivo(false); // <--- ¡La clave es esta!
+    public void archivarPregunta(Long idPregunta, Long idUsuario) { // <-- CAMBIO 1
+        // 1. Buscamos la pregunta
+        Pregunta p = obtenerPorId(idPregunta);
+
+        // 2. La marcamos como inactiva
+        p.setActivo(false);
         preguntaRepositorio.save(p); // Guardamos el cambio de estado
 
-        // Y por supuesto, registramos la acción
-        var usrOpt = usuarioRepositorio.findById(id);
+        // 3. Registramos la acción con el ID de usuario CORRECTO
+        var usrOpt = usuarioRepositorio.findById(idUsuario); // <-- CAMBIO 2
         if (usrOpt.isPresent()) {
             String detalles = "Archivó la pregunta ID=" + p.getPregunta_id()
                     + " (" + p.getEtiqueta() + ")";
@@ -96,6 +99,12 @@ public class VariableServicio {
         }
     }
 
+    @Transactional(readOnly = true)
+    public List<Pregunta> obtenerTodasLasPreguntas() {
+        return preguntaRepositorio.findAll();
+    }
+
+    @Transactional
     public Pregunta actualizarPregunta(Long id, PreguntaDto dto) {
         // 1. Buscamos la pregunta que queremos editar
         Pregunta p = obtenerPorId(id);

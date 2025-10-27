@@ -16,4 +16,6 @@ public interface PacienteRepositorio extends JpaRepository<Paciente, Long> {
     List<Paciente> findByFechaInclBetween(LocalDate fechaInicio, LocalDate fechaFin);
     List<Paciente> findByReclutador(Usuario reclutador);
 
+    //Metodo para generar el codigo del paciente 'generarCodigoPaciente' en PacienteServicio
+    long countByEsCaso(boolean esCaso);
 }

@@ -1,4 +1,4 @@
-package com.ingsoftware.proyectosemestral.Dto;
+package com.ingsoftware.proyectosemestral.DTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ingsoftware.proyectosemestral.Modelo.SentidoCorte;
 import com.ingsoftware.proyectosemestral.Modelo.TipoDato;
@@ -9,6 +9,7 @@ import java.util.List;
 @Data
 public class PreguntaDto {
 
+    private Long pregunta_id;
     private String etiqueta;
     private String descripcion;
 

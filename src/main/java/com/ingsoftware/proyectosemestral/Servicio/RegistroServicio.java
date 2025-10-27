@@ -25,9 +25,9 @@ public class RegistroServicio {
         registro.setDetalles(detalles);
         registro.setRegistroFecha(LocalDateTime.now());
 
-        //Vincula este registro con la respuesta especifica que se modifico.
-        //Llena el campo historial en la  entidad respuesta.,
+        // Vincula este registro con la respuesta específica que se modificó.
         registro.setRespuesta(respuesta);
+
         registroRepositorio.save(registro);
     }
 
@@ -35,16 +35,7 @@ public class RegistroServicio {
     //Ayuda a que los logs no esten atados a una respuesta, y llama al metodo especialista pasando null en la respuesta.
     @Transactional
     public void registrarAccion(Usuario usuario, String accion, String detalles) {
-        //LLama al metodo especialista
+        // Llama al metodo especialista con respuesta como null
         this.registrarAccion(usuario, accion, detalles, null);
-    }
-
-    public Registro log(String accion, String detalles, Usuario usuario) {
-        Registro r = new Registro();
-        r.setAccion(accion);
-        r.setDetalles(detalles);
-        r.setRegistroFecha(LocalDateTime.now());
-        r.setUsuario(usuario);
-        return registroRepositorio.save(r);
     }
 }

@@ -12,4 +12,5 @@ import java.util.Optional;
 public interface OpcionPreguntaRepositorio extends JpaRepository<OpcionPregunta, Long> {
     List<OpcionPregunta> findByPregunta(Pregunta pregunta);
     Optional<OpcionPregunta> findByPreguntaAndEtiqueta(Pregunta pregunta, String etiqueta);
+    void deleteByPregunta(Pregunta pregunta);
 }

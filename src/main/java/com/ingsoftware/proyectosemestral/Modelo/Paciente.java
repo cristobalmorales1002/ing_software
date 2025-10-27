@@ -37,4 +37,6 @@ public class Paciente {
     @OneToMany(mappedBy = "paciente", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Respuesta> respuestas = new HashSet<>();
 
+    @Column(nullable = false)
+    private Boolean activo = true;
 }

@@ -125,11 +125,13 @@ public class PacienteServicio {
     }
 
     @Transactional
-    public void deletePaciente(Long pacienteId, Usuario usuario){
+    public void archivarPaciente(Long pacienteId, Usuario usuario){
         Paciente paciente = pacienteRepositorio.findById(pacienteId)
                 .orElseThrow(() -> new EntityNotFoundException("Paciente no encontrado con ID: " + pacienteId));
-        registroServicio.registrarAccion(usuario, "ELIMINAR_PACIENTE",
-                "Se eliminó el paciente: " + paciente.getParticipanteCod());
-        pacienteRepositorio.delete(paciente);
+        paciente.setActivo(false);
+        pacienteRepositorio.save(paciente);
+
+        registroServicio.registrarAccion(usuario, "ARCHIVAR_PACIENTE",
+                "Se archivó el paciente: " + paciente.getParticipanteCod());
     }
 }

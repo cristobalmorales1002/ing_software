@@ -1,11 +1,18 @@
-package com.ingsoftware.proyectosemestral; // O tu paquete principal/configuracion
+package com.ingsoftware.proyectosemestral;
 
+// Imports de Modelo
 import com.ingsoftware.proyectosemestral.Modelo.Categoria;
+import com.ingsoftware.proyectosemestral.Modelo.Permiso;
 import com.ingsoftware.proyectosemestral.Modelo.Rol;
 import com.ingsoftware.proyectosemestral.Modelo.Usuario;
+
+// Imports de Repositorio
 import com.ingsoftware.proyectosemestral.Repositorio.CategoriaRepositorio;
+import com.ingsoftware.proyectosemestral.Repositorio.PermisoRepositorio;
 import com.ingsoftware.proyectosemestral.Repositorio.RolRepositorio;
 import com.ingsoftware.proyectosemestral.Repositorio.UsuarioRepositorio;
+
+// Imports de Spring y otros
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,124 +21,116 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Component
 public class InicializadorAdmin implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(InicializadorAdmin.class);
 
-    @Autowired
-    private UsuarioRepositorio usuarioRepositorio;
+    @Autowired private UsuarioRepositorio usuarioRepositorio;
+    @Autowired private RolRepositorio rolRepositorio;
+    @Autowired private CategoriaRepositorio categoriaRepositorio;
+    @Autowired private PasswordEncoder codificadorDeContrasena;
+    @Autowired private PermisoRepositorio permisoRepositorio;
 
-    @Autowired
-    private RolRepositorio rolRepositorio;
+    // Helper para crear permisos (¡con descripción!)
+    private Permiso crearPermisoSiNoExiste(String nombre, String descripcion) {
+        return permisoRepositorio.findByNombre(nombre)
+                .orElseGet(() -> {
+                    Permiso p = new Permiso();
+                    p.setNombre(nombre);
+                    p.setDescripcion(descripcion);
+                    return permisoRepositorio.save(p);
+                });
+    }
 
-    @Autowired
-    private CategoriaRepositorio categoriaRepositorio;
-
-    @Autowired
-    private PasswordEncoder codificadorDeContrasena;
+    // Helper para crear roles (¡CORREGIDO!)
+    private Rol crearRolSiNoExiste(String nombre) {
+        return rolRepositorio.findByNombre(nombre)
+                .orElseGet(() -> {
+                    Rol r = new Rol();
+                    r.setNombre(nombre);
+                    return rolRepositorio.save(r);
+                });
+    }
 
     @Override
     public void run(String... args) throws Exception {
 
-        // --- 1. VERIFICACIÓN DEL ADMINISTRADOR ---
-        logger.info("--- Verificando Usuario Administrador ---");
-        String rutAdmin = "11.111.111-1";
-        String contrasenaAdmin = "clavesecreta";
-        String nombreRolAdmin = "ROLE_ADMIN";
+        // --- 1. CREAR TODOS LOS PERMISOS ---
+        logger.info("--- Verificando Permisos Base ---");
+        Permiso pCrearCaso = crearPermisoSiNoExiste("CREAR_CASO", "Permite crear un nuevo participante (Caso)");
+        Permiso pCrearControl = crearPermisoSiNoExiste("CREAR_CONTROL", "Permite crear un nuevo participante (Control)");
+        Permiso pEditarCaso = crearPermisoSiNoExiste("EDITAR_CASO", "Permite editar respuestas de un (Caso)");
+        Permiso pEditarControl = crearPermisoSiNoExiste("EDITAR_CONTROL", "Permite editar respuestas de un (Control)");
+        Permiso pVerPaciente = crearPermisoSiNoExiste("VER_PACIENTE", "Permite ver la ficha de un paciente");
+        Permiso pVerListado = crearPermisoSiNoExiste("VER_LISTADO_PACIENTES", "Permite ver el listado de todos los pacientes");
+        Permiso pEliminar = crearPermisoSiNoExiste("ELIMINAR_PACIENTE", "Permite archivar (borrado lógico) un paciente");
 
-        Optional<Usuario> adminExistente = usuarioRepositorio.findByRut(rutAdmin);
+        // --- 2. CREAR ROLES (¡BLOQUE CORREGIDO!) ---
+        logger.info("--- Verificando Roles ---");
+        Rol rolAdmin = crearRolSiNoExiste("ROLE_ADMIN");
+        Rol rolInvestigador = crearRolSiNoExiste("ROLE_INVESTIGADOR");
+        Rol rolMedico = crearRolSiNoExiste("ROLE_MEDICO");
+        Rol rolEstudiante = crearRolSiNoExiste("ROLE_ESTUDIANTE");
 
-        if (adminExistente.isEmpty()) {
-            logger.info("Usuario administrador no encontrado, creando uno nuevo...");
+        // --- 3. ASIGNAR PERMISOS A ROLES ---
+        logger.info("--- Asignando Permisos a Roles ---");
+        rolAdmin.setPermisos(Set.of(pCrearControl, pEditarControl, pVerPaciente, pVerListado, pEliminar));
+        rolRepositorio.save(rolAdmin);
 
-            Rol rolAdmin = rolRepositorio.findByNombre(nombreRolAdmin)
-                    .orElseGet(() -> {
-                        logger.warn("Rol {} no encontrado, creándolo...", nombreRolAdmin);
-                        Rol nuevoRol = new Rol();
-                        nuevoRol.setNombre(nombreRolAdmin);
-                        return rolRepositorio.save(nuevoRol);
-                    });
+        rolInvestigador.setPermisos(Set.of(pCrearControl, pEditarControl, pVerPaciente, pVerListado, pEliminar));
+        rolRepositorio.save(rolInvestigador);
 
-            Usuario admin = new Usuario();
-            admin.setRut(rutAdmin);
-            admin.setNombres("Admin");
-            admin.setApellidos("Principal");
-            admin.setEmail("admin@plataforma.cl");
-            admin.setContrasena(codificadorDeContrasena.encode(contrasenaAdmin));
-            admin.setActivo(true);
-            admin.getRoles().add(rolAdmin);
+        rolMedico.setPermisos(Set.of(pCrearCaso, pCrearControl, pEditarCaso, pEditarControl, pVerPaciente, pVerListado, pEliminar));
+        rolRepositorio.save(rolMedico);
 
-            usuarioRepositorio.save(admin);
-            logger.info("¡Usuario administrador (11.111.111-1) creado exitosamente!");
+        rolEstudiante.setPermisos(Set.of(pCrearControl, pEditarControl, pVerPaciente)); // NO PUEDE VER LISTADO, NO PUEDE ELIMINAR
+        rolRepositorio.save(rolEstudiante);
 
-        } else {
-            logger.info("El usuario administrador (11.111.111-1) ya existe.");
-        }
+        // --- 4. CREAR USUARIOS DE PRUEBA ---
+        logger.info("--- Verificando Usuarios ---");
+        crearUsuarioSiNoExiste("11.111.111-1", "clavesecreta", "Admin", "Principal", "admin@plataforma.cl", rolAdmin);
+        crearUsuarioSiNoExiste("22.222.222-2", "clavemedico", "Doctora", "Prueba", "medico@plataforma.cl", rolMedico);
+        crearUsuarioSiNoExiste("33.333.333-3", "claveestudiante", "Juanito", "Estudiante", "estudiante@plataforma.cl", rolEstudiante);
+        crearUsuarioSiNoExiste("44.444.444-4", "claveinvest", "Investigador", "Jefe", "invest@plataforma.cl", rolInvestigador);
+        crearUsuarioSiNoExiste("55.555.555-5", "claveestudiante2", "Jose", "Estudiante", "estudiante2@plataforma.cl", rolEstudiante);
 
-        // --- 2. VERIFICACIÓN DEL MÉDICO ---
-        logger.info("--- Verificando Usuario Médico ---");
-        String rutMedico = "22.222.222-2";
-        String contrasenaMedico = "clavemedico";
-        String nombreRolMedico = "ROLE_MEDICO";
-
-        Optional<Usuario> medicoExistente = usuarioRepositorio.findByRut(rutMedico);
-
-        if (medicoExistente.isEmpty()) {
-            logger.info("Usuario médico no encontrado, creando uno nuevo...");
-
-            Rol rolMedico = rolRepositorio.findByNombre(nombreRolMedico)
-                    .orElseGet(() -> {
-                        logger.warn("Rol {} no encontrado, creándolo...", nombreRolMedico);
-                        Rol nuevoRol = new Rol();
-                        nuevoRol.setNombre(nombreRolMedico);
-                        return rolRepositorio.save(nuevoRol);
-                    });
-
-            Usuario medico = new Usuario();
-            medico.setRut(rutMedico);
-            medico.setNombres("Doctora");
-            medico.setApellidos("Prueba");
-            medico.setEmail("medico@plataforma.cl");
-            medico.setContrasena(codificadorDeContrasena.encode(contrasenaMedico));
-            medico.setActivo(true);
-            medico.getRoles().add(rolMedico);
-
-            usuarioRepositorio.save(medico);
-            logger.info("¡Usuario médico (22.222.222-2) creado exitosamente!");
-
-        } else {
-            logger.info("El usuario médico (22.222.222-2) ya existe.");
-        }
-
-        // --- 3. VERIFICACIÓN DE CATEGORÍAS BASE ---
+        // --- 5. CREAR CATEGORÍAS (¡BLOQUE CORREGIDO!) ---
         logger.info("--- Verificando Categorías Base ---");
-
         if (categoriaRepositorio.count() == 0) {
             logger.info("No se encontraron categorías, creando categorías por defecto...");
 
             Categoria cat1 = new Categoria();
             cat1.setNombre("Datos Demográficos");
-            // cat1.setDescripcion(...); // <--- Línea eliminada
             cat1.setOrden(1);
             categoriaRepositorio.save(cat1);
 
             Categoria cat2 = new Categoria();
             cat2.setNombre("Hábitos");
-            // cat2.setDescripcion(...); // <--- Línea eliminada
             cat2.setOrden(2);
             categoriaRepositorio.save(cat2);
 
-            Categoria cat3 = new Categoria();
-            cat3.setNombre("Antecedentes Mórbidos");
-            // cat3.setDescripcion(...); // <--- Línea eliminada
-            cat3.setOrden(3);
-            categoriaRepositorio.save(cat3);
-
-            logger.info("¡Categorías base (ID 1, 2, 3) creadas exitosamente!");
+            logger.info("¡Categorías base creadas exitosamente!");
         } else {
             logger.info("Las categorías base ya existen.");
+        }
+    }
+
+    // Helper para crear usuarios
+    private void crearUsuarioSiNoExiste(String rut, String pass, String nom, String ap, String email, Rol rol) {
+        if (usuarioRepositorio.findByRut(rut).isEmpty()) {
+            Usuario u = new Usuario();
+            u.setRut(rut);
+            u.setNombres(nom);
+            u.setApellidos(ap);
+            u.setEmail(email);
+            u.setContrasena(codificadorDeContrasena.encode(pass));
+            u.setActivo(true);
+            u.getRoles().add(rol);
+            usuarioRepositorio.save(u);
+            logger.info("Usuario {} creado.", rut);
         }
     }
 }

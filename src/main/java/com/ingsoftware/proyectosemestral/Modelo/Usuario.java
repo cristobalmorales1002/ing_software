@@ -75,4 +75,20 @@ public class Usuario {
             inverseJoinColumns = @JoinColumn(name = "rol_id")
     )
     private Set<Rol> roles = new HashSet<>(); // Usamos un Set para evitar roles duplicados.
+
+    public boolean tieneRol(String nombreRol) {
+        // Si el set de roles es nulo o vacío, no tiene ningún rol.
+        if (this.roles == null || this.roles.isEmpty()) {
+            return false;
+        }
+        // Recorremos cada rol que tiene el usuario...
+        for (Rol rol : this.roles) {
+            // ...y comparamos su nombre con el que buscamos.
+            if (rol != null && rol.getNombre().equalsIgnoreCase(nombreRol)) {
+                return true; // ¡Lo encontramos!
+            }
+        }
+        // Si terminamos el bucle sin encontrarlo, no lo tiene.
+        return false;
+    }
 }

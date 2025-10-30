@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 
-import com.ingsoftware.proyectosemestral.DTO.UsuarioProfileUpdateDto;
+import com.ingsoftware.proyectosemestral.DTO.UsuarioActualizarDto;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -27,45 +27,44 @@ public class UsuarioControlador {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')") // <-- CORREGIDO
     public ResponseEntity<List<UsuarioResponseDto>> getAll() {
         return ResponseEntity.ok(usuarioServicio.getAll());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')") // <-- CORREGIDO
     public ResponseEntity<UsuarioResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(usuarioServicio.getById(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')") // <-- CORREGIDO
     public ResponseEntity<UsuarioResponseDto> create(@Valid @RequestBody UsuarioCreateDto dto) {
         UsuarioResponseDto created = usuarioServicio.create(dto);
         return ResponseEntity.created(URI.create("/api/usuarios/" + created.getUsuarioId())).body(created);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')") // <-- CORREGIDO
     public ResponseEntity<UsuarioResponseDto> update(@PathVariable Long id, @Valid @RequestBody UsuarioCreateDto dto) {
         UsuarioResponseDto updated = usuarioServicio.update(id, dto);
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')") // <-- CORREGIDO
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         usuarioServicio.desactivate(id);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/me")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated()") // <-- Este estaba bien (es para cualquier usuario)
     public ResponseEntity<UsuarioResponseDto> updateProfile(Authentication authentication,
-                                                            @Valid @RequestBody UsuarioProfileUpdateDto dto) {
+                                                            @Valid @RequestBody UsuarioActualizarDto dto) {
         String rut = authentication.getName(); // UsuarioPrincipal.getUsername() devuelve el RUT
         UsuarioResponseDto updated = usuarioServicio.updateProfile(rut, dto);
         return ResponseEntity.ok(updated);
     }
 }
-

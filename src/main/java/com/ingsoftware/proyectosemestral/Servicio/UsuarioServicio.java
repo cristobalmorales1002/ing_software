@@ -1,10 +1,11 @@
 package com.ingsoftware.proyectosemestral.Servicio;
 
+import com.ingsoftware.proyectosemestral.DTO.UsuarioActualizarDto;
 import com.ingsoftware.proyectosemestral.DTO.UsuarioCreateDto;
 import com.ingsoftware.proyectosemestral.DTO.UsuarioResponseDto;
 import com.ingsoftware.proyectosemestral.Modelo.Rol;
 import com.ingsoftware.proyectosemestral.Modelo.Usuario;
-import com.ingsoftware.proyectosemestral.DTO.UsuarioProfileUpdateDto;
+import com.ingsoftware.proyectosemestral.DTO.UsuarioActualizarDto;
 import com.ingsoftware.proyectosemestral.Repositorio.RolRepositorio;
 import com.ingsoftware.proyectosemestral.Repositorio.UsuarioRepositorio;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +60,12 @@ public class UsuarioServicio {
             throw new RuntimeException("Email ya registrado");
         });
 
+        // --- ¡VALIDACIÓN AÑADIDA! ---
+        if (dto.getPassword() == null || dto.getPassword().isBlank()) {
+            throw new IllegalArgumentException("La contraseña no puede estar vacía al crear un usuario.");
+        }
+        // --- FIN DE LA VALIDACIÓN ---
+
         Usuario u = new Usuario();
         u.setRut(dto.getRut());
         u.setNombres(dto.getNombres());
@@ -70,12 +77,12 @@ public class UsuarioServicio {
 
         // asignar rol (esperando que rol exista)
         Rol rol = rolRepositorio.findByNombre(dto.getRol())
-                .orElseThrow(() -> new RuntimeException("Rol no existe: " + dto.getRol()));
+                .orElseThrow(() -> new RuntimeException("Rol no existe: ".concat(dto.getRol())));
         u.getRoles().add(rol);
 
         Usuario saved = usuarioRepositorio.save(u);
 
-    // opcional: registrar la acción
+        // opcional: registrar la acción
         if (registroServicio != null) {
             // registroServicio.registrarAccion(...);
         }
@@ -140,7 +147,7 @@ public class UsuarioServicio {
      * Solo permite cambiar email, telefono y password.
      */
     @Transactional
-    public UsuarioResponseDto updateProfile(String rut, UsuarioProfileUpdateDto dto) {
+    public UsuarioResponseDto updateProfile(String rut, UsuarioActualizarDto dto) {
         Usuario u = usuarioRepositorio.findByRut(rut)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con RUT: " + rut));
 

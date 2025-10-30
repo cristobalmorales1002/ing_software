@@ -25,7 +25,6 @@ public class UsuarioCreateDto {
 
     private String telefono;
 
-    @NotBlank
     private String password; // campo de entrada para crear usuario
 
     @NotBlank

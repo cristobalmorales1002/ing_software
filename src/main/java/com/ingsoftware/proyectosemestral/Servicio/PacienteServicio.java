@@ -156,7 +156,7 @@ public class PacienteServicio {
                     }
                     return rDto;
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()); //comentario prueba
 
         dto.setRespuestas(respuestasDto);
         return dto;

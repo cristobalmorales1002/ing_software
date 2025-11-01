@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
-class UsuarioServicioIntegrationTest {
+class UsuarioServicioTest {
 
     @Autowired
     private UsuarioServicio usuarioServicio;

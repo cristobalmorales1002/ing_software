@@ -45,7 +45,7 @@ class CrudPacientesTest {
     private PacienteResponseDto controlDeJuanito;
     private List<RespuestaDto> dtoRespuesta;
 
-    // Helper para crear permisos
+
     private Permiso crearPermiso(String nombre, String descripcion) {
         Permiso p = new Permiso();
         p.setNombre(nombre);
@@ -171,7 +171,6 @@ class CrudPacientesTest {
         respuestaEditada.setValor("VALOR-EDITADO");
 
         dtoRespuesta = List.of(respuestaEditada);
-        // --- FIN BLOQUE CORREGIDO ---
     }
 
     @Test

@@ -150,15 +150,13 @@ class VariableServicioTest {
         assertEquals("Positivo", opcionesNuevas.get(0).getEtiqueta());
     }
 
-    // --- PRUEBAS DE CASOS NEGATIVOS AÑADIDAS ---
-
     @Test
     void testCrearPreguntaFalla_CategoriaInvalida() {
         PreguntaDto dto = new PreguntaDto();
         dto.setEtiqueta("Test");
         dto.setDescripcion("Test desc");
         dto.setTipo_dato(TipoDato.TEXTO);
-        dto.setCategoriaId(9999L); // ID de Categoría que no existe
+        dto.setCategoriaId(9999L);
         dto.setUsuarioId(adminId);
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
@@ -173,7 +171,7 @@ class VariableServicioTest {
         PreguntaDto dto = new PreguntaDto();
         dto.setEtiqueta("Test");
         dto.setDescripcion("Test desc");
-        dto.setTipo_dato(null); // Tipo de dato nulo
+        dto.setTipo_dato(null);
         dto.setCategoriaId(categoriaTest.getId_cat());
         dto.setUsuarioId(adminId);
 

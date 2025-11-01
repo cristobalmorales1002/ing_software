@@ -4,7 +4,6 @@ import com.ingsoftware.proyectosemestral.DTO.PreguntaDto;
 import com.ingsoftware.proyectosemestral.Modelo.Pregunta;
 import com.ingsoftware.proyectosemestral.Modelo.Usuario;
 import com.ingsoftware.proyectosemestral.Repositorio.UsuarioRepositorio;
-import com.ingsoftware.proyectosemestral.Servicio.UsuarioServicio;
 import com.ingsoftware.proyectosemestral.Servicio.VariableServicio;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -35,15 +34,12 @@ public class VariableControlador {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<List<PreguntaDto>> obtenerTodas() {
 
-        // 1. Obtenemos todas las entidades de la BDD
         List<Pregunta> listaDePreguntas = variableServicio.obtenerTodasLasPreguntas();
 
-        // 2. Mapeamos esa lista de Entidades a una lista de DTOs
         List<PreguntaDto> listaDeDtos = listaDePreguntas.stream()
                 .map(this::mapearEntidadADto)
                 .toList();
 
-        // 3. Devolvemos la lista de DTOs con un 200 OK
         return ResponseEntity.ok(listaDeDtos);
     }
 
@@ -57,18 +53,15 @@ public class VariableControlador {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<Void> archivar(@PathVariable("id") Long id, // <-- Este es el idPregunta
+    public ResponseEntity<Void> archivar(@PathVariable("id") Long id,
                                          Authentication authentication) {
 
-        // 1. Obtenemos el RUT del usuario logueado
         String rutUsuarioLogueado = authentication.getName();
 
-        // 2. Buscamos al usuario en la BDD para saber su ID
         Usuario usuario = usuarioRepositorio.findByRut(rutUsuarioLogueado)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario de sesión no encontrado"));
 
-        // 3. Llamamos al servicio con AMBOS IDs
-        variableServicio.archivarPregunta(id, usuario.getIdUsuario()); // (O .getId(), tu getter de ID)
+        variableServicio.archivarPregunta(id, usuario.getIdUsuario());
 
         return ResponseEntity.noContent().build();
     }
@@ -98,10 +91,8 @@ public class VariableControlador {
             @PathVariable("id") Long id,
             @RequestBody PreguntaDto preguntaDto) {
 
-        // Llamamos al nuevo metodo de servicio para actualizar la pregunta
         Pregunta preguntaActualizada = variableServicio.actualizarPregunta(id, preguntaDto);
 
-        // Mapeamos la entidad actualizada de vuelta a un DTO para la respuesta
         PreguntaDto dtoRespuesta = mapearEntidadADto(preguntaActualizada);
 
         return ResponseEntity.ok(dtoRespuesta);

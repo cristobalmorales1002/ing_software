@@ -5,7 +5,6 @@ import com.ingsoftware.proyectosemestral.DTO.UsuarioCreateDto;
 import com.ingsoftware.proyectosemestral.DTO.UsuarioResponseDto;
 import com.ingsoftware.proyectosemestral.Modelo.Rol;
 import com.ingsoftware.proyectosemestral.Modelo.Usuario;
-import com.ingsoftware.proyectosemestral.DTO.UsuarioActualizarDto;
 import com.ingsoftware.proyectosemestral.Repositorio.RolRepositorio;
 import com.ingsoftware.proyectosemestral.Repositorio.UsuarioRepositorio;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +21,7 @@ public class UsuarioServicio {
     private final UsuarioRepositorio usuarioRepositorio;
     private final RolRepositorio rolRepositorio;
     private final PasswordEncoder passwordEncoder;
-    private final RegistroServicio registroServicio; // opcional, inyectar si lo usas
+    private final RegistroServicio registroServicio;
 
     @Autowired
     public UsuarioServicio(UsuarioRepositorio usuarioRepositorio,
@@ -35,24 +34,20 @@ public class UsuarioServicio {
         this.registroServicio = registroServicio;
     }
 
-    // LISTAR
     public List<UsuarioResponseDto> getAll() {
         return usuarioRepositorio.findAll().stream()
                 .map(this::toResponseDto)
                 .collect(Collectors.toList());
     }
 
-    // OBTENER POR ID
     public UsuarioResponseDto getById(Long id) {
         Usuario u = usuarioRepositorio.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
         return toResponseDto(u);
     }
 
-    // CREAR
     @Transactional
     public UsuarioResponseDto create(UsuarioCreateDto dto) {
-        // validaciones de unicidad
         usuarioRepositorio.findByRut(dto.getRut()).ifPresent(x -> {
             throw new RuntimeException("RUT ya registrado");
         });
@@ -60,11 +55,9 @@ public class UsuarioServicio {
             throw new RuntimeException("Email ya registrado");
         });
 
-        // --- ¡VALIDACIÓN AÑADIDA! ---
         if (dto.getPassword() == null || dto.getPassword().isBlank()) {
             throw new IllegalArgumentException("La contraseña no puede estar vacía al crear un usuario.");
         }
-        // --- FIN DE LA VALIDACIÓN ---
 
         Usuario u = new Usuario();
         u.setRut(dto.getRut());
@@ -75,28 +68,20 @@ public class UsuarioServicio {
         u.setContrasena(passwordEncoder.encode(dto.getPassword()));
         u.setActivo(true);
 
-        // asignar rol (esperando que rol exista)
         Rol rol = rolRepositorio.findByNombre(dto.getRol())
                 .orElseThrow(() -> new RuntimeException("Rol no existe: ".concat(dto.getRol())));
         u.getRoles().add(rol);
 
         Usuario saved = usuarioRepositorio.save(u);
 
-        // opcional: registrar la acción
-        if (registroServicio != null) {
-            // registroServicio.registrarAccion(...);
-        }
-
         return toResponseDto(saved);
     }
 
-    // ACTUALIZAR (puedes separar DTOs para update si quieres)
     @Transactional
     public UsuarioResponseDto update(Long id, UsuarioCreateDto dto) {
         Usuario u = usuarioRepositorio.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
 
-        // si cambias rut/email, validar unicidad
         if (!u.getRut().equals(dto.getRut())) {
             usuarioRepositorio.findByRut(dto.getRut()).ifPresent(x -> { throw new RuntimeException("RUT ya en uso"); });
             u.setRut(dto.getRut());
@@ -110,12 +95,10 @@ public class UsuarioServicio {
         u.setApellidos(dto.getApellidos());
         u.setTelefono(dto.getTelefono());
 
-    // si viene password no vacía, actualizarla
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
             u.setContrasena(passwordEncoder.encode(dto.getPassword()));
         }
 
-    // actualizar rol si cambió
         Rol nuevoRol = rolRepositorio.findByNombre(dto.getRol())
                 .orElseThrow(() -> new RuntimeException("Rol no existe: " + dto.getRol()));
         u.getRoles().clear();
@@ -125,7 +108,6 @@ public class UsuarioServicio {
         return toResponseDto(saved);
     }
 
-    // DESACTIVAR (el frontend espera toggle)
     @Transactional
     public void desactivate(Long id) {
         Usuario u = usuarioRepositorio.findById(id)
@@ -142,10 +124,6 @@ public class UsuarioServicio {
         usuarioRepositorio.save(u);
     }
 
-    /**
-     * Actualiza el perfil del usuario identificado por su RUT (username en Security).
-     * Solo permite cambiar email, telefono y password.
-     */
     @Transactional
     public UsuarioResponseDto updateProfile(String rut, UsuarioActualizarDto dto) {
         Usuario u = usuarioRepositorio.findByRut(rut)
@@ -170,7 +148,6 @@ public class UsuarioServicio {
         return toResponseDto(saved);
     }
 
-    // MAPEADOR (puedes mover a UsuarioMapper si prefieres)
     private UsuarioResponseDto toResponseDto(Usuario u) {
         String rolNombre = u.getRoles().stream()
                 .findFirst()

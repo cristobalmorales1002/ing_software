@@ -30,7 +30,6 @@ class UsuarioServicioTest {
     @Autowired
     private RolRepositorio rolRepositorio;
 
-    // Helper para crear roles
     private Rol crearRol(String nombre) {
         Rol r = new Rol();
         r.setNombre(nombre);
@@ -39,11 +38,9 @@ class UsuarioServicioTest {
 
     @BeforeEach
     void setUp() {
-        // Creamos los roles necesarios para las pruebas
         Rol rolAdmin = crearRol("ROLE_ADMIN");
         Rol rolEstudiante = crearRol("ROLE_ESTUDIANTE");
 
-        // Creamos un usuario base (Admin) para probar duplicados
         UsuarioCreateDto adminDto = new UsuarioCreateDto();
         adminDto.setRut("11.111.111-1");
         adminDto.setNombres("Admin");
@@ -94,7 +91,7 @@ class UsuarioServicioTest {
         dto.setRut("2.222.222-2");
         dto.setNombres("Email");
         dto.setApellidos("Duplicado");
-        dto.setEmail("admin@test.cl"); // Email Duplicado (del setUp)
+        dto.setEmail("admin@test.cl");
         dto.setPassword("clave123");
         dto.setRol("ROLE_ESTUDIANTE");
 
@@ -113,7 +110,7 @@ class UsuarioServicioTest {
         dto.setApellidos("Falso");
         dto.setEmail("rolfalso@plataforma.cl");
         dto.setPassword("clave123");
-        dto.setRol("ROLE_INVENTADO"); // Rol No Existe
+        dto.setRol("ROLE_INVENTADO");
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             usuarioServicio.create(dto);
@@ -148,7 +145,6 @@ class UsuarioServicioTest {
         dto.setRol("ROLE_ESTUDIANTE");
         usuarioServicio.create(dto);
 
-        // El Admin (11.111...) intenta tomar el email del Usuario Dos (4.444...)
         String rutAdmin = "11.111.111-1";
         UsuarioActualizarDto dtoUpdate = new UsuarioActualizarDto();
         dtoUpdate.setEmail("usuario2@test.cl"); // Email que ya existe

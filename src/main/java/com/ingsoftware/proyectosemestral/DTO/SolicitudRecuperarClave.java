@@ -1,6 +1,6 @@
 package com.ingsoftware.proyectosemestral.DTO;
 
-import lombok.*; // Importa las anotaciones de Lombok
+import lombok.*;
 
 @Getter
 @Setter

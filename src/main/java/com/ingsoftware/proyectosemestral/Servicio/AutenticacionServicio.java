@@ -44,17 +44,13 @@ public class AutenticacionServicio {
         Usuario usuario = usuarioRepositorio.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con email: " + email));
 
-        // Genera un token único (UUID es una buena opción)
         String token = UUID.randomUUID().toString();
-        // Establece la expiración (ej. 1 hora desde ahora)
         LocalDateTime expiracion = LocalDateTime.now().plusHours(1);
 
-        // Guarda el token y la expiración en el usuario
         usuario.setTokenRecuperacion(token);
         usuario.setToken_rec_expiracion(expiracion);
         usuarioRepositorio.save(usuario);
 
-        // Envía el correo
         enviarCorreoRecuperacion(usuario.getEmail(), token);
     }
 
@@ -62,18 +58,15 @@ public class AutenticacionServicio {
         Usuario usuario = usuarioRepositorio.findByTokenRecuperacion(token)
                 .orElseThrow(() -> new RuntimeException("Token de recuperación inválido o no encontrado"));
 
-        // Valida que el token no haya expirado
+
         if (usuario.getToken_rec_expiracion().isBefore(LocalDateTime.now())) {
-            // Limpia el token expirado por seguridad
             usuario.setTokenRecuperacion(null);
             usuario.setToken_rec_expiracion(null);
             usuarioRepositorio.save(usuario);
             throw new RuntimeException("El token de recuperación ha expirado");
         }
 
-        // Actualiza la contraseña (encriptándola)
         usuario.setContrasena(codificadorDeContrasena.encode(nuevaContrasena));
-        // Limpia el token y la expiración para que no se pueda reusar
         usuario.setTokenRecuperacion(null);
         usuario.setToken_rec_expiracion(null);
         usuarioRepositorio.save(usuario);

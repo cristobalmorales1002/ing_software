@@ -30,11 +30,9 @@ public class VariableServicio {
             throw new IllegalArgumentException("tipo_dato es obligatorio");
         }
 
-        // 2) Resolver Categoria
         Categoria categoria = categoriaRepositorio.findById(dto.getCategoriaId())
                 .orElseThrow(() -> new IllegalArgumentException("No existe Categoria con id=" + dto.getCategoriaId()));
 
-        // 3) Construir Pregunta
         Pregunta p = new Pregunta();
         p.setEtiqueta(dto.getEtiqueta());
         p.setDescripcion(dto.getDescripcion());
@@ -82,16 +80,13 @@ public class VariableServicio {
     }
 
     @Transactional
-    public void archivarPregunta(Long idPregunta, Long idUsuario) { // <-- CAMBIO 1
-        // 1. Buscamos la pregunta
+    public void archivarPregunta(Long idPregunta, Long idUsuario) {
         Pregunta p = obtenerPorId(idPregunta);
 
-        // 2. La marcamos como inactiva
         p.setActivo(false);
-        preguntaRepositorio.save(p); // Guardamos el cambio de estado
+        preguntaRepositorio.save(p);
 
-        // 3. Registramos la acción con el ID de usuario CORRECTO
-        var usrOpt = usuarioRepositorio.findById(idUsuario); // <-- CAMBIO 2
+        var usrOpt = usuarioRepositorio.findById(idUsuario);
         if (usrOpt.isPresent()) {
             String detalles = "Archivó la pregunta ID=" + p.getPregunta_id()
                     + " (" + p.getEtiqueta() + ")";
@@ -106,20 +101,17 @@ public class VariableServicio {
 
     @Transactional
     public Pregunta actualizarPregunta(Long id, PreguntaDto dto) {
-        // 1. Buscamos la pregunta que queremos editar
         Pregunta p = obtenerPorId(id);
 
-        // 2. Actualizamos los campos simples
         p.setEtiqueta(dto.getEtiqueta());
         p.setDescripcion(dto.getDescripcion());
         p.setTipo_dato(dto.getTipo_dato());
         p.setDato_sensible(dto.isDato_sensible());
-        p.setActivo(dto.isActivo()); // Permitimos reactivarla
+        p.setActivo(dto.isActivo());
         p.setOrden(dto.getOrden());
         p.setDicotomizacion(dto.getDicotomizacion());
         p.setSentido_corte(dto.getSentido_corte());
 
-        // 3. Actualizamos la Categoria (si cambió)
         if (dto.getCategoriaId() != null && !p.getCategoria().getId_cat().equals(dto.getCategoriaId())) {
             Categoria categoria = categoriaRepositorio.findById(dto.getCategoriaId())
                     .orElseThrow(() -> new IllegalArgumentException("No existe Categoria con id=" + dto.getCategoriaId()));
@@ -144,7 +136,6 @@ public class VariableServicio {
                 var usr = usrOpt.get();
                 String detalles = "Actualizó la pregunta ID=" + p.getPregunta_id()
                         + " (" + p.getEtiqueta() + ")";
-                // Usamos el método generalista de tu RegistroServicio
                 registroServicio.registrarAccion(usr, "ACTUALIZAR_PREGUNTA", detalles);
             }
         }

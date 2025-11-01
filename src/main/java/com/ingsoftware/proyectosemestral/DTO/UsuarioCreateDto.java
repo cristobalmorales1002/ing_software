@@ -25,8 +25,8 @@ public class UsuarioCreateDto {
 
     private String telefono;
 
-    private String password; // campo de entrada para crear usuario
+    private String password;
 
     @NotBlank
-    private String rol; // nombre del rol a asignar (ej. "ADMIN")
+    private String rol;
 }

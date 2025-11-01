@@ -111,7 +111,7 @@ public class PacienteServicio {
         boolean esEstudiante = usuario.tieneRol("ROLE_ESTUDIANTE");
 
         if (paciente.getEsCaso()) {
-            if (!esMedico) {
+            if (!esMedico && !esAdminOInvestigador) {
                 throw new AccessDeniedException("Acceso denegado: Solo los Médicos pueden editar 'Casos'.");
             }
         } else {

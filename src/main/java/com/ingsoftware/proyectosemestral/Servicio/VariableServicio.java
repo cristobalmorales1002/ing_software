@@ -47,19 +47,26 @@ public class VariableServicio {
 
         p = preguntaRepositorio.save(p);
 
+        // Crear opciones si el tipo es ENUM
         if (dto.getTipo_dato() == TipoDato.ENUM) {
             List<String> opciones = Optional.ofNullable(dto.getOpciones()).orElseGet(ArrayList::new);
             int i = 1;
             for (String etiqueta : opciones) {
                 if (etiqueta == null || etiqueta.isBlank()) continue;
+
                 OpcionPregunta op = new OpcionPregunta();
                 op.setPregunta(p);
                 op.setEtiqueta(etiqueta.trim());
                 op.setOrden(i++);
+
+                // Asignar null para valorDicotomizado (campo opcional)
+                op.setValorDicotomizado(null);
+
                 opcionPreguntaRepositorio.save(op);
             }
         }
 
+        // Registrar acción en auditoría
         if (dto.getUsuarioId() != null) {
             var usrOpt = usuarioRepositorio.findById(dto.getUsuarioId());
             if (usrOpt.isPresent()) {
@@ -86,6 +93,7 @@ public class VariableServicio {
         p.setActivo(false);
         preguntaRepositorio.save(p);
 
+        // Registrar acción en auditoría
         var usrOpt = usuarioRepositorio.findById(idUsuario);
         if (usrOpt.isPresent()) {
             String detalles = "Archivó la pregunta ID=" + p.getPregunta_id()
@@ -112,24 +120,35 @@ public class VariableServicio {
         p.setDicotomizacion(dto.getDicotomizacion());
         p.setSentido_corte(dto.getSentido_corte());
 
+        // Actualizar categoría si cambió
         if (dto.getCategoriaId() != null && !p.getCategoria().getId_cat().equals(dto.getCategoriaId())) {
             Categoria categoria = categoriaRepositorio.findById(dto.getCategoriaId())
                     .orElseThrow(() -> new IllegalArgumentException("No existe Categoria con id=" + dto.getCategoriaId()));
             p.setCategoria(categoria);
         }
+
+        // Eliminar opciones anteriores y crear nuevas
         opcionPreguntaRepositorio.deleteByPregunta(p);
+
         if (dto.getTipo_dato() == TipoDato.ENUM) {
             List<String> opciones = Optional.ofNullable(dto.getOpciones()).orElseGet(ArrayList::new);
             int i = 1;
             for (String etiqueta : opciones) {
                 if (etiqueta == null || etiqueta.isBlank()) continue;
+
                 OpcionPregunta op = new OpcionPregunta();
                 op.setPregunta(p);
                 op.setEtiqueta(etiqueta.trim());
                 op.setOrden(i++);
+
+                // Asignar null para valorDicotomizado (campo opcional)
+                op.setValorDicotomizado(null);
+
                 opcionPreguntaRepositorio.save(op);
             }
         }
+
+        // Registrar acción en auditoría
         if (dto.getUsuarioId() != null) {
             var usrOpt = usuarioRepositorio.findById(dto.getUsuarioId());
             if (usrOpt.isPresent()) {
@@ -139,6 +158,7 @@ public class VariableServicio {
                 registroServicio.registrarAccion(usr, "ACTUALIZAR_PREGUNTA", detalles);
             }
         }
-        return p;
+
+        return preguntaRepositorio.save(p);
     }
 }

@@ -27,4 +27,7 @@ public class OpcionPregunta {
     @JoinColumn(name = "pregunta_id", nullable = false)
     private Pregunta pregunta;
 
+    @Column(nullable = true)
+    private Double valorDicotomizado;
+
 }

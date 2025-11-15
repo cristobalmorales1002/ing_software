@@ -18,4 +18,6 @@ public interface PacienteRepositorio extends JpaRepository<Paciente, Long> {
 
     //Metodo para generar el codigo del paciente 'generarCodigoPaciente' en PacienteServicio
     long countByEsCaso(boolean esCaso);
+
+    List<Paciente> findByActivoTrue();
 }

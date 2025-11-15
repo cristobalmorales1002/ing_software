@@ -55,4 +55,8 @@ public class Pregunta {
 
     @OneToMany(mappedBy = "pregunta", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Respuesta> respuestas = new HashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20) default 'NINGUNO'")
+    private TipoCorte tipoCorte = TipoCorte.NINGUNO;
 }

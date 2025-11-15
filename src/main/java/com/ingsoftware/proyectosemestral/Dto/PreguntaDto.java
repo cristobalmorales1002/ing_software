@@ -1,6 +1,7 @@
 package com.ingsoftware.proyectosemestral.DTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ingsoftware.proyectosemestral.Modelo.SentidoCorte;
+import com.ingsoftware.proyectosemestral.Modelo.TipoCorte;
 import com.ingsoftware.proyectosemestral.Modelo.TipoDato;
 import lombok.Data;
 
@@ -29,4 +30,6 @@ public class PreguntaDto {
     private List<String> opciones;
 
     private Long usuarioId;
+
+    private TipoCorte tipoCorte;
 }

@@ -45,6 +45,8 @@ public class VariableServicio {
         p.setDicotomizacion(dto.getDicotomizacion());
         p.setSentido_corte(dto.getSentido_corte());
 
+        p.setExportable(dto.isExportable());
+
         p = preguntaRepositorio.save(p);
 
         // Crear opciones si el tipo es ENUM
@@ -119,6 +121,7 @@ public class VariableServicio {
         p.setOrden(dto.getOrden());
         p.setDicotomizacion(dto.getDicotomizacion());
         p.setSentido_corte(dto.getSentido_corte());
+        p.setExportable(dto.isExportable());
 
         // Actualizar categoría si cambió
         if (dto.getCategoriaId() != null && !p.getCategoria().getId_cat().equals(dto.getCategoriaId())) {

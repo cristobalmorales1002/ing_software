@@ -25,22 +25,25 @@ public class ExportacionServicio {
     @Autowired
     private PreguntaRepositorio preguntaRepositorio;
 
-    private void recolectarDato(Map<Integer, List<String>> colector, int colIdx, String valor) {
-        if (valor == null) {
-            valor = "";
-        }
-        colector.computeIfAbsent(colIdx, k -> new ArrayList<>()).add(valor);
-    }
+    // --- Lógica de Recuento (Comentada para futuro) ---
+    // private void recolectarDato(Map<Integer, List<String>> colector, int colIdx, String valor) {
+    //     if (valor == null) {
+    //         valor = "";
+    //     }
+    //     colector.computeIfAbsent(colIdx, k -> new ArrayList<>()).add(valor);
+    // }
 
     @Transactional(readOnly = true)
     public ByteArrayInputStream generarExcel(boolean anonimo, boolean dicotomizar) throws IOException {
 
         List<Paciente> pacientes = pacienteRepositorio.findByActivoTrue();
         List<Pregunta> preguntas;
+
+        // Usamos los métodos del repositorio que filtran por 'exportable = true'
         if (anonimo) {
-            preguntas = preguntaRepositorio.findByActivoTrueAndDato_sensibleFalseOrderByOrdenAsc();
+            preguntas = preguntaRepositorio.findByActivoTrueAndDato_sensibleFalseAndExportableTrueOrderByOrdenAsc();
         } else {
-            preguntas = preguntaRepositorio.findByActivoTrueOrderByOrdenAsc();
+            preguntas = preguntaRepositorio.findByActivoTrueAndExportableTrueOrderByOrdenAsc();
         }
 
         Map<Long, Double> medias = new HashMap<>();
@@ -82,29 +85,39 @@ public class ExportacionServicio {
             Row headerRow = sheet.createRow(0);
             int cellIdx = 0;
 
+            // --- Lógica de Recuento (Comentada para futuro) ---
+            // Set<Integer> indicesDeColumnasCategoricas = new HashSet<>();
+
+
+            // --- Encabezados Estáticos ---
             if (!anonimo) {
                 headerRow.createCell(cellIdx++).setCellValue("ID_Participante");
                 headerRow.createCell(cellIdx++).setCellValue("Codigo_Participante");
             }
-            headerRow.createCell(cellIdx++).setCellValue("Es_Caso");
-            if (!anonimo) {
-                headerRow.createCell(cellIdx++).setCellValue("Fecha_Inclusion");
-                headerRow.createCell(cellIdx++).setCellValue("RUT_Reclutador");
-            }
 
+            // indicesDeColumnasCategoricas.add(cellIdx); // Recuento: 'Es_Caso'
+            headerRow.createCell(cellIdx++).setCellValue("Es_Caso");
+
+            // --- Encabezados de Preguntas (Dinámicos) ---
             for (Pregunta p : preguntas) {
+                // if (p.getTipo_dato() == TipoDato.ENUM) {
+                //     indicesDeColumnasCategoricas.add(cellIdx); // Recuento: ENUMs
+                // }
                 headerRow.createCell(cellIdx++).setCellValue(p.getEtiqueta());
             }
 
+            // --- Encabezados Dicotomizados ---
             if (dicotomizar) {
                 for (Pregunta p : preguntas) {
                     if (p.getTipo_dato() == TipoDato.NUMERO && p.getTipoCorte() != null && p.getTipoCorte() != TipoCorte.NINGUNO) {
+                        // indicesDeColumnasCategoricas.add(cellIdx); // Recuento: Columnas _d
                         headerRow.createCell(cellIdx++).setCellValue(p.getEtiqueta() + "_d_" + p.getSentido_corte().toString());
                     }
                 }
             }
 
-            Map<Integer, List<String>> datosPorColumna = new HashMap<>();
+            // --- Lógica de Recuento (Comentada para futuro) ---
+            // Map<Integer, List<String>> datosPorColumna = new HashMap<>();
 
             int rowNum = 1;
             for (Paciente p : pacientes) {
@@ -117,31 +130,19 @@ public class ExportacionServicio {
                 if (!anonimo) {
                     String idVal = String.valueOf(p.getParticipante_id());
                     dataRow.createCell(cellIdx).setCellValue(idVal);
-                    recolectarDato(datosPorColumna, cellIdx, idVal);
+                    // recolectarDato(datosPorColumna, cellIdx, idVal);
                     cellIdx++;
 
                     String codVal = p.getParticipanteCod();
                     dataRow.createCell(cellIdx).setCellValue(codVal);
-                    recolectarDato(datosPorColumna, cellIdx, codVal);
+                    // recolectarDato(datosPorColumna, cellIdx, codVal);
                     cellIdx++;
                 }
 
                 String casoVal = p.getEsCaso() ? (dicotomizar ? "1" : "CASO") : (dicotomizar ? "0" : "CONTROL");
                 dataRow.createCell(cellIdx).setCellValue(casoVal);
-                recolectarDato(datosPorColumna, cellIdx, casoVal);
+                // recolectarDato(datosPorColumna, cellIdx, casoVal);
                 cellIdx++;
-
-                if (!anonimo) {
-                    String fechaVal = p.getFechaIncl().toString();
-                    dataRow.createCell(cellIdx).setCellValue(fechaVal);
-                    recolectarDato(datosPorColumna, cellIdx, fechaVal);
-                    cellIdx++;
-
-                    String rutVal = p.getReclutador().getRut();
-                    dataRow.createCell(cellIdx).setCellValue(rutVal);
-                    recolectarDato(datosPorColumna, cellIdx, rutVal);
-                    cellIdx++;
-                }
 
                 for (Pregunta pHeader : preguntas) {
                     String valorCrudo = mapaRespuestas.get(pHeader.getPregunta_id());
@@ -153,7 +154,7 @@ public class ExportacionServicio {
 
                     String valorCelda = (valorFinal != null ? valorFinal : "");
                     dataRow.createCell(cellIdx).setCellValue(valorCelda);
-                    recolectarDato(datosPorColumna, cellIdx, valorCelda);
+                    // recolectarDato(datosPorColumna, cellIdx, valorCelda);
                     cellIdx++;
                 }
 
@@ -193,62 +194,55 @@ public class ExportacionServicio {
                                 }
                             }
                             dataRow.createCell(cellIdx).setCellValue(resultado);
-                            recolectarDato(datosPorColumna, cellIdx, resultado);
+                            // recolectarDato(datosPorColumna, cellIdx, resultado);
                             cellIdx++;
                         }
                     }
                 }
             }
 
-            // --- 5. ESCRIBIR FILAS DE RECUENTO (Versión 2.0 - Más Clara) ---
-            rowNum++; // Dejar una fila en blanco
+            // --- 5. SECCIÓN DE RECUENTO (Toda comentada) ---
 
-            Map<String, Row> filasDeRecuentoCreadas = new HashMap<>();
-            int numColumnas = headerRow.getLastCellNum();
+            // rowNum++;
 
-            // Iterar por CADA COLUMNA para generar su recuento
-            for (int colIdx = 0; colIdx < numColumnas; colIdx++) {
+            // Map<String, Row> filasDeRecuentoCreadas = new HashMap<>();
+            // int numColumnas = headerRow.getLastCellNum();
 
-                List<String> datosDeEstaColumna = datosPorColumna.get(colIdx);
+            // for (int colIdx = 0; colIdx < numColumnas; colIdx++) {
 
-                if (datosDeEstaColumna == null || datosDeEstaColumna.isEmpty()) {
-                    continue;
-                }
+            //     if (!indicesDeColumnasCategoricas.contains(colIdx)) {
+            //         continue;
+            //     }
 
-                // Calcular frecuencias para ESTA columna
-                Map<String, Long> frecuencias = datosDeEstaColumna.stream()
-                        .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
+            //     List<String> datosDeEstaColumna = datosPorColumna.get(colIdx);
+            //     if (datosDeEstaColumna == null || datosDeEstaColumna.isEmpty()) {
+            //         continue;
+            //     }
 
-                // No hacer recuento de columnas con demasiados valores únicos (ej. RUT, ID)
-                // Si tiene más de 8 valores únicos O si todos son únicos, no es categórico.
-                if (frecuencias.size() > 8 || frecuencias.size() == datosDeEstaColumna.size()) {
-                    continue;
-                }
+            //     Map<String, Long> frecuencias = datosDeEstaColumna.stream()
+            //         .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
 
-                // Ahora, iterar por cada frecuencia (ej. "Sí" -> 1, "No" -> 2)
-                for (Map.Entry<String, Long> entry : frecuencias.entrySet()) {
-                    String valor = entry.getKey();
-                    Long conteo = entry.getValue();
+            //     for (Map.Entry<String, Long> entry : frecuencias.entrySet()) {
+            //         String valor = entry.getKey();
+            //         Long conteo = entry.getValue();
 
-                    // Saltar valores vacíos (no queremos un "Recuento ''")
-                    if (valor.isBlank() || conteo == 0) {
-                        continue;
-                    }
+            //         if (valor.isBlank() || conteo == 0) {
+            //             continue;
+            //         }
 
-                    String etiquetaFila = "Recuento '" + valor + "'";
+            //         String etiquetaFila = "Contar '" + valor + "'";
 
-                    Row fila = filasDeRecuentoCreadas.get(etiquetaFila);
+            //         Row fila = filasDeRecuentoCreadas.get(etiquetaFila);
 
-                    if (fila == null) {
-                        fila = sheet.createRow(rowNum++);
-                        fila.createCell(0).setCellValue(etiquetaFila);
-                        filasDeRecuentoCreadas.put(etiquetaFila, fila);
-                    }
+            //         if (fila == null) {
+            //             fila = sheet.createRow(rowNum++);
+            //             fila.createCell(0).setCellValue(etiquetaFila);
+            //             filasDeRecuentoCreadas.put(etiquetaFila, fila);
+            //         }
 
-                    fila.createCell(colIdx).setCellValue(conteo);
-                }
-            }
-            // --- FIN DEL RECUENTO (V2) ---
+            //         fila.createCell(colIdx).setCellValue(conteo);
+            //     }
+            // }
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream);

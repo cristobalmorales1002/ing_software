@@ -59,4 +59,7 @@ public class Pregunta {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(20) default 'NINGUNO'")
     private TipoCorte tipoCorte = TipoCorte.NINGUNO;
+
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean exportable = true;
 }

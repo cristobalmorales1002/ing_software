@@ -16,11 +16,12 @@ public interface PreguntaRepositorio extends JpaRepository<Pregunta, Long> {
     List<Pregunta> findByCategoria(Categoria categoria);
     List<Pregunta> findByCategoriaAndActivo(Categoria categoria, boolean activo);
     Optional<Pregunta> findByEtiqueta(String etiqueta);// Para la exportación COMPLETA
-    @Query("SELECT p FROM Pregunta p WHERE p.activo = true ORDER BY p.orden ASC")
-    List<Pregunta> findByActivoTrueOrderByOrdenAsc();
 
-    // Para la exportación ANÓNIMA (¡Esta es la que fallaba!)
-    // JPQL (la consulta) usa el nombre de la propiedad en Java (dato_sensible)
-    @Query("SELECT p FROM Pregunta p WHERE p.activo = true AND p.dato_sensible = false ORDER BY p.orden ASC")
-    List<Pregunta> findByActivoTrueAndDato_sensibleFalseOrderByOrdenAsc();
+    // Para la exportación COMPLETA
+    @Query("SELECT p FROM Pregunta p WHERE p.activo = true AND p.exportable = true ORDER BY p.orden ASC")
+    List<Pregunta> findByActivoTrueAndExportableTrueOrderByOrdenAsc();
+
+    // Para la exportación ANÓNIMA
+    @Query("SELECT p FROM Pregunta p WHERE p.activo = true AND p.dato_sensible = false AND p.exportable = true ORDER BY p.orden ASC")
+    List<Pregunta> findByActivoTrueAndDato_sensibleFalseAndExportableTrueOrderByOrdenAsc();
 }

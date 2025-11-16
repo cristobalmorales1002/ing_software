@@ -32,4 +32,6 @@ public class PreguntaDto {
     private Long usuarioId;
 
     private TipoCorte tipoCorte;
+
+    private boolean exportable = true;
 }

@@ -1,4 +1,3 @@
-
 package com.ingsoftware.proyectosemestral;
 
 import com.ingsoftware.proyectosemestral.Modelo.Categoria;
@@ -20,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
+// No se necesita el import de BiFunction
 
 @Component
 @Profile(("!test"))
@@ -51,6 +51,20 @@ public class InicializadorAdmin implements CommandLineRunner {
                     return rolRepositorio.save(r);
                 });
     }
+
+    // --- NUEVO MÉTODO DE AYUDA ---
+    // Sigue el mismo patrón que los otros métodos de ayuda
+    private Categoria crearCategoriaSiNoExiste(String nombre, int orden) {
+        return categoriaRepositorio.findByNombre(nombre)
+                .orElseGet(() -> {
+                    logger.info("Creando categoría que falta: {}", nombre);
+                    Categoria c = new Categoria();
+                    c.setNombre(nombre);
+                    c.setOrden(orden);
+                    return categoriaRepositorio.save(c);
+                });
+    }
+
 
     @Override
     public void run(String... args) throws Exception {
@@ -90,24 +104,21 @@ public class InicializadorAdmin implements CommandLineRunner {
         crearUsuarioSiNoExiste("44.444.444-4", "claveinvest", "Investigador", "Jefe", "invest@plataforma.cl", rolInvestigador);
         crearUsuarioSiNoExiste("55.555.555-5", "claveestudiante2", "Jose", "Estudiante", "estudiante2@plataforma.cl", rolEstudiante);
 
+        // --- BLOQUE DE CATEGORÍAS MODIFICADO ---
         logger.info("--- Verificando Categorías Base ---");
-        if (categoriaRepositorio.count() == 0) {
-            logger.info("No se encontraron categorías, creando categorías por defecto...");
 
-            Categoria cat1 = new Categoria();
-            cat1.setNombre("Datos Demográficos");
-            cat1.setOrden(1);
-            categoriaRepositorio.save(cat1);
+        // Llamamos al nuevo helper para cada categoría del CRF
+        crearCategoriaSiNoExiste("Datos sociodemográficos", 1);
+        crearCategoriaSiNoExiste("Antecedentes clínicos", 2);
+        crearCategoriaSiNoExiste("Variables antropométricas", 3);
+        crearCategoriaSiNoExiste("Tabaquismo", 4);
+        crearCategoriaSiNoExiste("Consumo de alcohol", 5);
+        crearCategoriaSiNoExiste("Factores dietarios y ambientales", 6);
+        crearCategoriaSiNoExiste("Infección por Helicobacter pylori", 7);
+        crearCategoriaSiNoExiste("Muestras biológicas y genéticas", 8);
+        crearCategoriaSiNoExiste("Histopatología (solo casos)", 9);
 
-            Categoria cat2 = new Categoria();
-            cat2.setNombre("Hábitos");
-            cat2.setOrden(2);
-            categoriaRepositorio.save(cat2);
-
-            logger.info("¡Categorías base creadas exitosamente!");
-        } else {
-            logger.info("Las categorías base ya existen.");
-        }
+        logger.info("¡Verificación de categorías completada!");
     }
 
     private void crearUsuarioSiNoExiste(String rut, String pass, String nom, String ap, String email, Rol rol) {

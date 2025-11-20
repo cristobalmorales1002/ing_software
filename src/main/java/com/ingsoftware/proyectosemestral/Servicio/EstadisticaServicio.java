@@ -33,7 +33,7 @@ public class EstadisticaServicio {
         List<EstadisticaDto> resultados = new ArrayList<>();
         resultados.add(getConteoPorSexo());
         resultados.add(getConteoPorRangoDeEdad());
-        return null;
+        return EstadisticaDemograficaDto.builder().datos(resultados).build();
     }
 
     private EstadisticaDto getConteoPorSexo() {
@@ -62,7 +62,6 @@ public class EstadisticaServicio {
         List<Respuesta> respuestas = respuestaRepositorio.findByPregunta(preguntaFechaNac);
         LocalDate hoy = LocalDate.now();
 
-        // 1. Convertir fecha de nacimiento a edad y clasificarla en un rango
         Map<String, Long> conteo = respuestas.stream()
                 .filter(r -> r.getValor() != null && !r.getValor().isBlank())
                 .map(r -> {
@@ -86,7 +85,14 @@ public class EstadisticaServicio {
     }
 
     private static String clasificarEdad(int edad) {
-        return null;
+        if (edad >= 18 && edad <= 30) {
+            return "18-30 años";
+        } else if (edad >= 31 && edad <= 50) {
+            return "31-50 años";
+        } else if (edad > 50) {
+            return "Más de 50 años";
+        } else {
+            return "Menores de 18 no existen";
+        }
     }
-
 }

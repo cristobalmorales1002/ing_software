@@ -30,7 +30,28 @@ public class EstadisticaServicio {
 
     @Transactional(readOnly = true)
     public EstadisticaDemograficaDto obtenerEstadisticasDemograficas() {
+        List<EstadisticaDto> resultados = new ArrayList<>();
+        resultados.add(getConteoPorSexo());
         return null;
+    }
+
+    private EstadisticaDto getConteoPorSexo() {
+        Pregunta preguntaSexo = preguntaRepositorio.findByEtiqueta(ETIQUETA_SEXO)
+                .orElseThrow(() -> new RuntimeException("Pregunta de Sexo no encontrada: " + ETIQUETA_SEXO));
+
+        List<Respuesta> respuestas = respuestaRepositorio.findByPregunta(preguntaSexo);
+
+        Map<String, Long> conteo = respuestas.stream()
+                .filter(r -> r.getValor() != null && !r.getValor().isBlank())
+                .collect(Collectors.groupingBy(
+                        Respuesta::getValor,
+                        Collectors.counting()
+                ));
+
+        return EstadisticaDto.builder()
+                .nombreEstadistica("Conteo por Sexo")
+                .conteoPorCategoria(conteo)
+                .build();
     }
 
 }

@@ -32,6 +32,7 @@ public class EstadisticaServicio {
     public EstadisticaDemograficaDto obtenerEstadisticasDemograficas() {
         List<EstadisticaDto> resultados = new ArrayList<>();
         resultados.add(getConteoPorSexo());
+        resultados.add(getConteoPorRangoDeEdad());
         return null;
     }
 
@@ -52,6 +53,40 @@ public class EstadisticaServicio {
                 .nombreEstadistica("Conteo por Sexo")
                 .conteoPorCategoria(conteo)
                 .build();
+    }
+
+    private EstadisticaDto getConteoPorRangoDeEdad() {
+        Pregunta preguntaFechaNac = preguntaRepositorio.findByEtiqueta(ETIQUETA_FECHA_NACIMIENTO)
+                .orElseThrow(() -> new RuntimeException("Pregunta de Fecha de Nacimiento no encontrada: " + ETIQUETA_FECHA_NACIMIENTO));
+
+        List<Respuesta> respuestas = respuestaRepositorio.findByPregunta(preguntaFechaNac);
+        LocalDate hoy = LocalDate.now();
+
+        // 1. Convertir fecha de nacimiento a edad y clasificarla en un rango
+        Map<String, Long> conteo = respuestas.stream()
+                .filter(r -> r.getValor() != null && !r.getValor().isBlank())
+                .map(r -> {
+                    try {
+                        LocalDate fechaNac = LocalDate.parse(r.getValor());
+                        return Period.between(fechaNac, hoy).getYears();
+                    } catch (Exception e) {
+                        return -1;
+                    }
+                })
+                .filter(edad -> edad >= 0)
+                .collect(Collectors.groupingBy(
+                        EstadisticaServicio::clasificarEdad,
+                        Collectors.counting()
+                ));
+
+        return EstadisticaDto.builder()
+                .nombreEstadistica("Conteo por Rangos de Edad")
+                .conteoPorCategoria(conteo)
+                .build();
+    }
+
+    private static String clasificarEdad(int edad) {
+        return null;
     }
 
 }

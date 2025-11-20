@@ -27,4 +27,10 @@ public class EstadisticaServicio {
 
     private static final String ETIQUETA_SEXO = "SEXO";
     private static final String ETIQUETA_FECHA_NACIMIENTO = "FECHA_NACIMIENTO";
+
+    @Transactional(readOnly = true)
+    public EstadisticaDemograficaDto obtenerEstadisticasDemograficas() {
+        return null;
+    }
+
 }

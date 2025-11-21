@@ -1,0 +1,99 @@
+/* Importamos la fuente Poppins */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+/* Fondo general de la página: Oscuro y elegante */
+.login-page {
+    background: radial-gradient(circle at center, #1a2a3a 0%, #0b1219 100%);
+    font-family: 'Poppins', sans-serif;
+    color: #333;
+}
+
+/* La tarjeta blanca */
+.login-card {
+    border: none;
+    border-radius: 16px; /* Bordes redondeados modernos */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); /* Sombra suave pero profunda */
+    overflow: hidden;
+}
+
+/* El logo */
+.login-logo {
+    width: 120px; /* Tamaño mediano */
+    height: auto;
+    margin-bottom: 1rem;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Títulos */
+.login-header h3 {
+    font-weight: 600;
+    color: #003366; /* Azul oscuro del logo */
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.login-header p {
+    font-weight: 300;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+/* Inputs del formulario */
+.form-control {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    background-color: #fff;
+    border-color: #4da8da; /* Celeste del logo */
+    box-shadow: 0 0 0 4px rgba(77, 168, 218, 0.1);
+}
+
+/* Etiquetas de los inputs */
+.form-label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+/* Botón principal */
+.btn-primary {
+    background-color: #003366; /* Azul oscuro institucional */
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: #004080; /* Un poco más claro al pasar el mouse */
+    transform: translateY(-1px); /* Efecto sutil de elevación */
+    box-shadow: 0 4px 12px rgba(0, 51, 102, 0.3);
+}
+
+.btn-primary:disabled {
+    background-color: #6c757d;
+}
+
+/* Link de olvidar contraseña */
+.login-form a {
+    color: #4da8da; /* Celeste del logo */
+    font-size: 0.9rem;
+    font-weight: 400;
+    transition: color 0.2s;
+}
+
+.login-form a:hover {
+    color: #003366;
+    text-decoration: underline;
+}

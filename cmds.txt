@@ -1,0 +1,7 @@
+Compilar backend: ./mvnw clean package -DskipTests
+
+Ejecutar todo el proyecto: docker-compose up --build
+
+Para desarrollar:
+Solo backend: docker-compose up --build backend mysqldb
+Frontend: npm run dev

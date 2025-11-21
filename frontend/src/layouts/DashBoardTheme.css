@@ -1,0 +1,158 @@
+/* frontend/src/layouts/DashboardTheme.css */
+
+/* 1. ESTILOS GENERALES DEL DASHBOARD (Enjaulados) */
+.dashboard-theme {
+    background-color: #0b1219;
+    color: #e0e6ed;
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* 2. TARJETAS (Cards) */
+.dashboard-theme .card,
+.dashboard-theme .bg-white {
+    background-color: #15202b !important;
+    border: 1px solid #2c3e50;
+    color: #e0e6ed;
+}
+
+.dashboard-theme .card-header {
+    background-color: rgba(0, 51, 102, 0.2);
+    border-bottom: 1px solid #2c3e50;
+    color: #fff;
+}
+
+/* 3. TABLAS (Arreglo del Hover Negro) */
+.dashboard-theme .table {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: #e0e6ed !important;
+    border-color: #2c3e50 !important;
+}
+
+.dashboard-theme .table thead th {
+    background-color: #1a2634 !important;
+    color: #4da8da !important;
+    border-bottom: 2px solid #4da8da !important;
+}
+
+.dashboard-theme .table tbody td {
+    background-color: #15202b !important;
+    border-bottom: 1px solid #2c3e50 !important;
+    color: #e0e6ed !important; /* Asegura color base */
+}
+
+/* --- AQUÍ ESTÁ LA SOLUCIÓN DEL HOVER --- */
+/* Forzamos que al pasar el mouse, el texto SEA BLANCO y el fondo azul suave */
+.dashboard-theme .table-hover tbody tr:hover > * {
+    color: #ffffff !important;
+    background-color: rgba(77, 168, 218, 0.1) !important;
+    box-shadow: inset 0 0 0 9999px rgba(77, 168, 218, 0.05) !important; /* Truco para asegurar fondo */
+}
+
+/* 4. MODALES (Arreglo del Fondo Blanco) */
+/* IMPORTANTE: Quitamos '.dashboard-theme' del selector porque los modales
+   se renderizan fuera del div principal. Al ser globales, se verán oscuros. */
+
+.modal-content {
+    background-color: #15202b !important; /* Fondo Oscuro */
+    color: #e0e6ed !important; /* Texto Claro */
+    border: 1px solid #4da8da !important; /* Borde sutil celeste */
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.modal-header {
+    border-bottom: 1px solid #2c3e50 !important;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.modal-footer {
+    border-top: 1px solid #2c3e50 !important;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Arreglamos la "X" de cerrar para que sea blanca */
+.btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* --- 5. FORMULARIOS (CORREGIDO) --- */
+
+/* APLICAR SOLO si está dentro del Dashboard O dentro de un Modal */
+.dashboard-theme .form-control,
+.dashboard-theme .form-select,
+.modal-content .form-control,
+.modal-content .form-select {
+    background-color: #0b1219 !important;
+    border: 1px solid #2c3e50 !important;
+    color: #fff !important;
+}
+
+.dashboard-theme .form-control:focus,
+.dashboard-theme .form-select:focus,
+.modal-content .form-control:focus,
+.modal-content .form-select:focus {
+    background-color: #0b1219 !important;
+    border-color: #4da8da !important;
+    box-shadow: 0 0 0 4px rgba(77, 168, 218, 0.15) !important;
+    color: #fff !important;
+}
+
+/* Placeholder gris suave solo en dashboard/modales */
+.dashboard-theme .form-control::placeholder,
+.modal-content .form-control::placeholder {
+    color: #6c757d !important;
+}
+
+/* --- 6. PAGINACIÓN OSCURA --- */
+
+.dashboard-theme .pagination .page-item .page-link {
+    background-color: #15202b !important; /* Fondo oscuro */
+    border-color: #2c3e50 !important;      /* Borde sutil */
+    color: #4da8da !important;             /* Texto celeste */
+}
+
+.dashboard-theme .pagination .page-item.disabled .page-link {
+    background-color: #0b1219 !important;  /* Fondo más oscuro para disabled */
+    color: #6c757d !important;             /* Texto gris */
+    border-color: #2c3e50 !important;
+}
+
+.dashboard-theme .pagination .page-item.active .page-link {
+    background-color: #4da8da !important;  /* Fondo celeste para el activo */
+    border-color: #4da8da !important;
+    color: #0b1219 !important;             /* Texto oscuro para contraste */
+    font-weight: bold;
+}
+
+.dashboard-theme .pagination .page-item .page-link:hover {
+    background-color: rgba(77, 168, 218, 0.1) !important; /* Efecto hover suave */
+    color: #fff !important;
+}
+
+.dashboard-theme #searchInput {
+    background-color: transparent !important;
+    color: white !important;
+}
+
+/* --- 7. ACORDEÓN OSCURO --- */
+.dashboard-theme .accordion-item {
+    background-color: transparent !important;
+    border: 1px solid #2c3e50;
+}
+
+.dashboard-theme .accordion-button {
+    background-color: #15202b !important; /* Fondo oscuro */
+    color: #e0e6ed !important; /* Texto claro */
+    box-shadow: none !important; /* Quita el brillo azul al hacer clic */
+}
+
+.dashboard-theme .accordion-button:not(.collapsed) {
+    background-color: rgba(77, 168, 218, 0.1) !important; /* Fondo sutil al abrir */
+    color: #4da8da !important; /* Texto celeste al abrir */
+}
+
+/* Flecha del acordeón (cambiar a blanca) */
+.dashboard-theme .accordion-button::after {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}

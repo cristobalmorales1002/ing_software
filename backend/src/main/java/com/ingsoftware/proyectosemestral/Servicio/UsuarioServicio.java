@@ -1,0 +1,168 @@
+package com.ingsoftware.proyectosemestral.Servicio;
+
+import com.ingsoftware.proyectosemestral.DTO.UsuarioActualizarDto;
+import com.ingsoftware.proyectosemestral.DTO.UsuarioCreateDto;
+import com.ingsoftware.proyectosemestral.DTO.UsuarioResponseDto;
+import com.ingsoftware.proyectosemestral.Modelo.Rol;
+import com.ingsoftware.proyectosemestral.Modelo.Usuario;
+import com.ingsoftware.proyectosemestral.Repositorio.RolRepositorio;
+import com.ingsoftware.proyectosemestral.Repositorio.UsuarioRepositorio;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import jakarta.transaction.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class UsuarioServicio {
+
+    private final UsuarioRepositorio usuarioRepositorio;
+    private final RolRepositorio rolRepositorio;
+    private final PasswordEncoder passwordEncoder;
+    private final RegistroServicio registroServicio;
+
+    @Autowired
+    public UsuarioServicio(UsuarioRepositorio usuarioRepositorio,
+                          RolRepositorio rolRepositorio,
+                          PasswordEncoder passwordEncoder,
+                          RegistroServicio registroServicio) {
+        this.usuarioRepositorio = usuarioRepositorio;
+        this.rolRepositorio = rolRepositorio;
+        this.passwordEncoder = passwordEncoder;
+        this.registroServicio = registroServicio;
+    }
+
+    public List<UsuarioResponseDto> getAll() {
+        return usuarioRepositorio.findAll().stream()
+                .map(this::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public UsuarioResponseDto getById(Long id) {
+        Usuario u = usuarioRepositorio.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
+        return toResponseDto(u);
+    }
+
+    @Transactional
+    public UsuarioResponseDto create(UsuarioCreateDto dto) {
+        usuarioRepositorio.findByRut(dto.getRut()).ifPresent(x -> {
+            throw new RuntimeException("RUT ya registrado");
+        });
+        usuarioRepositorio.findByEmail(dto.getEmail()).ifPresent(x -> {
+            throw new RuntimeException("Email ya registrado");
+        });
+
+        if (dto.getPassword() == null || dto.getPassword().isBlank()) {
+            throw new IllegalArgumentException("La contraseña no puede estar vacía al crear un usuario.");
+        }
+
+        Usuario u = new Usuario();
+        u.setRut(dto.getRut());
+        u.setNombres(dto.getNombres());
+        u.setApellidos(dto.getApellidos());
+        u.setEmail(dto.getEmail());
+        u.setTelefono(dto.getTelefono());
+        u.setContrasena(passwordEncoder.encode(dto.getPassword()));
+        u.setActivo(true);
+
+        Rol rol = rolRepositorio.findByNombre(dto.getRol())
+                .orElseThrow(() -> new RuntimeException("Rol no existe: ".concat(dto.getRol())));
+        u.getRoles().add(rol);
+
+        Usuario saved = usuarioRepositorio.save(u);
+
+        return toResponseDto(saved);
+    }
+
+    @Transactional
+    public UsuarioResponseDto update(Long id, UsuarioCreateDto dto) {
+        Usuario u = usuarioRepositorio.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
+
+        if (!u.getRut().equals(dto.getRut())) {
+            usuarioRepositorio.findByRut(dto.getRut()).ifPresent(x -> { throw new RuntimeException("RUT ya en uso"); });
+            u.setRut(dto.getRut());
+        }
+        if (!u.getEmail().equals(dto.getEmail())) {
+            usuarioRepositorio.findByEmail(dto.getEmail()).ifPresent(x -> { throw new RuntimeException("Email ya en uso"); });
+            u.setEmail(dto.getEmail());
+        }
+
+        u.setNombres(dto.getNombres());
+        u.setApellidos(dto.getApellidos());
+        u.setTelefono(dto.getTelefono());
+
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            u.setContrasena(passwordEncoder.encode(dto.getPassword()));
+        }
+
+        Rol nuevoRol = rolRepositorio.findByNombre(dto.getRol())
+                .orElseThrow(() -> new RuntimeException("Rol no existe: " + dto.getRol()));
+        u.getRoles().clear();
+        u.getRoles().add(nuevoRol);
+
+        Usuario saved = usuarioRepositorio.save(u);
+        return toResponseDto(saved);
+    }
+
+    @Transactional
+    public void desactivate(Long id) {
+        Usuario u = usuarioRepositorio.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
+        u.setActivo(false);
+        usuarioRepositorio.save(u);
+    }
+
+    @Transactional
+    public void activate(Long id) {
+        Usuario u = usuarioRepositorio.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + id));
+        u.setActivo(true);
+        usuarioRepositorio.save(u);
+    }
+
+    @Transactional
+    public UsuarioResponseDto updateProfile(String rut, UsuarioActualizarDto dto) {
+        Usuario u = usuarioRepositorio.findByRut(rut)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con RUT: " + rut));
+
+        if (dto.getEmail() != null && !dto.getEmail().isBlank() && !dto.getEmail().equals(u.getEmail())) {
+            usuarioRepositorio.findByEmail(dto.getEmail()).ifPresent(x -> {
+                throw new RuntimeException("Email ya registrado");
+            });
+            u.setEmail(dto.getEmail());
+        }
+
+        if (dto.getTelefono() != null) {
+            u.setTelefono(dto.getTelefono());
+        }
+
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            u.setContrasena(passwordEncoder.encode(dto.getPassword()));
+        }
+
+        Usuario saved = usuarioRepositorio.save(u);
+        return toResponseDto(saved);
+    }
+
+    private UsuarioResponseDto toResponseDto(Usuario u) {
+        String rolNombre = u.getRoles().stream()
+                .findFirst()
+                .map(Rol::getNombre)
+                .orElse("SIN_ROL");
+
+        return UsuarioResponseDto.builder()
+                .usuarioId(u.getIdUsuario())
+                .rut(u.getRut())
+                .nombres(u.getNombres())
+                .apellidos(u.getApellidos())
+                .email(u.getEmail())
+                .telefono(u.getTelefono())
+                .rol(rolNombre)
+                .estadoU(u.isActivo() ? "ACTIVO" : "INACTIVO")
+                .build();
+    }
+}

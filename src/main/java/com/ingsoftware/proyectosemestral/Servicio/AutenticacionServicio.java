@@ -14,8 +14,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom; // Importante para números aleatorios seguros
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Service
 public class AutenticacionServicio {
@@ -44,7 +44,10 @@ public class AutenticacionServicio {
         Usuario usuario = usuarioRepositorio.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado con email: " + email));
 
-        String token = UUID.randomUUID().toString();
+        // --- CAMBIO: GENERACIÓN DE TOKEN NUMÉRICO DE 6 DÍGITOS ---
+        String token = generarTokenNumerico();
+
+        // Expiración: 1 hora (o puedes bajarlo a 15 min si es solo un código numérico)
         LocalDateTime expiracion = LocalDateTime.now().plusHours(1);
 
         usuario.setTokenRecuperacion(token);
@@ -56,14 +59,14 @@ public class AutenticacionServicio {
 
     public void resetearClave(String token, String nuevaContrasena) {
         Usuario usuario = usuarioRepositorio.findByTokenRecuperacion(token)
-                .orElseThrow(() -> new RuntimeException("Token de recuperación inválido o no encontrado"));
+                .orElseThrow(() -> new RuntimeException("Código de recuperación inválido o no encontrado"));
 
 
         if (usuario.getToken_rec_expiracion().isBefore(LocalDateTime.now())) {
             usuario.setTokenRecuperacion(null);
             usuario.setToken_rec_expiracion(null);
             usuarioRepositorio.save(usuario);
-            throw new RuntimeException("El token de recuperación ha expirado");
+            throw new RuntimeException("El código de recuperación ha expirado");
         }
 
         usuario.setContrasena(codificadorDeContrasena.encode(nuevaContrasena));
@@ -75,13 +78,27 @@ public class AutenticacionServicio {
     private void enviarCorreoRecuperacion(String destinatario, String token) {
         SimpleMailMessage mensaje = new SimpleMailMessage();
         mensaje.setTo(destinatario);
-        mensaje.setSubject("Recuperación de Contraseña - Proyecto Cáncer Gástrico");
+        mensaje.setSubject("Código de Recuperación - Proyecto Cáncer Gástrico");
 
-        String urlReseteo = "http://localhost:8080/api/autenticacion/reset-clave?token=" + token;
+        // Mensaje más amigable para código corto
+        String textoMensaje = String.format(
+                "Hola,\n\n" +
+                        "Has solicitado restablecer tu contraseña.\n" +
+                        "Tu código de verificación es: %s\n\n" +
+                        "Este código expirará en 1 hora.\n" +
+                        "Si no solicitaste este cambio, ignora este correo.",
+                token
+        );
 
-        mensaje.setText("Para resetear tu contraseña con Postman, usa el siguiente token:\n" + token +
-                "\n\n(Este es el enlace que se usaría con un frontend: " + urlReseteo + ")");
-
+        mensaje.setText(textoMensaje);
         remitenteDeCorreo.send(mensaje);
+    }
+
+    // --- MÉTODO HELPER PARA GENERAR EL CÓDIGO ---
+    private String generarTokenNumerico() {
+        SecureRandom random = new SecureRandom();
+        // Genera un número entre 100000 y 999999
+        int numero = 100000 + random.nextInt(900000);
+        return String.valueOf(numero);
     }
 }

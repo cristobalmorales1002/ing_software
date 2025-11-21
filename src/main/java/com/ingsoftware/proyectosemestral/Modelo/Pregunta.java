@@ -30,6 +30,9 @@ public class Pregunta {
     @Column(nullable = false)
     private String etiqueta;
 
+    @Column(length = 50)
+    private String codigoStata;
+
     @Column(nullable = false)
     private boolean dato_sensible;
 

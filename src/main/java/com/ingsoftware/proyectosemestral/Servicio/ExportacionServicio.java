@@ -3,7 +3,7 @@ package com.ingsoftware.proyectosemestral.Servicio;
 import com.ingsoftware.proyectosemestral.Modelo.*;
 import com.ingsoftware.proyectosemestral.Repositorio.PacienteRepositorio;
 import com.ingsoftware.proyectosemestral.Repositorio.PreguntaRepositorio;
-import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,224 +25,154 @@ public class ExportacionServicio {
     @Autowired
     private PreguntaRepositorio preguntaRepositorio;
 
-    // --- Lógica de Recuento (Comentada para futuro) ---
-    // private void recolectarDato(Map<Integer, List<String>> colector, int colIdx, String valor) {
-    //     if (valor == null) {
-    //         valor = "";
-    //     }
-    //     colector.computeIfAbsent(colIdx, k -> new ArrayList<>()).add(valor);
-    // }
-
     @Transactional(readOnly = true)
     public ByteArrayInputStream generarExcel(boolean anonimo, boolean dicotomizar) throws IOException {
 
         List<Paciente> pacientes = pacienteRepositorio.findByActivoTrue();
         List<Pregunta> preguntas;
 
-        // Usamos los métodos del repositorio que filtran por 'exportable = true'
         if (anonimo) {
             preguntas = preguntaRepositorio.findByActivoTrueAndDato_sensibleFalseAndExportableTrueOrderByOrdenAsc();
         } else {
             preguntas = preguntaRepositorio.findByActivoTrueAndExportableTrueOrderByOrdenAsc();
         }
 
+        // Cálculo de Estadísticas para cortes dinámicos
         Map<Long, Double> medias = new HashMap<>();
         Map<Long, Double> medianas = new HashMap<>();
 
         if (dicotomizar) {
-            for (Pregunta p : preguntas) {
-                if (p.getTipo_dato() == TipoDato.NUMERO && p.getTipoCorte() != null && (p.getTipoCorte() == TipoCorte.MEDIA || p.getTipoCorte() == TipoCorte.MEDIANA)) {
-
-                    List<Double> valores = pacientes.stream()
-                            .map(paciente -> obtenerValorNumerico(paciente, p.getPregunta_id()))
-                            .filter(Objects::nonNull)
-                            .sorted()
-                            .collect(Collectors.toList());
-
-                    if (valores.isEmpty()) continue;
-
-                    if (p.getTipoCorte() == TipoCorte.MEDIA) {
-                        double media = valores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
-                        medias.put(p.getPregunta_id(), media);
-                    }
-
-                    if (p.getTipoCorte() == TipoCorte.MEDIANA) {
-                        double mediana;
-                        int size = valores.size();
-                        if (size % 2 == 0) {
-                            mediana = (valores.get(size / 2 - 1) + valores.get(size / 2)) / 2.0;
-                        } else {
-                            mediana = valores.get(size / 2);
-                        }
-                        medianas.put(p.getPregunta_id(), mediana);
-                    }
-                }
-            }
+            calcularEstadisticasGlobales(preguntas, pacientes, medias, medianas);
         }
 
-        try(XSSFWorkbook workbook = new XSSFWorkbook()) {
-            XSSFSheet sheet = workbook.createSheet("Datos_Participantes");
-            Row headerRow = sheet.createRow(0);
-            int cellIdx = 0;
+        // CONDICIÓN CLAVE: Solo generamos diccionario si hay codificación (Anónimo o Dicotomizado)
+        boolean generarDiccionario = anonimo || dicotomizar;
 
-            // --- Lógica de Recuento (Comentada para futuro) ---
-            // Set<Integer> indicesDeColumnasCategoricas = new HashSet<>();
+        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+            //CREACIÓN DE HOJAS
+            XSSFSheet sheetDatos = workbook.createSheet("Datos_Stata");
+            XSSFSheet sheetResumen = workbook.createSheet("Resumen_Conteos");
 
+            // La hoja de diccionario es condicional
+            XSSFSheet sheetDiccionario = null;
+            if (generarDiccionario) {
+                sheetDiccionario = workbook.createSheet("Diccionario_Variables");
+            }
 
-            // --- Encabezados Estáticos ---
+            // ENCABEZADOS DE HOJAS DATOS Y RESUMEN
+            Row headerRowDatos = sheetDatos.createRow(0);
+            Row headerRowResumen = sheetResumen.createRow(0);
+
+            List<String> headersList = new ArrayList<>();
+            // Identificadores
             if (!anonimo) {
-                headerRow.createCell(cellIdx++).setCellValue("ID_Participante");
-                headerRow.createCell(cellIdx++).setCellValue("Codigo_Participante");
+                headersList.add("ID_Participante");
+                headersList.add("Codigo_Participante");
+            } else {
+                headersList.add("ID");
             }
+            headersList.add("Es_Caso_Cod"); // Columna fija
 
-            // indicesDeColumnasCategoricas.add(cellIdx); // Recuento: 'Es_Caso'
-            headerRow.createCell(cellIdx++).setCellValue("Es_Caso");
-
-            // --- Encabezados de Preguntas (Dinámicos) ---
+            // Dinámicos
             for (Pregunta p : preguntas) {
-                // if (p.getTipo_dato() == TipoDato.ENUM) {
-                //     indicesDeColumnasCategoricas.add(cellIdx); // Recuento: ENUMs
-                // }
-                headerRow.createCell(cellIdx++).setCellValue(p.getEtiqueta());
-            }
+                String label = (p.getCodigoStata() != null && !p.getCodigoStata().isBlank()) ? p.getCodigoStata() : p.getEtiqueta();
+                headersList.add(label);
 
-            // --- Encabezados Dicotomizados ---
-            if (dicotomizar) {
-                for (Pregunta p : preguntas) {
-                    if (p.getTipo_dato() == TipoDato.NUMERO && p.getTipoCorte() != null && p.getTipoCorte() != TipoCorte.NINGUNO) {
-                        // indicesDeColumnasCategoricas.add(cellIdx); // Recuento: Columnas _d
-                        headerRow.createCell(cellIdx++).setCellValue(p.getEtiqueta() + "_d_" + p.getSentido_corte().toString());
+                if (dicotomizar && p.getTipo_dato() == TipoDato.NUMERO) {
+                    headersList.add(label + "_media_cod");
+                    headersList.add(label + "_mediana_cod");
+                    if (p.getDicotomizacion() != null) {
+                        headersList.add(label + "_corte_" + p.getDicotomizacion() + "_cod");
                     }
                 }
             }
 
-            // --- Lógica de Recuento (Comentada para futuro) ---
-            // Map<Integer, List<String>> datosPorColumna = new HashMap<>();
+            // Escribir headers
+            for (int i = 0; i < headersList.size(); i++) {
+                headerRowDatos.createCell(i).setCellValue(headersList.get(i));
+                headerRowResumen.createCell(i).setCellValue(headersList.get(i));
+            }
 
+            // LLENADO DE DATOS (HOJA 1)
             int rowNum = 1;
+            Map<Integer, Map<String, Integer>> mapaDeConteos = new HashMap<>();
+
             for (Paciente p : pacientes) {
-                Row dataRow = sheet.createRow(rowNum++);
-                cellIdx = 0;
+                Row dataRow = sheetDatos.createRow(rowNum++);
+                int currentCell = 0;
+                Map<Long, Respuesta> mapaRespuestas = p.getRespuestas().stream()
+                        .filter(r -> r.getPregunta() != null)
+                        .collect(Collectors.toMap(r -> r.getPregunta().getPregunta_id(), r -> r, (a, b) -> a));
 
-                Map<Long, String> mapaRespuestas = p.getRespuestas().stream()
-                        .collect(Collectors.toMap(r -> r.getPregunta().getPregunta_id(), Respuesta::getValor, (val1, val2) -> val1));
-
+                // IDs
                 if (!anonimo) {
-                    String idVal = String.valueOf(p.getParticipante_id());
-                    dataRow.createCell(cellIdx).setCellValue(idVal);
-                    // recolectarDato(datosPorColumna, cellIdx, idVal);
-                    cellIdx++;
-
-                    String codVal = p.getParticipanteCod();
-                    dataRow.createCell(cellIdx).setCellValue(codVal);
-                    // recolectarDato(datosPorColumna, cellIdx, codVal);
-                    cellIdx++;
+                    dataRow.createCell(currentCell++).setCellValue(p.getParticipante_id());
+                    dataRow.createCell(currentCell++).setCellValue(p.getParticipanteCod());
+                } else {
+                    dataRow.createCell(currentCell++).setCellValue(p.getParticipanteCod());
                 }
 
-                String casoVal = p.getEsCaso() ? (dicotomizar ? "1" : "CASO") : (dicotomizar ? "0" : "CONTROL");
-                dataRow.createCell(cellIdx).setCellValue(casoVal);
-                // recolectarDato(datosPorColumna, cellIdx, casoVal);
-                cellIdx++;
+                // Caso
+                String valCaso = p.getEsCaso() ? "1" : "0";
+                dataRow.createCell(currentCell).setCellValue(valCaso);
+                registrarConteo(mapaDeConteos, currentCell, valCaso);
+                currentCell++;
 
+                // Preguntas
                 for (Pregunta pHeader : preguntas) {
-                    String valorCrudo = mapaRespuestas.get(pHeader.getPregunta_id());
-                    String valorFinal = valorCrudo;
+                    Respuesta r = mapaRespuestas.get(pHeader.getPregunta_id());
+                    String valorRaw = r != null ? r.getValor() : "";
+                    String valorFinal = valorRaw;
 
-                    if (dicotomizar && valorCrudo != null && pHeader.getTipo_dato() == TipoDato.ENUM) {
-                        valorFinal = buscarValorDicotomizado(pHeader.getOpciones(), valorCrudo);
+                    // Base
+                    if (dicotomizar || anonimo) {
+                        if (pHeader.getTipo_dato() == TipoDato.ENUM) {
+                            valorFinal = buscarValorDicotomizado(pHeader.getOpciones(), valorRaw);
+                        } else if (pHeader.getTipo_dato() == TipoDato.NUMERO) {
+                            valorFinal = valorRaw;
+                        } else if (isBooleano(valorRaw)) {
+                            valorFinal = convertirBooleano(valorRaw);
+                        }
                     }
+                    dataRow.createCell(currentCell).setCellValue(valorFinal);
 
-                    String valorCelda = (valorFinal != null ? valorFinal : "");
-                    dataRow.createCell(cellIdx).setCellValue(valorCelda);
-                    // recolectarDato(datosPorColumna, cellIdx, valorCelda);
-                    cellIdx++;
-                }
+                    boolean esContable = (pHeader.getTipo_dato() == TipoDato.ENUM) || isBooleano(valorRaw);
+                    if (esContable) registrarConteo(mapaDeConteos, currentCell, valorFinal);
+                    currentCell++;
 
-                if (dicotomizar) {
-                    for (Pregunta pHeader : preguntas) {
-                        if (pHeader.getTipo_dato() == TipoDato.NUMERO && pHeader.getTipoCorte() != null && pHeader.getTipoCorte() != TipoCorte.NINGUNO) {
-
-                            Double puntoDeCorte = 0.0;
-                            if (pHeader.getTipoCorte() == TipoCorte.VALOR_FIJO) {
-                                puntoDeCorte = pHeader.getDicotomizacion();
-                            } else if (pHeader.getTipoCorte() == TipoCorte.MEDIA) {
-                                puntoDeCorte = medias.get(pHeader.getPregunta_id());
-                            } else if (pHeader.getTipoCorte() == TipoCorte.MEDIANA) {
-                                puntoDeCorte = medianas.get(pHeader.getPregunta_id());
-                            }
-
-                            Double valorPaciente = obtenerValorNumerico(p, pHeader.getPregunta_id());
-                            String resultado = "0";
-
-                            if (valorPaciente != null && puntoDeCorte != null && pHeader.getSentido_corte() != null) {
-                                switch (pHeader.getSentido_corte()) {
-                                    case MAYOR_QUE:
-                                        if (valorPaciente > puntoDeCorte) resultado = "1";
-                                        break;
-                                    case MENOR_QUE:
-                                        if (valorPaciente < puntoDeCorte) resultado = "1";
-                                        break;
-                                    case IGUAL_A:
-                                        if (valorPaciente.equals(puntoDeCorte)) resultado = "1";
-                                        break;
-                                    case MAYOR_O_IGUAL:
-                                        if (valorPaciente >= puntoDeCorte) resultado = "1";
-                                        break;
-                                    case MENOR_O_IGUAL:
-                                        if (valorPaciente <= puntoDeCorte) resultado = "1";
-                                        break;
-                                }
-                            }
-                            dataRow.createCell(cellIdx).setCellValue(resultado);
-                            // recolectarDato(datosPorColumna, cellIdx, resultado);
-                            cellIdx++;
+                    // Extra Numéricas
+                    if (dicotomizar && pHeader.getTipo_dato() == TipoDato.NUMERO) {
+                        Double valorNum = parseDoubleSeguro(valorRaw);
+                        // Media
+                        Double umbralMedia = medias.get(pHeader.getPregunta_id());
+                        String resMedia = aplicarCorte(valorNum, umbralMedia, pHeader.getSentido_corte());
+                        dataRow.createCell(currentCell).setCellValue(resMedia);
+                        registrarConteo(mapaDeConteos, currentCell, resMedia);
+                        currentCell++;
+                        // Mediana
+                        Double umbralMediana = medianas.get(pHeader.getPregunta_id());
+                        String resMediana = aplicarCorte(valorNum, umbralMediana, pHeader.getSentido_corte());
+                        dataRow.createCell(currentCell).setCellValue(resMediana);
+                        registrarConteo(mapaDeConteos, currentCell, resMediana);
+                        currentCell++;
+                        // Fijo
+                        if (pHeader.getDicotomizacion() != null) {
+                            String resFijo = aplicarCorte(valorNum, pHeader.getDicotomizacion(), pHeader.getSentido_corte());
+                            dataRow.createCell(currentCell).setCellValue(resFijo);
+                            registrarConteo(mapaDeConteos, currentCell, resFijo);
+                            currentCell++;
                         }
                     }
                 }
             }
 
-            // --- 5. SECCIÓN DE RECUENTO (Toda comentada) ---
+            // GENERACIÓN DE RESUMEN (HOJA 2)
+            generarFilasResumen(sheetResumen, 0, headersList.size(), mapaDeConteos, anonimo);
 
-            // rowNum++;
-
-            // Map<String, Row> filasDeRecuentoCreadas = new HashMap<>();
-            // int numColumnas = headerRow.getLastCellNum();
-
-            // for (int colIdx = 0; colIdx < numColumnas; colIdx++) {
-
-            //     if (!indicesDeColumnasCategoricas.contains(colIdx)) {
-            //         continue;
-            //     }
-
-            //     List<String> datosDeEstaColumna = datosPorColumna.get(colIdx);
-            //     if (datosDeEstaColumna == null || datosDeEstaColumna.isEmpty()) {
-            //         continue;
-            //     }
-
-            //     Map<String, Long> frecuencias = datosDeEstaColumna.stream()
-            //         .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
-
-            //     for (Map.Entry<String, Long> entry : frecuencias.entrySet()) {
-            //         String valor = entry.getKey();
-            //         Long conteo = entry.getValue();
-
-            //         if (valor.isBlank() || conteo == 0) {
-            //             continue;
-            //         }
-
-            //         String etiquetaFila = "Contar '" + valor + "'";
-
-            //         Row fila = filasDeRecuentoCreadas.get(etiquetaFila);
-
-            //         if (fila == null) {
-            //             fila = sheet.createRow(rowNum++);
-            //             fila.createCell(0).setCellValue(etiquetaFila);
-            //             filasDeRecuentoCreadas.put(etiquetaFila, fila);
-            //         }
-
-            //         fila.createCell(colIdx).setCellValue(conteo);
-            //     }
-            // }
+            // GENERACIÓN DE DICCIONARIO (HOJA 3 - CONDICIONAL)
+            if (generarDiccionario && sheetDiccionario != null) {
+                generarHojaDiccionario(sheetDiccionario, preguntas, medias, medianas, dicotomizar);
+            }
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             workbook.write(outputStream);
@@ -250,38 +180,185 @@ public class ExportacionServicio {
         }
     }
 
-    private String buscarValorDicotomizado(Set<OpcionPregunta> opciones, String etiquetaGuardada) {
-        if (etiquetaGuardada == null || opciones == null || opciones.isEmpty()) {
-            return etiquetaGuardada;
-        }
+    // LÓGICA DE DICCIONARIO
 
-        for (OpcionPregunta op : opciones) {
-            if (etiquetaGuardada.equalsIgnoreCase(op.getEtiqueta())) {
-                if (op.getValorDicotomizado() != null) {
-                    double valor = op.getValorDicotomizado();
-                    if (valor == Math.floor(valor)) {
-                        return String.valueOf((int) valor);
-                    }
-                    return String.valueOf(valor);
+    private void generarHojaDiccionario(XSSFSheet sheet, List<Pregunta> preguntas, Map<Long, Double> medias, Map<Long, Double> medianas, boolean dicotomizar) {
+        // Encabezados
+        Row header = sheet.createRow(0);
+        header.createCell(0).setCellValue("Código Variable (Stata)");
+        header.createCell(1).setCellValue("Etiqueta Original / Pregunta");
+        header.createCell(2).setCellValue("Codificación / Significado");
+
+        int rowIdx = 1;
+
+        // Variables Fijas
+        Row rowCaso = sheet.createRow(rowIdx++);
+        rowCaso.createCell(0).setCellValue("Es_Caso_Cod");
+        rowCaso.createCell(1).setCellValue("Grupo del participante");
+        rowCaso.createCell(2).setCellValue("1 = Caso (Cáncer), 0 = Control (Sano)");
+
+        // Variables Dinámicas
+        for (Pregunta p : preguntas) {
+            String codigo = (p.getCodigoStata() != null && !p.getCodigoStata().isBlank()) ? p.getCodigoStata() : p.getEtiqueta();
+
+            // Fila Variable Original
+            Row rowP = sheet.createRow(rowIdx++);
+            rowP.createCell(0).setCellValue(codigo);
+            rowP.createCell(1).setCellValue(p.getEtiqueta());
+
+            String definicion = "Texto libre / Numérico continuo"; // Default
+
+            if (p.getTipo_dato() == TipoDato.ENUM) {
+                // Construir string: "1=OpciónA; 2=OpciónB; ..."
+                List<OpcionPregunta> opcionesOrdenadas = new ArrayList<>(p.getOpciones());
+                opcionesOrdenadas.sort(Comparator.comparingInt(OpcionPregunta::getOrden));
+
+                StringBuilder sb = new StringBuilder();
+                for (OpcionPregunta op : opcionesOrdenadas) {
+                    String val = (op.getValorDicotomizado() != null)
+                            ? String.valueOf(op.getValorDicotomizado().intValue())
+                            : String.valueOf(op.getOrden());
+                    sb.append(val).append("=").append(op.getEtiqueta()).append("; ");
                 }
-                return etiquetaGuardada;
+                definicion = sb.toString();
+            }
+
+            rowP.createCell(2).setCellValue(definicion);
+
+            // Filas Dicotomizadas (Si corresponde)
+            if (dicotomizar && p.getTipo_dato() == TipoDato.NUMERO) {
+                String sentido = p.getSentido_corte() != null ? p.getSentido_corte().toString() : "MAYOR_O_IGUAL";
+
+                // Media
+                Row rowMedia = sheet.createRow(rowIdx++);
+                rowMedia.createCell(0).setCellValue(codigo + "_media_cod");
+                rowMedia.createCell(1).setCellValue("Corte por Media (" + p.getEtiqueta() + ")");
+                Double valMedia = medias.getOrDefault(p.getPregunta_id(), 0.0);
+                rowMedia.createCell(2).setCellValue("1 si " + sentido + " a " + String.format("%.2f", valMedia) + "; 0 si no");
+
+                // Mediana
+                Row rowMediana = sheet.createRow(rowIdx++);
+                rowMediana.createCell(0).setCellValue(codigo + "_mediana_cod");
+                rowMediana.createCell(1).setCellValue("Corte por Mediana (" + p.getEtiqueta() + ")");
+                Double valMediana = medianas.getOrDefault(p.getPregunta_id(), 0.0);
+                rowMediana.createCell(2).setCellValue("1 si " + sentido + " a " + String.format("%.2f", valMediana) + "; 0 si no");
+
+                // Valor Fijo
+                if (p.getDicotomizacion() != null) {
+                    Row rowFijo = sheet.createRow(rowIdx++);
+                    rowFijo.createCell(0).setCellValue(codigo + "_corte_" + p.getDicotomizacion() + "_cod");
+                    rowFijo.createCell(1).setCellValue("Corte Fijo Definido (" + p.getEtiqueta() + ")");
+                    rowFijo.createCell(2).setCellValue("1 si " + sentido + " a " + p.getDicotomizacion() + "; 0 si no");
+                }
             }
         }
-        return etiquetaGuardada;
+
+        // Auto-ajustar columnas para legibilidad
+        sheet.autoSizeColumn(0);
+        sheet.autoSizeColumn(1);
+        sheet.setColumnWidth(2, 10000); // Ancho fijo grande para la definición
     }
 
-    private Double obtenerValorNumerico(Paciente p, Long preguntaId) {
-        try {
-            Optional<Respuesta> respuesta = p.getRespuestas().stream()
-                    .filter(r -> r.getPregunta().getPregunta_id().equals(preguntaId))
-                    .findFirst();
-
-            if (respuesta.isPresent() && respuesta.get().getValor() != null && !respuesta.get().getValor().isBlank()) {
-                return Double.parseDouble(respuesta.get().getValor());
+    private void calcularEstadisticasGlobales(List<Pregunta> preguntas, List<Paciente> pacientes, Map<Long, Double> medias, Map<Long, Double> medianas) {
+        for (Pregunta p : preguntas) {
+            if (p.getTipo_dato() == TipoDato.NUMERO) {
+                List<Double> valores = pacientes.stream()
+                        .map(pac -> parseDoubleSeguro(obtenerValorRespuesta(pac, p.getPregunta_id())))
+                        .filter(Objects::nonNull).sorted().collect(Collectors.toList());
+                if (valores.isEmpty()) continue;
+                double media = valores.stream().mapToDouble(d -> d).average().orElse(0.0);
+                medias.put(p.getPregunta_id(), media);
+                double mediana;
+                int size = valores.size();
+                if (size % 2 == 0) mediana = (valores.get(size / 2 - 1) + valores.get(size / 2)) / 2.0;
+                else mediana = valores.get(size / 2);
+                medianas.put(p.getPregunta_id(), mediana);
             }
-            return null;
-        } catch (NumberFormatException e) {
-            return null;
         }
+    }
+
+    private String aplicarCorte(Double valor, Double umbral, SentidoCorte sentido) {
+        if (valor == null || umbral == null) return "";
+        boolean cumple = false;
+        if (sentido == null) sentido = SentidoCorte.MAYOR_O_IGUAL;
+        switch (sentido) {
+            case MAYOR_QUE: cumple = valor > umbral; break;
+            case MENOR_QUE: cumple = valor < umbral; break;
+            case MAYOR_O_IGUAL: cumple = valor >= umbral; break;
+            case MENOR_O_IGUAL: cumple = valor <= umbral; break;
+            case IGUAL_A: cumple = valor.equals(umbral); break;
+        }
+        return cumple ? "1" : "0";
+    }
+
+    private void registrarConteo(Map<Integer, Map<String, Integer>> mapa, int colIdx, String valor) {
+        if (valor == null || valor.isBlank()) return;
+        mapa.computeIfAbsent(colIdx, k -> new HashMap<>()).merge(valor, 1, Integer::sum);
+    }
+
+    private void generarFilasResumen(XSSFSheet sheet, int startRow, int totalCols, Map<Integer, Map<String, Integer>> mapaDeConteos, boolean anonimo) {
+        Set<String> valoresEncontrados = new HashSet<>();
+        mapaDeConteos.values().forEach(mapa -> valoresEncontrados.addAll(mapa.keySet()));
+        List<String> valoresOrdenados = new ArrayList<>(valoresEncontrados);
+        Collections.sort(valoresOrdenados);
+        int currentRow = startRow + 1;
+        for (String valorRef : valoresOrdenados) {
+            if (valorRef.isBlank()) continue;
+            Row rowResumen = sheet.createRow(currentRow++);
+            rowResumen.createCell(0).setCellValue("Contar " + valorRef);
+            int startCol = (!anonimo) ? 2 : 1;
+            for (int c = startCol; c < totalCols; c++) {
+                Integer cantidad = mapaDeConteos.getOrDefault(c, new HashMap<>()).getOrDefault(valorRef, 0);
+                if (cantidad > 0) rowResumen.createCell(c).setCellValue(cantidad);
+            }
+        }
+        Row rowTotal = sheet.createRow(currentRow++);
+        rowTotal.createCell(0).setCellValue("Total Registros");
+        int startCol = (!anonimo) ? 2 : 1;
+        for (int c = startCol; c < totalCols; c++) {
+            int total = mapaDeConteos.getOrDefault(c, new HashMap<>()).values().stream().mapToInt(Integer::intValue).sum();
+            if (total > 0) rowTotal.createCell(c).setCellValue(total);
+        }
+    }
+
+    private Double parseDoubleSeguro(String valor) {
+        if (valor == null || valor.isBlank()) return null;
+        try { return Double.parseDouble(valor); } catch (Exception e) { return null; }
+    }
+
+    private String obtenerValorRespuesta(Paciente p, Long preguntaId) {
+        return p.getRespuestas().stream().filter(r -> r.getPregunta().getPregunta_id().equals(preguntaId))
+                .findFirst().map(Respuesta::getValor).orElse(null);
+    }
+
+    private String buscarValorDicotomizado(Set<OpcionPregunta> opciones, String etiquetaGuardada) {
+        if (etiquetaGuardada == null || opciones == null || opciones.isEmpty()) {
+            if (isBooleano(etiquetaGuardada)) return convertirBooleano(etiquetaGuardada);
+            return "";
+        }
+        for (OpcionPregunta op : opciones) {
+            if (etiquetaGuardada.trim().equalsIgnoreCase(op.getEtiqueta().trim())) {
+                if (op.getValorDicotomizado() != null) {
+                    double valor = op.getValorDicotomizado();
+                    if (valor == Math.floor(valor)) return String.valueOf((int) valor);
+                    return String.valueOf(valor);
+                }
+                return String.valueOf(op.getOrden());
+            }
+        }
+        return "";
+    }
+
+    private boolean isBooleano(String val) {
+        if (val == null) return false;
+        String v = val.trim().toLowerCase();
+        return v.equals("si") || v.equals("sí") || v.equals("no");
+    }
+
+    private String convertirBooleano(String val) {
+        String v = val.trim().toLowerCase();
+        if (v.equals("si") || v.equals("sí")) return "1";
+        if (v.equals("no")) return "0";
+        return "";
     }
 }

@@ -35,6 +35,9 @@ public class VariableServicio {
 
         Pregunta p = new Pregunta();
         p.setEtiqueta(dto.getEtiqueta());
+
+        p.setCodigoStata(dto.getCodigoStata());
+
         p.setDescripcion(dto.getDescripcion());
         p.setTipo_dato(dto.getTipo_dato());
         p.setDato_sensible(dto.isDato_sensible());
@@ -46,10 +49,11 @@ public class VariableServicio {
         p.setSentido_corte(dto.getSentido_corte());
 
         p.setExportable(dto.isExportable());
+        p.setTipoCorte(dto.getTipoCorte() != null ? dto.getTipoCorte() : TipoCorte.NINGUNO);
 
         p = preguntaRepositorio.save(p);
 
-        // Crear opciones si el tipo es ENUM
+        // Crear opciones si el tipo es ENUM (Con alternativas)
         if (dto.getTipo_dato() == TipoDato.ENUM) {
             List<String> opciones = Optional.ofNullable(dto.getOpciones()).orElseGet(ArrayList::new);
             int i = 1;
@@ -60,21 +64,17 @@ public class VariableServicio {
                 op.setPregunta(p);
                 op.setEtiqueta(etiqueta.trim());
                 op.setOrden(i++);
-
-                // Asignar null para valorDicotomizado (campo opcional)
                 op.setValorDicotomizado(null);
 
                 opcionPreguntaRepositorio.save(op);
             }
         }
 
-        // Registrar acción en auditoría
         if (dto.getUsuarioId() != null) {
             var usrOpt = usuarioRepositorio.findById(dto.getUsuarioId());
             if (usrOpt.isPresent()) {
                 var usr = usrOpt.get();
-                String detalles = "Creó la pregunta ID=" + p.getPregunta_id()
-                        + " (" + p.getEtiqueta() + ")";
+                String detalles = "Creó la pregunta ID=" + p.getPregunta_id() + " (" + p.getEtiqueta() + ")";
                 registroServicio.registrarAccion(usr, "CREAR_PREGUNTA", detalles);
             }
         }
@@ -95,11 +95,9 @@ public class VariableServicio {
         p.setActivo(false);
         preguntaRepositorio.save(p);
 
-        // Registrar acción en auditoría
         var usrOpt = usuarioRepositorio.findById(idUsuario);
         if (usrOpt.isPresent()) {
-            String detalles = "Archivó la pregunta ID=" + p.getPregunta_id()
-                    + " (" + p.getEtiqueta() + ")";
+            String detalles = "Archivó la pregunta ID=" + p.getPregunta_id() + " (" + p.getEtiqueta() + ")";
             registroServicio.registrarAccion(usrOpt.get(), "ARCHIVAR_PREGUNTA", detalles);
         }
     }
@@ -114,6 +112,9 @@ public class VariableServicio {
         Pregunta p = obtenerPorId(id);
 
         p.setEtiqueta(dto.getEtiqueta());
+
+        p.setCodigoStata(dto.getCodigoStata());
+
         p.setDescripcion(dto.getDescripcion());
         p.setTipo_dato(dto.getTipo_dato());
         p.setDato_sensible(dto.isDato_sensible());
@@ -123,14 +124,16 @@ public class VariableServicio {
         p.setSentido_corte(dto.getSentido_corte());
         p.setExportable(dto.isExportable());
 
-        // Actualizar categoría si cambió
+        if (dto.getTipoCorte() != null) {
+            p.setTipoCorte(dto.getTipoCorte());
+        }
+
         if (dto.getCategoriaId() != null && !p.getCategoria().getId_cat().equals(dto.getCategoriaId())) {
             Categoria categoria = categoriaRepositorio.findById(dto.getCategoriaId())
                     .orElseThrow(() -> new IllegalArgumentException("No existe Categoria con id=" + dto.getCategoriaId()));
             p.setCategoria(categoria);
         }
 
-        // Eliminar opciones anteriores y crear nuevas
         opcionPreguntaRepositorio.deleteByPregunta(p);
 
         if (dto.getTipo_dato() == TipoDato.ENUM) {
@@ -143,21 +146,17 @@ public class VariableServicio {
                 op.setPregunta(p);
                 op.setEtiqueta(etiqueta.trim());
                 op.setOrden(i++);
-
-                // Asignar null para valorDicotomizado (campo opcional)
                 op.setValorDicotomizado(null);
 
                 opcionPreguntaRepositorio.save(op);
             }
         }
 
-        // Registrar acción en auditoría
         if (dto.getUsuarioId() != null) {
             var usrOpt = usuarioRepositorio.findById(dto.getUsuarioId());
             if (usrOpt.isPresent()) {
                 var usr = usrOpt.get();
-                String detalles = "Actualizó la pregunta ID=" + p.getPregunta_id()
-                        + " (" + p.getEtiqueta() + ")";
+                String detalles = "Actualizó la pregunta ID=" + p.getPregunta_id() + " (" + p.getEtiqueta() + ")";
                 registroServicio.registrarAccion(usr, "ACTUALIZAR_PREGUNTA", detalles);
             }
         }

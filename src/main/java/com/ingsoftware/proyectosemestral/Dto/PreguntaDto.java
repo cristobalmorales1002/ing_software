@@ -12,6 +12,9 @@ public class PreguntaDto {
 
     private Long pregunta_id;
     private String etiqueta;
+
+    private String codigoStata;
+
     private String descripcion;
 
     @JsonProperty("tipo_dato")

@@ -1,15 +1,7 @@
 package com.ingsoftware.proyectosemestral;
 
-import com.ingsoftware.proyectosemestral.Modelo.Categoria;
-import com.ingsoftware.proyectosemestral.Modelo.Permiso;
-import com.ingsoftware.proyectosemestral.Modelo.Rol;
-import com.ingsoftware.proyectosemestral.Modelo.Usuario;
-
-import com.ingsoftware.proyectosemestral.Repositorio.CategoriaRepositorio;
-import com.ingsoftware.proyectosemestral.Repositorio.PermisoRepositorio;
-import com.ingsoftware.proyectosemestral.Repositorio.RolRepositorio;
-import com.ingsoftware.proyectosemestral.Repositorio.UsuarioRepositorio;
-
+import com.ingsoftware.proyectosemestral.Modelo.*;
+import com.ingsoftware.proyectosemestral.Repositorio.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +11,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
-// No se necesita el import de BiFunction
 
 @Component
-@Profile(("!test"))
+@Profile("!test")
 public class InicializadorAdmin implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(InicializadorAdmin.class);
@@ -32,15 +23,13 @@ public class InicializadorAdmin implements CommandLineRunner {
     @Autowired private CategoriaRepositorio categoriaRepositorio;
     @Autowired private PasswordEncoder codificadorDeContrasena;
     @Autowired private PermisoRepositorio permisoRepositorio;
+    @Autowired private PreguntaRepositorio preguntaRepositorio;
+
+    // --- MÉTODOS HELPER ---
 
     private Permiso crearPermisoSiNoExiste(String nombre, String descripcion) {
         return permisoRepositorio.findByNombre(nombre)
-                .orElseGet(() -> {
-                    Permiso p = new Permiso();
-                    p.setNombre(nombre);
-                    p.setDescripcion(descripcion);
-                    return permisoRepositorio.save(p);
-                });
+                .orElseGet(() -> permisoRepositorio.save(new Permiso(null, nombre, descripcion, null)));
     }
 
     private Rol crearRolSiNoExiste(String nombre) {
@@ -52,12 +41,9 @@ public class InicializadorAdmin implements CommandLineRunner {
                 });
     }
 
-    // --- NUEVO MÉTODO DE AYUDA ---
-    // Sigue el mismo patrón que los otros métodos de ayuda
     private Categoria crearCategoriaSiNoExiste(String nombre, int orden) {
         return categoriaRepositorio.findByNombre(nombre)
                 .orElseGet(() -> {
-                    logger.info("Creando categoría que falta: {}", nombre);
                     Categoria c = new Categoria();
                     c.setNombre(nombre);
                     c.setOrden(orden);
@@ -65,60 +51,100 @@ public class InicializadorAdmin implements CommandLineRunner {
                 });
     }
 
+    // HELPER MEJORADO: Acepta valorDicotomizacion (valor fijo)
+    private void crearPreguntaSiNoExiste(String etiqueta, String codigoStata, TipoDato tipo, int orden, String nombreCategoria, Double valorFijo) {
+        if (preguntaRepositorio.findByEtiqueta(etiqueta).isEmpty()) {
+            Categoria cat = categoriaRepositorio.findByNombre(nombreCategoria)
+                    .orElseThrow(() -> new RuntimeException("Categoria no encontrada: " + nombreCategoria));
+
+            Pregunta p = new Pregunta();
+            p.setEtiqueta(etiqueta);
+            p.setCodigoStata(codigoStata); // Seteamos el código para Stata
+            p.setDescripcion("Pregunta base inicializada por sistema");
+            p.setTipo_dato(tipo);
+            p.setOrden(orden);
+            p.setCategoria(cat);
+            p.setActivo(true);
+            p.setExportable(true);
+            p.setDato_sensible(false);
+
+            // Configuración de Dicotomización Fija (Dinámica)
+            if (valorFijo != null) {
+                p.setDicotomizacion(valorFijo); // Esto activará la 3ra columna en el Excel
+                p.setTipoCorte(TipoCorte.VALOR_FIJO);
+                p.setSentido_corte(SentidoCorte.MAYOR_O_IGUAL); // Por defecto: 1 si >= valor
+            } else {
+                p.setTipoCorte(TipoCorte.NINGUNO);
+            }
+
+            // Detección automática de PII
+            if (tipo == TipoDato.RUT || etiqueta.toLowerCase().contains("nombre")) {
+                p.setDato_sensible(true);
+            }
+
+            preguntaRepositorio.save(p);
+            logger.info("Pregunta creada: {} (Corte Fijo: {})", etiqueta, valorFijo);
+        }
+    }
+
+    // Sobrecarga para cuando no queremos valor fijo
+    private void crearPreguntaSiNoExiste(String etiqueta, String codigoStata, TipoDato tipo, int orden, String nombreCategoria) {
+        crearPreguntaSiNoExiste(etiqueta, codigoStata, tipo, orden, nombreCategoria, null);
+    }
 
     @Override
     public void run(String... args) throws Exception {
+        // 1. PERMISOS
+        logger.info("--- Inicializando Seguridad ---");
+        Permiso pCrearCaso = crearPermisoSiNoExiste("CREAR_CASO", "Crear participante Caso");
+        Permiso pCrearControl = crearPermisoSiNoExiste("CREAR_CONTROL", "Crear participante Control");
+        Permiso pEditarCaso = crearPermisoSiNoExiste("EDITAR_CASO", "Editar Caso");
+        Permiso pEditarControl = crearPermisoSiNoExiste("EDITAR_CONTROL", "Editar Control");
+        Permiso pVerPaciente = crearPermisoSiNoExiste("VER_PACIENTE", "Ver Ficha");
+        Permiso pVerListado = crearPermisoSiNoExiste("VER_LISTADO_PACIENTES", "Ver lista completa");
+        Permiso pEliminar = crearPermisoSiNoExiste("ELIMINAR_PACIENTE", "Archivar paciente");
 
-        logger.info("--- Verificando Permisos Base ---");
-        Permiso pCrearCaso = crearPermisoSiNoExiste("CREAR_CASO", "Permite crear un nuevo participante (Caso)");
-        Permiso pCrearControl = crearPermisoSiNoExiste("CREAR_CONTROL", "Permite crear un nuevo participante (Control)");
-        Permiso pEditarCaso = crearPermisoSiNoExiste("EDITAR_CASO", "Permite editar respuestas de un (Caso)");
-        Permiso pEditarControl = crearPermisoSiNoExiste("EDITAR_CONTROL", "Permite editar respuestas de un (Control)");
-        Permiso pVerPaciente = crearPermisoSiNoExiste("VER_PACIENTE", "Permite ver la ficha de un paciente");
-        Permiso pVerListado = crearPermisoSiNoExiste("VER_LISTADO_PACIENTES", "Permite ver el listado de todos los pacientes");
-        Permiso pEliminar = crearPermisoSiNoExiste("ELIMINAR_PACIENTE", "Permite archivar (borrado lógico) un paciente");
-
-        logger.info("--- Verificando Roles ---");
+        // 2. ROLES
         Rol rolAdmin = crearRolSiNoExiste("ROLE_ADMIN");
-        Rol rolInvestigador = crearRolSiNoExiste("ROLE_INVESTIGADOR");
         Rol rolMedico = crearRolSiNoExiste("ROLE_MEDICO");
         Rol rolEstudiante = crearRolSiNoExiste("ROLE_ESTUDIANTE");
+        Rol rolInvestigador = crearRolSiNoExiste("ROLE_INVESTIGADOR");
 
-        logger.info("--- Asignando Permisos a Roles ---");
+        // Asignación de permisos (Simplificado para el ejemplo)
         rolAdmin.setPermisos(Set.of(pCrearControl, pEditarControl, pVerPaciente, pVerListado, pEliminar));
         rolRepositorio.save(rolAdmin);
-
-        rolInvestigador.setPermisos(Set.of(pCrearControl, pEditarControl, pVerPaciente, pVerListado, pEliminar));
-        rolRepositorio.save(rolInvestigador);
-
         rolMedico.setPermisos(Set.of(pCrearCaso, pCrearControl, pEditarCaso, pEditarControl, pVerPaciente, pVerListado, pEliminar));
         rolRepositorio.save(rolMedico);
 
-        rolEstudiante.setPermisos(Set.of(pCrearControl, pEditarControl, pVerPaciente));
-        rolRepositorio.save(rolEstudiante);
-
-        logger.info("--- Verificando Usuarios ---");
+        // 3. USUARIOS
         crearUsuarioSiNoExiste("11.111.111-1", "clavesecreta", "Admin", "Principal", "admin@plataforma.cl", rolAdmin);
-        crearUsuarioSiNoExiste("22.222.222-2", "clavemedico", "Doctora", "Prueba", "medico@plataforma.cl", rolMedico);
-        crearUsuarioSiNoExiste("33.333.333-3", "claveestudiante", "Juanito", "Estudiante", "cristian.jimenez.fuentes2003@gmail.com", rolEstudiante);
-        crearUsuarioSiNoExiste("44.444.444-4", "claveinvest", "Investigador", "Jefe", "invest@plataforma.cl", rolInvestigador);
-        crearUsuarioSiNoExiste("55.555.555-5", "claveestudiante2", "Jose", "Estudiante", "estudiante2@plataforma.cl", rolEstudiante);
+        crearUsuarioSiNoExiste("22.222.222-2", "clavemedico", "Dra. Ana", "Perez", "medico@plataforma.cl", rolMedico);
 
-        // --- BLOQUE DE CATEGORÍAS MODIFICADO ---
-        logger.info("--- Verificando Categorías Base ---");
-
-        // Llamamos al nuevo helper para cada categoría del CRF
-        crearCategoriaSiNoExiste("Datos sociodemográficos", 1);
-        crearCategoriaSiNoExiste("Antecedentes clínicos", 2);
+        // 4. CATEGORÍAS
+        logger.info("--- Inicializando CRF ---");
+        crearCategoriaSiNoExiste("Identificación", 1);
+        crearCategoriaSiNoExiste("Datos sociodemográficos", 2);
         crearCategoriaSiNoExiste("Variables antropométricas", 3);
-        crearCategoriaSiNoExiste("Tabaquismo", 4);
-        crearCategoriaSiNoExiste("Consumo de alcohol", 5);
-        crearCategoriaSiNoExiste("Factores dietarios y ambientales", 6);
-        crearCategoriaSiNoExiste("Infección por Helicobacter pylori", 7);
-        crearCategoriaSiNoExiste("Muestras biológicas y genéticas", 8);
-        crearCategoriaSiNoExiste("Histopatología (solo casos)", 9);
 
-        logger.info("¡Verificación de categorías completada!");
+        // 5. PREGUNTAS (Aquí está la prueba de dicotomización)
+
+        // Identificación
+        crearPreguntaSiNoExiste("Nombre completo", "nombre_completo", TipoDato.TEXTO, 1, "Identificación");
+        crearPreguntaSiNoExiste("RUT", "rut_paciente", TipoDato.RUT, 2, "Identificación");
+
+        // Sociodemográficos -> ¡AQUÍ PROBAMOS EL VALOR FIJO!
+        // Definimos que para EDAD, queremos un corte extra en 60 años.
+        crearPreguntaSiNoExiste("Edad", "edad_inc", TipoDato.NUMERO, 1, "Datos sociodemográficos", 60.0);
+
+        crearPreguntaSiNoExiste("Sexo", "sexo", TipoDato.ENUM, 2, "Datos sociodemográficos");
+
+        // Antropometría
+        // Definimos corte fijo en IMC de 25.0 (Sobrepeso)
+        crearPreguntaSiNoExiste("Peso (kg)", "peso_kg", TipoDato.NUMERO, 1, "Variables antropométricas");
+        crearPreguntaSiNoExiste("Estatura (m)", "talla_m", TipoDato.NUMERO, 2, "Variables antropométricas");
+        crearPreguntaSiNoExiste("Índice de masa corporal (IMC)", "imc_calc", TipoDato.NUMERO, 3, "Variables antropométricas", 25.0);
+
+        logger.info("¡Inicialización Completa! Listo para probar exportación con cortes fijos.");
     }
 
     private void crearUsuarioSiNoExiste(String rut, String pass, String nom, String ap, String email, Rol rol) {
@@ -132,7 +158,6 @@ public class InicializadorAdmin implements CommandLineRunner {
             u.setActivo(true);
             u.getRoles().add(rol);
             usuarioRepositorio.save(u);
-            logger.info("Usuario {} creado.", rut);
         }
     }
 }

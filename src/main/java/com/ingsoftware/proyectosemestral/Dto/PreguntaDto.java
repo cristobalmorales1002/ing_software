@@ -37,4 +37,7 @@ public class PreguntaDto {
     private TipoCorte tipoCorte;
 
     private boolean exportable = true;
+
+    // NUEVO CAMPO
+    private boolean generarEstadistica;
 }

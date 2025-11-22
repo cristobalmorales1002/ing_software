@@ -106,7 +106,7 @@ public class ExportacionServicio {
                     dataRow.createCell(currentCell++).setCellValue(p.getParticipanteCod());
                 }
 
-                // Caso (Siempre 0/1)
+                // Caso  0/1
                 String valCaso = p.getEsCaso() ? "1" : "0";
                 dataRow.createCell(currentCell).setCellValue(valCaso);
                 registrarConteo(mapaDeConteos, currentCell, valCaso);
@@ -162,7 +162,7 @@ public class ExportacionServicio {
             // RESUMEN
             generarFilasResumen(sheetResumen, 0, headersList.size(), mapaDeConteos, anonimo);
 
-            // DICCIONARIO (MEJORADO CON 0/1)
+            // DICCIONARIO (CON 0/1)
             if (generarDiccionario && sheetDiccionario != null) {
                 generarHojaDiccionario(sheetDiccionario, preguntas, medias, medianas, dicotomizar);
             }
@@ -205,7 +205,6 @@ public class ExportacionServicio {
                 int totalOpciones = opcionesOrdenadas.size();
 
                 for (OpcionPregunta op : opcionesOrdenadas) {
-                    // USAMOS LA NUEVA LÓGICA CENTRALIZADA PARA CALCULAR EL VALOR
                     String val = calcularValorOpcion(op, totalOpciones);
                     sb.append(val).append("=").append(op.getEtiqueta()).append("; ");
                 }
@@ -243,11 +242,11 @@ public class ExportacionServicio {
         sheet.setColumnWidth(2, 10000);
     }
 
-    //      LÓGICA CENTRALIZADA (MEJORA 0/1)
+    //      LÓGICA CENTRALIZADA (0/1)
 
     // Metodo maestro para saber qué número le corresponde a una opción
     private String calcularValorOpcion(OpcionPregunta op, int totalOpciones) {
-        // 1. Prioridad: Valor manual asignado por Admin
+        // Prioridad: Valor manual asignado por Admin
         if (op.getValorDicotomizado() != null) {
             double valor = op.getValorDicotomizado();
             if (valor == Math.floor(valor)) return String.valueOf((int) valor);

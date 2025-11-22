@@ -26,12 +26,12 @@ public class EstadisticaServicio {
 
     @Transactional(readOnly = true)
     public List<EstadisticaDto> calcularEstadisticasDashboard() {
-        // 1. Obtener preguntas configuradas para estadísticas (Solo las activas y de tipo ENUM)
+        // Obtener preguntas configuradas para estadísticas (Solo las activas y de tipo ENUM)
         List<Pregunta> preguntasParaEstadistica = preguntaRepositorio.findAll().stream()
                 .filter(p -> p.isActivo() && p.isGenerarEstadistica())
                 .collect(Collectors.toList());
 
-        // 2. Obtener todos los pacientes activos para contar sus respuestas
+        // Obtener todos los pacientes activos para contar sus respuestas
         List<Paciente> pacientes = pacienteRepositorio.findByActivoTrue();
         long totalPacientes = pacientes.size();
 

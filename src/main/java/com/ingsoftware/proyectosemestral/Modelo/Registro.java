@@ -33,6 +33,6 @@ public class Registro {
     private Usuario usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "respuesta_id", nullable = true) // <-- La clave es permitir nulos
+    @JoinColumn(name = "respuesta_id", nullable = true) // La clave es permitir nulos
     private Respuesta respuesta; // Sobre qué respuesta se hizo la acción
 }

@@ -180,7 +180,7 @@ public class UsuarioServicio {
                 .build();
     }
 
-    // --- MÉTODOS PRIVADOS PARA CORREO Y CONTRASEÑA ---
+    // MÉTODOS PRIVADOS PARA CORREO Y CONTRASEÑA
 
     private String generarContrasenaAleatoria() {
         String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$";

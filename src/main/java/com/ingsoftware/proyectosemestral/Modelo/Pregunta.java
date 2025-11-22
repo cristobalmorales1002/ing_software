@@ -28,8 +28,9 @@ public class Pregunta {
     private TipoDato tipo_dato;
 
     @Column(nullable = false)
-    private String etiqueta;
+    private String etiqueta; // Ej: "¿Cuál es su peso?"
 
+    // Campo para Stata
     @Column(length = 50)
     private String codigoStata;
 
@@ -65,4 +66,9 @@ public class Pregunta {
 
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean exportable = true;
+
+    // NUEVO CAMPO PARA ESTADÍSTICAS
+    // Por defecto false, para que no se generen gráficos a menos que se pida explícitamente
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean generarEstadistica = false;
 }

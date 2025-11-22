@@ -35,9 +35,7 @@ public class VariableServicio {
 
         Pregunta p = new Pregunta();
         p.setEtiqueta(dto.getEtiqueta());
-
         p.setCodigoStata(dto.getCodigoStata());
-
         p.setDescripcion(dto.getDescripcion());
         p.setTipo_dato(dto.getTipo_dato());
         p.setDato_sensible(dto.isDato_sensible());
@@ -51,9 +49,17 @@ public class VariableServicio {
         p.setExportable(dto.isExportable());
         p.setTipoCorte(dto.getTipoCorte() != null ? dto.getTipoCorte() : TipoCorte.NINGUNO);
 
+        // --- REGLA DE NEGOCIO: ESTADÍSTICAS ---
+        // Solo permitimos activar estadísticas si la pregunta tiene opciones (ENUM)
+        if (dto.getTipo_dato() == TipoDato.ENUM) {
+            p.setGenerarEstadistica(dto.isGenerarEstadistica());
+        } else {
+            p.setGenerarEstadistica(false); // Forzamos false para texto/números
+        }
+
         p = preguntaRepositorio.save(p);
 
-        // Crear opciones si el tipo es ENUM (Con alternativas)
+        // Crear opciones si el tipo es ENUM
         if (dto.getTipo_dato() == TipoDato.ENUM) {
             List<String> opciones = Optional.ofNullable(dto.getOpciones()).orElseGet(ArrayList::new);
             int i = 1;
@@ -112,9 +118,7 @@ public class VariableServicio {
         Pregunta p = obtenerPorId(id);
 
         p.setEtiqueta(dto.getEtiqueta());
-
         p.setCodigoStata(dto.getCodigoStata());
-
         p.setDescripcion(dto.getDescripcion());
         p.setTipo_dato(dto.getTipo_dato());
         p.setDato_sensible(dto.isDato_sensible());
@@ -126,6 +130,13 @@ public class VariableServicio {
 
         if (dto.getTipoCorte() != null) {
             p.setTipoCorte(dto.getTipoCorte());
+        }
+
+        // --- REGLA DE NEGOCIO: ESTADÍSTICAS (ACTUALIZACIÓN) ---
+        if (dto.getTipo_dato() == TipoDato.ENUM) {
+            p.setGenerarEstadistica(dto.isGenerarEstadistica());
+        } else {
+            p.setGenerarEstadistica(false);
         }
 
         if (dto.getCategoriaId() != null && !p.getCategoria().getId_cat().equals(dto.getCategoriaId())) {

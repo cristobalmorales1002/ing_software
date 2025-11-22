@@ -45,7 +45,6 @@ public class VariableControlador {
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     public ResponseEntity<Pregunta> obtenerPorId(@PathVariable("id") Long id) {
         Pregunta pregunta = variableServicio.obtenerPorId(id);
-        // Si se quisiera retornar el DTO: return ResponseEntity.ok(mapearEntidadADto(pregunta));
         return ResponseEntity.ok(pregunta);
     }
 
@@ -77,9 +76,7 @@ public class VariableControlador {
         PreguntaDto dto = new PreguntaDto();
         dto.setPregunta_id(entidad.getPregunta_id());
         dto.setEtiqueta(entidad.getEtiqueta());
-
         dto.setCodigoStata(entidad.getCodigoStata());
-
         dto.setDescripcion(entidad.getDescripcion());
         dto.setTipo_dato(entidad.getTipo_dato());
         dto.setDato_sensible(entidad.isDato_sensible());
@@ -92,6 +89,9 @@ public class VariableControlador {
         dto.setSentido_corte(entidad.getSentido_corte());
         dto.setExportable(entidad.isExportable());
         dto.setTipoCorte(entidad.getTipoCorte());
+
+        // MAPEO CAMPO NUEVO
+        dto.setGenerarEstadistica(entidad.isGenerarEstadistica());
 
         if (entidad.getTipo_dato() == TipoDato.ENUM && entidad.getOpciones() != null) {
             List<String> listaOpciones = entidad.getOpciones().stream()

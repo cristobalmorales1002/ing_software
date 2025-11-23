@@ -11,7 +11,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 // Páginas del Sistema (Aquí importamos las reales)
 import DashboardHome from './pages/DashboardHome';     // <--- NUEVO
-import AuditLog from './pages/AuditLog';               // <--- NUEVO
+import AuditLog from './pages/AuditLog';
+import UserProfile from './pages/UserProfile';// <--- NUEVO
 import UserManagement from './pages/UserManagement';
 import CasesControls from './pages/CasesControls';
 import SurveyBuilder from './pages/SurveyBuilder';
@@ -40,6 +41,9 @@ function App() {
                             {/* 3. Gestión y Auditoría (Solo Admins idealmente) */}
                             <Route path="usuarios" element={<UserManagement />} />
                             <Route path="auditoria" element={<AuditLog />} />
+
+                            {/* NUEVA RUTA PERFIL */}
+                            <Route path="perfil" element={<UserProfile />} />
 
                         </Route>
                     </Route>

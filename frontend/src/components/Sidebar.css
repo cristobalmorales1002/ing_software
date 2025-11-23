@@ -69,12 +69,15 @@
 }
 
 .logout-btn {
-    margin-top: auto;
-    border-top: 1px solid #2c3e50;
+    /* margin-top: auto;  <--- ¡BORRA O COMENTA ESTA LÍNEA! */
+
+    border-top: 1px solid var(--border-color);
+    /* Si quieres que se vea pegadito, puedes quitar el border-top también,
+       o dejarlo para separar la zona de "salir" */
 }
 
 .logout-btn:hover {
-    color: #ff6b6b; /* Rojo suave para salir */
+    color: #ff6b6b;
     background-color: rgba(255, 107, 107, 0.1);
 }
 

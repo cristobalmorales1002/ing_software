@@ -2,7 +2,7 @@
     width: 80px;
     height: 100vh;
     /* Gradiente sutil igual que el login pero vertical */
-    background: linear-gradient(180deg, #0f1923 0%, #080c11 100%);
+    background: var(--sidebar-bg);
     border-right: 1px solid #2c3e50; /* Borde sutil para separar del contenido */
     color: #94a3b8; /* Texto gris azulado */
     transition: width 0.3s ease;
@@ -21,28 +21,32 @@
     width: 260px;
 }
 
+/* Busca la clase .nav-link-custom y déjala así: */
+
 .nav-link-custom {
-    color: #94a3b8;
+    /* CAMBIO IMPORTANTE: Usar la variable para que cambie de color */
+    color: var(--text-muted);
+
     text-decoration: none;
-    padding: 16px 28px; /* Más espaciado */
+    padding: 16px 28px;
     display: flex;
     align-items: center;
     gap: 18px;
     transition: all 0.3s ease;
-    border-left: 4px solid transparent; /* Indicador activo invisible */
+    border-left: 4px solid transparent;
 }
 
-/* Efecto Hover */
+/* Y asegura que al pasar el mouse se use el texto principal */
 .nav-link-custom:hover {
-    color: #fff;
-    background-color: rgba(77, 168, 218, 0.1); /* Celeste transparente */
+    color: var(--text-main);
+    background-color: var(--hover-bg);
 }
 
 /* Item Activo */
 .nav-link-custom.active {
-    color: #4da8da; /* Celeste Cybergene */
-    background-color: rgba(77, 168, 218, 0.15);
-    border-left: 4px solid #4da8da; /* Línea brillante a la izquierda */
+    color: var(--accent-color);
+    background-color: var(--hover-bg);
+    border-left: 4px solid var(--accent-color);
 }
 
 .nav-icon {

@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar.jsx';
 import { Container } from 'react-bootstrap';
 
-import './DashboardTheme.css';
+import './DashBoardTheme.css';
 
 const DashboardLayout = () => {
     return (

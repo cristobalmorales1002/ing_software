@@ -35,12 +35,18 @@ const DashboardHome = () => {
     }, []);
 
     const StatCard = ({ title, value, icon, color }) => (
-        <Card className="h-100 shadow-sm border-0 bg-dark-subtle">
+        <Card className="h-100 shadow-sm border-0"> {/* Quitamos bg-dark-subtle para que use el del tema */}
             <Card.Body className="d-flex align-items-center">
-                <div className={`rounded-circle p-3 bg-${color} bg-opacity-10 text-${color} me-3`}>{icon}</div>
+                <div className={`rounded-circle p-3 bg-${color} bg-opacity-10 text-${color} me-3`}>
+                    {icon}
+                </div>
                 <div>
-                    <h6 className="text-muted mb-0 small text-uppercase fw-bold">{title}</h6>
-                    <h2 className="mb-0 fw-bold text-white">{value}</h2>
+                    {/* CORRECCIONES:
+                        1. Quitamos 'text-muted'. Usamos 'opacity-75' para que sea el mismo color del tema pero más suave.
+                        2. Quitamos 'text-white'. Ahora heredará el color correcto (Negro en Claro, Blanco en Oscuro).
+                    */}
+                    <h6 className="mb-0 small text-uppercase fw-bold opacity-75">{title}</h6>
+                    <h2 className="mb-0 fw-bold">{value}</h2>
                 </div>
             </Card.Body>
         </Card>
@@ -71,8 +77,8 @@ const DashboardHome = () => {
                             <Card.Body>
                                 {stat.datos.map((dato, dIdx) => (
                                     <div key={dIdx} className="mb-3">
-                                        <div className="d-flex justify-content-between mb-1 text-white small">
-                                            <span>{dato.etiqueta}</span>
+                                        <div className="d-flex justify-content-between mb-1 small"> {/* Quitamos text-white */}
+                                            <span className="fw-bold">{dato.etiqueta}</span>
                                             <span className="fw-bold">{dato.valor} ({dato.porcentaje}%)</span>
                                         </div>
                                         <ProgressBar now={dato.porcentaje} variant={dIdx % 2 === 0 ? "info" : "primary"} style={{height: '8px', backgroundColor: 'rgba(255,255,255,0.1)'}} />

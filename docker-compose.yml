@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # --- BASE DE DATOS (MySQL) ---
+  mysqldb:
+    image: mysql:8.0
+    container_name: mysql_container
+    restart: always
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: proyecto_semestral
+    volumes:
+      # Persistencia de datos (donde Docker guarda la BD viva)
+      - mysql_data:/var/lib/mysql
+      # IMPORTANTE: Mapeo para inicializar la BD con tu archivo SQL
+      - ./mysql_init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # --- BACKEND (Spring Boot) ---
+  backend:
+    build: ./backend
+    container_name: spring_backend
+    restart: on-failure
+    ports:
+      - "8081:8080"
+    depends_on:
+      mysqldb:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/proyecto_semestral?allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+  # --- FRONTEND (React) ---
+  frontend:
+    build: ./frontend
+    container_name: react_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

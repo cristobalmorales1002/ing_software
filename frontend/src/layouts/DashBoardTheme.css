@@ -1,0 +1,77 @@
+/* frontend/src/layouts/DashboardTheme.css - ADAPTADO A TEMAS */
+
+.dashboard-theme {
+    background-color: var(--bg-main) !important;
+    color: var(--text-main) !important;
+    font-family: 'Poppins', sans-serif;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* Tarjetas y Modales */
+.dashboard-theme .card,
+.dashboard-theme .bg-white,
+.modal-content {
+    background-color: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
+.dashboard-theme .card-header,
+.modal-header,
+.modal-footer {
+    background-color: var(--hover-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
+/* Tablas */
+.dashboard-theme .table {
+    --bs-table-bg: transparent !important;
+    --bs-table-color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+
+.dashboard-theme .table thead th {
+    background-color: var(--bg-card) !important;
+    color: var(--accent-color) !important;
+    border-bottom: 2px solid var(--accent-color) !important;
+}
+
+.dashboard-theme .table tbody td {
+    background-color: var(--bg-card) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
+.dashboard-theme .table-hover tbody tr:hover > * {
+    background-color: var(--hover-bg) !important;
+    color: var(--text-main) !important;
+}
+
+/* Formularios */
+.dashboard-theme .form-control,
+.dashboard-theme .form-select {
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
+.dashboard-theme .form-control:focus {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 4px var(--hover-bg) !important;
+}
+
+/* Arreglos específicos para modo claro */
+[data-theme="light"] .btn-close {
+    filter: none !important; /* X negra en modo claro */
+}
+[data-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%) !important; /* X blanca en oscuro */
+}
+
+.dashboard-theme .form-control::placeholder,
+.modal-content .form-control::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.7;
+}

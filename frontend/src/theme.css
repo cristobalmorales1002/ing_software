@@ -1,0 +1,32 @@
+/* frontend/src/theme.css */
+
+/* 1. Colores por defecto (MODO OSCURO - CyberGene) */
+:root {
+    --bg-main: #0b1219;           /* Fondo principal */
+    --bg-card: #15202b;           /* Fondo tarjetas/tablas */
+    --bg-input: #0b1219;          /* Fondo inputs */
+    --text-main: #e0e6ed;         /* Texto principal */
+    --text-muted: #94a3b8;        /* Texto secundario */
+    --border-color: #2c3e50;      /* Bordes */
+    --accent-color: #4da8da;      /* Celeste Cyber */
+    --sidebar-bg: linear-gradient(180deg, #0f1923 0%, #080c11 100%);
+    --hover-bg: rgba(77, 168, 218, 0.1);
+}
+
+/* 2. Colores MODO CLARO */
+[data-theme="light"] {
+    --bg-main: #f8f9fa;           /* Gris muy claro */
+    --bg-card: #ffffff;           /* Blanco puro */
+    --bg-input: #ffffff;          /* Inputs blancos */
+    --text-main: #212529;         /* Negro suave */
+    --text-muted: #6c757d;        /* Gris medio */
+    --border-color: #dee2e6;      /* Gris borde bootstrap */
+    --accent-color: #0d6efd;      /* Azul Bootstrap standard */
+    --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f1f3f5 100%); /* Blanco/Gris */
+    --hover-bg: rgba(13, 110, 253, 0.1);
+}
+
+/* Aplicar transición suave a todo */
+body, .card, .sidebar, .form-control, table {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

@@ -1,0 +1,123 @@
+.sidebar {
+    width: 80px;
+    height: 100vh;
+    /* Gradiente sutil igual que el login pero vertical */
+    background: var(--sidebar-bg);
+    border-right: 1px solid #2c3e50; /* Borde sutil para separar del contenido */
+    color: #94a3b8; /* Texto gris azulado */
+    transition: width 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    white-space: nowrap;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+}
+
+.sidebar:hover {
+    width: 260px;
+}
+
+/* Busca la clase .nav-link-custom y déjala así: */
+
+.nav-link-custom {
+    /* CAMBIO IMPORTANTE: Usar la variable para que cambie de color */
+    color: var(--text-muted);
+
+    text-decoration: none;
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+/* Y asegura que al pasar el mouse se use el texto principal */
+.nav-link-custom:hover {
+    color: var(--text-main);
+    background-color: var(--hover-bg);
+}
+
+/* Item Activo */
+.nav-link-custom.active {
+    color: var(--accent-color);
+    background-color: var(--hover-bg);
+    border-left: 4px solid var(--accent-color);
+}
+
+.nav-icon {
+    font-size: 1.4rem;
+    min-width: 30px;
+    display: flex;
+    justify-content: center;
+}
+
+.nav-text {
+    font-weight: 500;
+    font-size: 0.95rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    transition-delay: 0.1s;
+}
+
+.sidebar:hover .nav-text {
+    opacity: 1;
+}
+
+.logout-btn {
+    /* margin-top: auto;  <--- ¡BORRA O COMENTA ESTA LÍNEA! */
+
+    border-top: 1px solid var(--border-color);
+    /* Si quieres que se vea pegadito, puedes quitar el border-top también,
+       o dejarlo para separar la zona de "salir" */
+}
+
+.logout-btn:hover {
+    color: #ff6b6b;
+    background-color: rgba(255, 107, 107, 0.1);
+}
+
+/* --- BLOQUE ESPECIAL PARA EL LOGO --- */
+
+/* 1. El contenedor que centra el logo */
+.logo-container {
+    width: 100%;
+    height: 80px; /* Altura fija del encabezado */
+    display: flex;
+    justify-content: center; /* Centrado horizontal */
+    align-items: center;     /* Centrado vertical */
+    background-color: rgba(0, 0, 0, 0.2); /* Fondo sutil para el header */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden; /* ¡IMPORTANTE! Corta cualquier cosa que sobresalga */
+    transition: height 0.3s ease;
+}
+
+/* 2. La imagen del logo controlada */
+.logo-img {
+    width: 45px;  /* Tamaño pequeño cuando el menú está cerrado (80px ancho total) */
+    height: 45px;
+    /* CAMBIO CLAVE: 'contain' muestra toda la imagen sin recortar nada */
+    object-fit: contain;
+
+    /* CAMBIO CLAVE: Bordes redondeados suaves en lugar de círculo perfecto */
+    border-radius: 8px;
+    border: 2px solid #4da8da; /* Borde elegante celeste */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efecto rebote suave */
+    background-color: white; /* Fondo blanco para que el logo resalte si es PNG transparente */
+}
+
+/* 3. Transformación al pasar el mouse (Sidebar Abierto) */
+.sidebar:hover .logo-container {
+    height: 110px; /* El encabezado crece un poco */
+}
+
+.sidebar:hover .logo-img {
+    width: 80px;  /* El logo crece */
+    height: 80px;
+    border-width: 3px;
+    box-shadow: 0 0 15px rgba(77, 168, 218, 0.5); /* Resplandor 'Cyber' */
+}

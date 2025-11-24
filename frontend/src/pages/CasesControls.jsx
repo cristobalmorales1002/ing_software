@@ -137,14 +137,12 @@ const CasesControls = () => {
                         {/* Cabecera de la lista: Buscador y Filtros */}
                         <div className="p-3 border-bottom border-secondary border-opacity-25">
                             <InputGroup className="mb-3">
-                                {/* CAMBIO: Usamos style color var(--text-muted) en vez de clase text-muted */}
                                 <InputGroup.Text
                                     className="bg-transparent border-secondary border-opacity-50"
                                     style={{ color: 'var(--text-muted)' }}
                                 >
                                     <Search />
                                 </InputGroup.Text>
-                                {/* CAMBIO: Forzamos el color del texto del input */}
                                 <Form.Control
                                     placeholder="Buscar..."
                                     value={searchTerm}
@@ -152,7 +150,7 @@ const CasesControls = () => {
                                     className="border-secondary border-opacity-50 bg-transparent shadow-none"
                                     style={{
                                         borderLeft: 'none',
-                                        color: 'var(--text-main)' // <--- ESTO ARREGLA EL TEXTO INVISIBLE
+                                        color: 'var(--text-main)'
                                     }}
                                 />
                             </InputGroup>
@@ -181,7 +179,6 @@ const CasesControls = () => {
                         <div className="flex-grow-1 overflow-auto">
                             <ListGroup variant="flush">
                                 {filteredItems.length === 0 ? (
-                                    // CAMBIO: Color explícito para el mensaje de vacío
                                     <div className="text-center p-5" style={{ color: 'var(--text-muted)' }}>
                                         No se encontraron registros
                                     </div>
@@ -195,7 +192,6 @@ const CasesControls = () => {
                                             className="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary border-opacity-10"
                                             style={{
                                                 backgroundColor: selectedItem?.dbId === item.dbId ? 'var(--hover-bg)' : 'transparent',
-                                                // CAMBIO: Aseguramos que el texto sea visible
                                                 color: selectedItem?.dbId === item.dbId ? 'var(--accent-color)' : 'var(--text-main)',
                                                 borderLeft: selectedItem?.dbId === item.dbId ? '4px solid var(--accent-color)' : '4px solid transparent',
                                                 transition: 'all 0.2s'
@@ -274,7 +270,7 @@ const CasesControls = () => {
                 </Col>
             </Row>
 
-            {/* MODAL WIZARD (Sin cambios mayores, solo asegurando que use el tema) */}
+            {/* MODAL WIZARD */}
             <Modal show={showModal} onHide={() => setShowModal(false)} backdrop="static" size="lg" centered>
                 <Modal.Header closeButton>
                     <div className="w-100 me-3">
@@ -294,7 +290,12 @@ const CasesControls = () => {
                     {loadingSurvey ? (
                         <div className="text-center py-5"><Spinner animation="border" /></div>
                     ) : surveyStructure.length === 0 ? (
-                        <div className="text-center py-5 text-muted">No hay encuesta configurada.</div>
+
+                        /* --- AQUÍ ESTÁ EL CAMBIO QUE ME PEDISTE --- */
+                        <div className="text-center py-5" style={{ color: 'var(--text-muted)' }}>
+                            No hay encuesta configurada.
+                        </div>
+
                     ) : (
                         <div>
                             <h5 className="mb-4 text-primary border-bottom pb-2">{currentCat?.nombre}</h5>

@@ -69,3 +69,9 @@
 [data-theme="dark"] .btn-close {
     filter: invert(1) grayscale(100%) brightness(200%) !important; /* X blanca en oscuro */
 }
+
+.dashboard-theme .form-control::placeholder,
+.modal-content .form-control::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.7;
+}

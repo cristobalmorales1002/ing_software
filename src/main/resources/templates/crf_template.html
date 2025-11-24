@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>CRF - Estudio Cáncer Gástrico</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm;
+        }
+        body {
+            font-family: 'Cambria', 'Times New Roman', serif;
+            font-size: 11pt;
+            line-height: 1.3;
+            color: #000;
+        }
+        .header {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 26pt;
+            font-weight: bold;
+            color: #1F4E79;
+            text-align: center;
+            margin-bottom: 20px;
+            text-transform: none;
+            border: none;
+        }
+        .category-title {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 14pt;
+            font-weight: bold;
+            color: #2E74B5;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            border-bottom: 1px solid #2E74B5;
+        }
+        .patient-info {
+            font-family: 'Cambria', serif;
+            border: 1px solid #aaa;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fff;
+        }
+        .question-block {
+            margin-bottom: 10px;
+            page-break-inside: avoid;
+        }
+        .question-label {
+            font-weight: bold;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .input-line {
+            display: inline-block;
+            border-bottom: 1px solid #000;
+            min-width: 150px;
+            padding-left: 5px;
+            color: #000080;
+        }
+        .checkbox-group {
+            display: block;
+            margin-top: 3px;
+            margin-left: 15px;
+        }
+        .checkbox-item {
+            display: inline-block;
+            margin-right: 15px;
+        }
+        .box {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 1px solid #000;
+            margin-right: 5px;
+            text-align: center;
+            line-height: 10px;
+            font-size: 10px;
+            font-family: sans-serif;
+        }
+        .filled-value {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #000080;
+        }
+        .ident-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .ident-table td {
+            padding: 5px 0;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 9pt;
+            text-align: right;
+            color: #888;
+            font-family: 'Calibri', sans-serif;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    Case Report Form (CRF) – Estudio Cáncer Gástrico
+</div>
+
+<div th:each="cat : ${categorias}">
+
+    <div class="category-title" th:text="${cat.orden + '. ' + cat.nombre}">
+        1. Datos Generales
+    </div>
+
+    <div th:each="pregunta : ${cat.preguntas}" th:if="${pregunta.activo}" class="question-block">
+
+        <span class="question-label" th:text="${pregunta.etiqueta + ':'}">Edad:</span>
+
+        <th:block th:with="respuesta=${respuestasMap.get(pregunta.pregunta_id)}">
+
+            <!-- CORRECCIÓN 1: Usar toString() en vez de name() para mayor compatibilidad -->
+            <!-- CORRECCIÓN 2: Reemplazar &nbsp; por &#160; (Espacio NO rompible compatible con XML) -->
+
+            <span th:if="${pregunta.tipo_dato.toString() != 'ENUM'}" class="input-line">
+                    <span th:if="${respuesta != null}" th:text="${respuesta.valor}" class="filled-value"></span>
+                    <span th:if="${respuesta == null}">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>
+                </span>
+
+            <div th:if="${pregunta.tipo_dato.toString() == 'ENUM'}" class="checkbox-group">
+                <div th:each="opcion : ${pregunta.opciones}" class="checkbox-item">
+                        <span class="box">
+                            <span th:if="${respuesta != null && #strings.equalsIgnoreCase(respuesta.valor, opcion.etiqueta)}">X</span>
+                            <span th:unless="${respuesta != null && #strings.equalsIgnoreCase(respuesta.valor, opcion.etiqueta)}">&#160;</span>
+                        </span>
+                    <span th:text="${opcion.etiqueta}">Opción</span>
+                </div>
+            </div>
+
+        </th:block>
+
+    </div>
+
+    <div th:if="${cat.orden == 1}">
+        <table class="ident-table">
+            <tr>
+                <td style="width: 180px;"><strong>Código del Participante:</strong></td>
+                <td>
+                        <span class="input-line" style="min-width: 100px;">
+                            <span class="filled-value" th:text="${codigoPaciente != null ? codigoPaciente : ''}"></span>
+                            <span th:if="${codigoPaciente == null}">&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</span>
+                        </span>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Grupo:</strong></td>
+                <td>
+                    <!-- Usamos &#160; para espacios en blanco seguros -->
+                    <span th:if="${esCaso != null && esCaso}" style="color: #000080; font-weight: bold;">[X] Caso &#160; [ ] Control</span>
+                    <span th:if="${esCaso != null && !esCaso}" style="color: #000080; font-weight: bold;">[ ] Caso &#160; [X] Control</span>
+                    <span th:if="${esCaso == null}">[ ] Caso &#160; [ ] Control</span>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Fecha de Inclusión:</strong></td>
+                <td>
+                        <span class="input-line" style="min-width: 120px;">
+                            <span class="filled-value" th:text="${fechaInclusion != null ? fechaInclusion : ''}"></span>
+                            <span th:if="${fechaInclusion == null}">&#160;&#160;/&#160;&#160;/&#160;&#160;&#160;&#160;</span>
+                        </span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>

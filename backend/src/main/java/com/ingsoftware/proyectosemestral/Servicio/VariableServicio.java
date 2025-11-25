@@ -49,17 +49,14 @@ public class VariableServicio {
         p.setExportable(dto.isExportable());
         p.setTipoCorte(dto.getTipoCorte() != null ? dto.getTipoCorte() : TipoCorte.NINGUNO);
 
-        // --- REGLA DE NEGOCIO: ESTADÍSTICAS ---
-        // Solo permitimos activar estadísticas si la pregunta tiene opciones (ENUM)
         if (dto.getTipo_dato() == TipoDato.ENUM) {
             p.setGenerarEstadistica(dto.isGenerarEstadistica());
         } else {
-            p.setGenerarEstadistica(false); // Forzamos false para texto/números
+            p.setGenerarEstadistica(false);
         }
 
         p = preguntaRepositorio.save(p);
 
-        // Crear opciones si el tipo es ENUM
         if (dto.getTipo_dato() == TipoDato.ENUM) {
             List<String> opciones = Optional.ofNullable(dto.getOpciones()).orElseGet(ArrayList::new);
             int i = 1;
@@ -132,7 +129,6 @@ public class VariableServicio {
             p.setTipoCorte(dto.getTipoCorte());
         }
 
-        // --- REGLA DE NEGOCIO: ESTADÍSTICAS (ACTUALIZACIÓN) ---
         if (dto.getTipo_dato() == TipoDato.ENUM) {
             p.setGenerarEstadistica(dto.isGenerarEstadistica());
         } else {
@@ -173,5 +169,20 @@ public class VariableServicio {
         }
 
         return preguntaRepositorio.save(p);
+    }
+
+    // --- METODO NUEVO: REORDENAR PREGUNTAS ---
+    @Transactional
+    public void reordenarPreguntas(List<Long> idsOrdenados) {
+        for (int i = 0; i < idsOrdenados.size(); i++) {
+            Long id = idsOrdenados.get(i);
+            int orden = i + 1; // effectively final
+
+            preguntaRepositorio.findById(id).ifPresent(p -> {
+                p.setOrden(orden);
+                preguntaRepositorio.save(p);
+            });
+        }
+
     }
 }

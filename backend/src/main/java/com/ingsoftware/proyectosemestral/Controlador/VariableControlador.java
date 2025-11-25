@@ -71,6 +71,14 @@ public class VariableControlador {
         return ResponseEntity.ok(dtoRespuesta);
     }
 
+    // --- ENDPOINT NUEVO: Reordenar Preguntas ---
+    @PutMapping("/reordenar")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Void> reordenarPreguntas(@RequestBody List<Long> idsOrdenados) {
+        variableServicio.reordenarPreguntas(idsOrdenados);
+        return ResponseEntity.ok().build();
+    }
+
     private PreguntaDto mapearEntidadADto(Pregunta entidad) {
         if (entidad == null) return null;
         PreguntaDto dto = new PreguntaDto();
@@ -90,7 +98,6 @@ public class VariableControlador {
         dto.setExportable(entidad.isExportable());
         dto.setTipoCorte(entidad.getTipoCorte());
 
-        // MAPEO CAMPO NUEVO
         dto.setGenerarEstadistica(entidad.isGenerarEstadistica());
 
         if (entidad.getTipo_dato() == TipoDato.ENUM && entidad.getOpciones() != null) {

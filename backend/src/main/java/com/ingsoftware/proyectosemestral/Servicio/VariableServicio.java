@@ -183,6 +183,5 @@ public class VariableServicio {
                 preguntaRepositorio.save(p);
             });
         }
-
     }
 }

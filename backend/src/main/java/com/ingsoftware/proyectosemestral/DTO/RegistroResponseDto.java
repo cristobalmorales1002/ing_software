@@ -12,4 +12,5 @@ public class RegistroResponseDto {
     private String detalles;
     private LocalDateTime fecha;
     private Long idRespuestaAfectada;
+    private String preguntaAfectada;
 }

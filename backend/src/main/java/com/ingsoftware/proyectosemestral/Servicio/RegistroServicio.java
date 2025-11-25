@@ -38,7 +38,7 @@ public class RegistroServicio {
         this.registrarAccion(usuario, accion, detalles, null);
     }
 
-    // AHORA SÍ FUNCIONA EL READONLY
+    // AHORA SÍ FUNCIONA EL READONLY PARA CARGA PEREZOSA (LAZY LOADING)
     @Transactional(readOnly = true)
     public Page<RegistroResponseDto> obtenerLogsPaginados(LocalDate fechaInicio, LocalDate fechaFin, Pageable pageable) {
 
@@ -70,6 +70,10 @@ public class RegistroServicio {
 
         if (r.getRespuesta() != null) {
             dto.setIdRespuestaAfectada(r.getRespuesta().getRespuesta_id());
+
+            if (r.getRespuesta().getPregunta() != null) {
+                dto.setPreguntaAfectada(r.getRespuesta().getPregunta().getEtiqueta());
+            }
         }
 
         return dto;

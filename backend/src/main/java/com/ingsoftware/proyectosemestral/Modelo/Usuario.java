@@ -49,6 +49,12 @@ public class Usuario {
     @Column
     private LocalDateTime token_rec_expiracion;
 
+    @Column
+    private String tokenCambioEmail;
+
+    @Column
+    private LocalDateTime tokenCambioEmailExpiracion;
+
     /**
      * Define la relación Muchos-a-Muchos (N:M) entre Usuario y Rol.
      * Un usuario puede tener múltiples roles (ej. ser ADMIN e INVESTIGADOR).

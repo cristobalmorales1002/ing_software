@@ -1,5 +1,6 @@
 package com.ingsoftware.proyectosemestral.Controlador;
 
+import com.ingsoftware.proyectosemestral.DTO.CambioEmailDto;
 import com.ingsoftware.proyectosemestral.DTO.UsuarioCreateDto;
 import com.ingsoftware.proyectosemestral.DTO.UsuarioResponseDto;
 import com.ingsoftware.proyectosemestral.Servicio.UsuarioServicio;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/usuarios")
@@ -66,5 +68,31 @@ public class UsuarioControlador {
         String rut = authentication.getName();
         UsuarioResponseDto updated = usuarioServicio.updateProfile(rut, dto);
         return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/me/email/solicitar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> solicitarCambioEmail(Authentication authentication) {
+        String rut = authentication.getName();
+        usuarioServicio.solicitarCambioEmail(rut);
+        return ResponseEntity.ok(Map.of("mensaje", "Token enviado a su correo actual."));
+    }
+
+    @PostMapping("/me/email/validar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> validarTokenEmail(Authentication authentication, @RequestBody Map<String, String> body) {
+        String rut = authentication.getName();
+        String token = body.get("token");
+        usuarioServicio.validarTokenEmail(rut, token);
+        return ResponseEntity.ok(Map.of("valido", true));
+    }
+
+    @PutMapping("/me/email/confirmar")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> confirmarCambioEmail(Authentication authentication,
+                                                  @Valid @RequestBody CambioEmailDto dto) {
+        String rut = authentication.getName();
+        usuarioServicio.confirmarCambioEmail(rut, dto.getToken(), dto.getNuevoEmail());
+        return ResponseEntity.ok(Map.of("mensaje", "Correo electrónico actualizado exitosamente."));
     }
 }

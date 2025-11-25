@@ -146,3 +146,116 @@
     -webkit-box-shadow: 0 0 0px 1000px #1e293b inset !important;
     transition: background-color 5000s ease-in-out 0s;
 }
+/* --- ESTILOS PARA BADGES (Roles y Estados) --- */
+
+/* 1. Roles (Color Turquesa/Cyan vibrante como tu foto) */
+.badge-rol {
+    background-color: #06b6d4 !important; /* Turquesa vibrante */
+    color: #ffffff !important;             /* Texto blanco */
+    min-width: 130px;                      /* Ancho fijo para todos */
+    display: inline-block;
+    text-align: center;                    /* Centrado */
+    padding: 8px 0;                        /* Alto uniforme */
+    font-size: 0.9rem;
+    border-radius: 6px;                    /* Bordes redondeados suaves */
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(6, 182, 212, 0.2); /* Sombra sutil del mismo color */
+}
+
+/* 2. Estados (Activo/Inactivo) */
+.badge-estado {
+    min-width: 100px; /* Ancho fijo para que Activo e Inactivo midan lo mismo */
+    display: inline-block;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 0.9rem;
+    border-radius: 6px;
+}
+
+/* Ajuste específico para el verde de "Activo" */
+.badge-estado.bg-success {
+    background-color: #10b981 !important; /* Verde esmeralda más bonito */
+}
+
+/* Ajuste para el gris de "Inactivo" */
+.badge-estado.bg-secondary {
+    background-color: #64748b !important; /* Gris azulado */
+}
+
+/* --- BADGES DE AUDITORÍA --- */
+
+/* 1. Tamaño y Alineación (Para que todos midan lo mismo) */
+.badge-audit-fixed {
+    min-width: 160px; /* Ancho fijo suficiente para "CREAR_RESPUESTA" */
+    display: inline-block;
+    text-align: center;
+    padding: 8px 0;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-radius: 6px;
+}
+
+/* 2. Color para acciones de CREAR (Bimodal) */
+.badge-audit-create {
+    color: white !important;
+}
+
+/* MODO CLARO: Celeste Claro (Lo que pediste) */
+[data-theme="light"] .badge-audit-create {
+    background-color: #0ea5e9 !important; /* Celeste Sky vibrante */
+    box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
+}
+
+/* MODO OSCURO: Verde (Lo que te gustaba) */
+[data-theme="dark"] .badge-audit-create {
+    background-color: #10b981 !important; /* Verde Esmeralda */
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+/* --- DATE PICKER UNIFICADO --- */
+
+.date-picker-unified .form-control {
+    border-left: none !important;
+    border-right: none !important;
+    background-color: transparent !important; /* Fondo transparente para integrarse */
+}
+
+.date-picker-unified .form-control:focus {
+    box-shadow: none !important; /* Quitar brillo azul al escribir */
+    background-color: transparent !important;
+}
+
+.date-picker-unified .input-group-text {
+    background-color: transparent !important;
+    border-left: none !important;
+    border-right: none !important;
+    color: var(--text-muted);
+}
+
+/* Borde externo unificado */
+.date-picker-unified {
+    background-color: var(--bg-input); /* Color de fondo del input según tema */
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden; /* Para que el color de fondo del icono no se salga */
+}
+
+/* Icono principal con color sólido */
+.date-picker-icon {
+    background-color: var(--accent-color) !important;
+    color: white !important;
+    border: none !important;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+/* --- OCULTAR ICONO NATIVO DE FECHA --- */
+/* Esto borra el calendario pequeño que pone Chrome/Edge dentro del input */
+input[type="date"]::-webkit-inner-spin-button,
+input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
+}
+
+/* Ajuste para que el texto del date ocupe todo el espacio */
+input[type="date"] {
+    -moz-appearance: textfield;
+}

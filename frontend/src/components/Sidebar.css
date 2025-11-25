@@ -86,14 +86,17 @@
 /* 1. El contenedor que centra el logo */
 .logo-container {
     width: 100%;
-    height: 80px; /* Altura fija del encabezado */
+    height: 80px;
     display: flex;
-    justify-content: center; /* Centrado horizontal */
-    align-items: center;     /* Centrado vertical */
-    background-color: rgba(0, 0, 0, 0.2); /* Fondo sutil para el header */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    overflow: hidden; /* ¡IMPORTANTE! Corta cualquier cosa que sobresalga */
-    transition: height 0.3s ease;
+    justify-content: center;
+    align-items: center;
+
+    /* CAMBIO AQUÍ: Usamos las variables */
+    background-color: var(--logo-bg);
+    border-bottom: 1px solid var(--logo-border);
+
+    overflow: hidden;
+    transition: height 0.3s ease, background-color 0.3s ease; /* Agregamos transición de color */
 }
 
 /* 2. La imagen del logo controlada */

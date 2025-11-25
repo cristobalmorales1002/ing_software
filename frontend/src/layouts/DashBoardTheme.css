@@ -75,3 +75,13 @@
     color: var(--text-muted) !important;
     opacity: 0.7;
 }
+
+.offcanvas .form-control::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 0.7;
+}
+
+/* Asegurar que el texto que escribes también sea blanco */
+.offcanvas .form-control {
+    color: var(--text-main) !important;
+}

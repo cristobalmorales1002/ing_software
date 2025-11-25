@@ -1,16 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Form, Button, Container, Row, Col, Card, Alert, Spinner } from 'react-bootstrap';
+// 1. Agregamos InputGroup a los imports de Bootstrap
+import { Form, Button, Container, Row, Col, Card, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import api from '../api/axios';
 import { validateRut, formatRut } from '../utils/rutUtils.js';
 import { Link, useNavigate } from 'react-router-dom';
 
-// 1. IMPORTAMOS EL CSS Y EL LOGO
+// 2. Importamos los iconos del ojo
+import { Eye, EyeSlash } from 'react-bootstrap-icons';
+
 import './Login.css';
-import logoCybergene from '../assets/logo-biocode.png'; // <--- AJUSTA ESTA RUTA
+import logoCybergene from '../assets/logo-biocode.png';
 
 function LoginPage() {
     const [rut, setRut] = useState('');
     const [password, setPassword] = useState('');
+
+    // 3. Nuevo estado para controlar la visibilidad
+    const [showPassword, setShowPassword] = useState(false);
+
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -51,10 +58,16 @@ function LoginPage() {
             });
 
             if (res.status === 200 || res.status === 204) {
+                // Guardar datos del usuario si el backend los devuelve (opcional, depende de tu auth)
+                // Por ahora solo marcamos como logueado
                 localStorage.setItem('isLoggedIn', 'true');
+
+                // Si el backend devuelve info del usuario en el body del login, la guardamos aquí:
+                // localStorage.setItem('user', JSON.stringify(res.data));
+                // Nota: Como es form-login standard, a veces solo devuelve OK y hay que pedir el usuario aparte.
+                // Si ya te funciona así, déjalo así.
+
                 navigate('/dashboard', { replace: true });
-            } else if (res.status === 401) {
-                setError('Credenciales incorrectas');
             } else {
                 setError('Error al autenticar: ' + res.status);
             }
@@ -74,12 +87,10 @@ function LoginPage() {
             <Row className="justify-content-md-center w-100">
                 <Col md={5} lg={4}>
                     <Card className="login-card shadow-sm">
-                        <Card.Body className="p-4 p-md-5"> {/* Un poco más de padding interno */}
+                        <Card.Body className="p-4 p-md-5">
 
                             <div className="login-header text-center mb-4">
-                                {/* 2. AQUÍ AGREGAMOS EL LOGO */}
                                 <img src={logoCybergene} alt="Logo CyberGene" className="login-logo mb-6" />
-
                                 <h3>Plataforma Cáncer Gástrico</h3>
                                 <p className="text-muted">Sistema de Gestión de Datos de Investigación</p>
                             </div>
@@ -99,13 +110,26 @@ function LoginPage() {
 
                                 <Form.Group className="mb-4" controlId="password">
                                     <Form.Label>Contraseña</Form.Label>
-                                    <Form.Control
-                                        type="password"
-                                        placeholder="********"
-                                        required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                    />
+
+                                    {/* 4. Envolvemos el input y el botón en un InputGroup */}
+                                    <InputGroup>
+                                        <Form.Control
+                                            type={showPassword ? "text" : "password"} // Cambia dinámicamente
+                                            placeholder="********"
+                                            required
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            style={{ borderRight: 'none' }} // Estilo opcional para unirlo mejor
+                                        />
+                                        <Button
+                                            variant="outline-secondary"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            style={{ borderLeft: 'none', borderColor: '#dee2e6' }} // Para que coincida con el input
+                                            title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                        >
+                                            {showPassword ? <EyeSlash /> : <Eye />}
+                                        </Button>
+                                    </InputGroup>
                                 </Form.Group>
 
                                 {error && (

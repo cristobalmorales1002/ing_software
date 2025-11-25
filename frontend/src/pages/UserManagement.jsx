@@ -5,31 +5,26 @@ import api from '../api/axios';
 import { formatRut, validateRut } from '../utils/rutUtils';
 
 const UserManagement = () => {
-    // --- ESTADOS ---
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [rutError, setRutError] = useState(null);
 
-    // Modales
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(null);
 
-    // Estado Formulario
     const initialFormState = {
         rut: '', nombres: '', apellidos: '', email: '', telefono: '',
         contrasena: '', activo: true, rol: 'ROLE_INVESTIGADOR'
     };
     const [formData, setFormData] = useState(initialFormState);
 
-    // Buscador y Paginación
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    // --- CARGAR DATOS ---
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
@@ -41,7 +36,6 @@ const UserManagement = () => {
 
     useEffect(() => { fetchUsers(); }, []);
 
-    // --- FILTRO Y PAGINACIÓN ---
     const filteredUsers = users.filter((user) => {
         if (searchTerm === '') return true;
         const searchLower = searchTerm.toLowerCase();
@@ -61,29 +55,16 @@ const UserManagement = () => {
     const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-    // --- MANEJADORES ---
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
-
         if (name === 'rut') {
+            if (value.length > 12) return;
             const formatted = formatRut(value);
             setFormData({ ...formData, [name]: formatted });
-
-            if (formatted.trim() === '') {
-                setRutError(null);
-                return;
-            }
-
+            if (formatted.trim() === '') { setRutError(null); return; }
             if (formatted.length >= 8) {
-                if (validateRut(formatted)) {
-                    setRutError(null);
-                } else {
-                    setRutError('Dígito verificador incorrecto');
-                }
-            } else {
-                setRutError(null);
-            }
-
+                if (validateRut(formatted)) { setRutError(null); } else { setRutError('Dígito verificador incorrecto'); }
+            } else { setRutError(null); }
         } else {
             setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
         }
@@ -114,16 +95,13 @@ const UserManagement = () => {
     const handleSaveUser = async (e) => {
         e.preventDefault();
         setRutError(null); setError(null);
-
         if (!validateRut(formData.rut)) { setRutError('RUT inválido.'); return; }
-
         try {
             const dataToSend = {
                 rut: formData.rut, nombres: formData.nombres, apellidos: formData.apellidos,
                 email: formData.email, telefono: formData.telefono, rol: formData.rol,
                 activo: true
             };
-
             if (isEditing) {
                 await api.put(`/api/usuarios/${selectedUserId}`, dataToSend);
             } else {
@@ -137,35 +115,30 @@ const UserManagement = () => {
     };
 
     const handleDeleteUser = async () => { try { await api.delete(`/api/usuarios/${selectedUserId}`); fetchUsers(); setShowDeleteModal(false); } catch (err) { setError('Error al eliminar.'); } };
+
     const formatRoleName = (role) => { switch(role) { case 'ROLE_ADMIN': return 'Administrador'; case 'ROLE_INVESTIGADOR': return 'Investigador'; case 'ROLE_MEDICO': return 'Médico'; case 'ROLE_ESTUDIANTE': return 'Estudiante'; default: return role; } };
 
     return (
         <Container fluid className="p-0">
-            {/* HEADER CON BUSCADOR REINTEGRADO */}
             <Row className="mb-4 align-items-center">
                 <Col md={5}>
                     <h2 className="mb-0">GESTIÓN DE USUARIOS</h2>
                 </Col>
                 <Col md={7} className="d-flex justify-content-end gap-3">
-
-                    {/* --- BUSCADOR --- */}
-                    <InputGroup style={{ maxWidth: '300px' }}>
-                        <InputGroup.Text
-                            className="bg-transparent text-muted"
-                            style={{ borderColor: '#2c3e50', borderRight: 'none' }}
-                        >
+                    {/* CAMBIO: Quitamos los estilos hardcodeados y usamos clases limpias */}
+                    <InputGroup style={{ maxWidth: '300px' }} className="search-bar-custom">
+                        <InputGroup.Text className="bg-transparent border-end-0" style={{color: 'var(--text-muted)', borderColor: 'var(--border-color)'}}>
                             <Search />
                         </InputGroup.Text>
                         <Form.Control
-                            placeholder=" Buscar..."
+                            placeholder="Buscar..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="ps-0 shadow-none"
+                            className="shadow-none border-start-0"
                             style={{
-                                borderColor: '#2c3e50',
-                                borderLeft: 'none',
-                                color: 'white',
-                                backgroundColor: 'transparent'
+                                backgroundColor: 'transparent',
+                                borderColor: 'var(--border-color)',
+                                color: 'var(--text-main)'
                             }}
                         />
                     </InputGroup>
@@ -178,17 +151,16 @@ const UserManagement = () => {
 
             {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
 
-            {/* TABLA */}
             <div className="table-responsive rounded border border-secondary border-opacity-25">
                 <Table hover className="mb-0 align-middle text-nowrap">
                     <thead className="bg-light">
                     <tr>
                         <th>RUT</th>
                         <th>Nombre Completo</th>
-                        <th>Rol</th>
+                        <th className="text-center">Rol</th>
                         <th>Email</th>
                         <th>Teléfono</th>
-                        <th>Estado</th>
+                        <th className="text-center">Estado</th>
                         <th className="text-end">Acciones</th>
                     </tr>
                     </thead>
@@ -196,7 +168,7 @@ const UserManagement = () => {
                     {isLoading ? (
                         <tr><td colSpan="7" className="text-center py-5"><Spinner animation="border" /></td></tr>
                     ) : currentUsers.length === 0 ? (
-                        <tr><td colSpan="7" className="text-center py-5 text-muted">
+                        <tr><td colSpan="7" className="text-center py-5 text-muted" style={{color: 'var(--text-muted)'}}>
                             {searchTerm ? 'No se encontraron resultados.' : 'No hay usuarios registrados.'}
                         </td></tr>
                     ) : (
@@ -204,13 +176,17 @@ const UserManagement = () => {
                             <tr key={user.usuarioId}>
                                 <td className="fw-bold">{user.rut}</td>
                                 <td>{user.nombres} {user.apellidos}</td>
-                                <td><Badge bg="info" text="dark">{formatRoleName(user.rol)}</Badge></td>
+                                <td className="text-center">
+                                    <Badge bg="info" text="dark" className="badge-rol">
+                                        {formatRoleName(user.rol)}
+                                    </Badge>
+                                </td>
                                 <td>{user.email}</td>
                                 <td>{user.telefono || '-'}</td>
-                                <td>
+                                <td className="text-center">
                                     {(user.estadoU === 'ACTIVO' || user.estadoU === true)
-                                        ? <Badge bg="success">Activo</Badge>
-                                        : <Badge bg="secondary">Inactivo</Badge>}
+                                        ? <Badge bg="success" className="badge-estado">Activo</Badge>
+                                        : <Badge bg="secondary" className="badge-estado">Inactivo</Badge>}
                                 </td>
                                 <td className="text-end">
                                     <Button variant="outline-primary" size="sm" className="me-2" onClick={() => openEditModal(user)}>
@@ -249,7 +225,7 @@ const UserManagement = () => {
                     <Modal.Body>
                         <Row>
                             <Col md={6}><Form.Group className="mb-3"><Form.Label>RUT (*)</Form.Label>
-                                <Form.Control type="text" name="rut" value={formData.rut} onChange={handleInputChange} isInvalid={!!rutError} required />
+                                <Form.Control type="text" name="rut" value={formData.rut} onChange={handleInputChange} isInvalid={!!rutError} maxLength={12} placeholder="12.345.678-9" required />
                                 <Form.Control.Feedback type="invalid">{rutError}</Form.Control.Feedback>
                             </Form.Group></Col>
                             <Col md={6}><Form.Group className="mb-3"><Form.Label>Email (*)</Form.Label><Form.Control type="email" name="email" value={formData.email} onChange={handleInputChange} required /></Form.Group></Col>

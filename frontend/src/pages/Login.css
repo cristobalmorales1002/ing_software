@@ -97,3 +97,58 @@
     color: #003366;
     text-decoration: underline;
 }
+/* --- FIX DEFINITIVO PARA EL LOGIN --- */
+
+/* Usamos el selector `[data-theme="dark"] .login-card ...`
+   para tener mayor prioridad que la regla global.
+*/
+
+/* 1. Forzar Input Blanco y Texto Oscuro */
+[data-theme="dark"] .login-card .form-control,
+.login-card .form-control {
+    background-color: #f8f9fa !important;
+    border: 1px solid #e9ecef !important;
+    color: #212529 !important; /* Texto casi negro */
+}
+
+/* 2. Color del Placeholder (el texto de ayuda gris) */
+[data-theme="dark"] .login-card .form-control::placeholder,
+.login-card .form-control::placeholder {
+    color: #adb5bd !important;
+    opacity: 1;
+}
+
+/* 3. Input Focus (Borde azul al escribir) */
+[data-theme="dark"] .login-card .form-control:focus,
+.login-card .form-control:focus {
+    background-color: #ffffff !important;
+    border-color: #4da8da !important;
+    color: #212529 !important;
+    box-shadow: 0 0 0 4px rgba(77, 168, 218, 0.1) !important;
+}
+
+/* 4. Botón del Ojo (Input Group) */
+[data-theme="dark"] .login-card .input-group .btn,
+.login-card .input-group .btn {
+    background-color: #f8f9fa !important;
+    border-color: #e9ecef !important;
+    color: #6c757d !important; /* Icono gris */
+}
+
+[data-theme="dark"] .login-card .input-group .btn:hover,
+.login-card .input-group .btn:hover {
+    background-color: #e2e6ea !important;
+    color: #333 !important;
+}
+[data-theme="dark"] .login-card input:-webkit-autofill,
+[data-theme="dark"] .login-card input:-webkit-autofill:hover,
+[data-theme="dark"] .login-card input:-webkit-autofill:focus,
+[data-theme="dark"] .login-card input:-webkit-autofill:active {
+    /* Forzamos el color del texto a gris oscuro */
+    -webkit-text-fill-color: #212529 !important;
+
+    /* Forzamos el fondo a gris claro usando una sombra interna gigante (Truco CSS estándar) */
+    -webkit-box-shadow: 0 0 0px 1000px #f8f9fa inset !important;
+
+    transition: background-color 5000s ease-in-out 0s;
+}

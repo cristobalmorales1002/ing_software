@@ -85,3 +85,64 @@
 .offcanvas .form-control {
     color: var(--text-main) !important;
 }
+/* --- NUEVO: Arreglos para Gestión de Usuarios --- */
+
+/* 1. Borde más visible para el buscador en MODO CLARO */
+[data-theme="light"] .search-bar-custom .input-group-text,
+[data-theme="light"] .search-bar-custom .form-control {
+    border-color: #9ca3af !important; /* Un gris más oscuro que el default */
+}
+
+/* 2. Badges de Roles Uniformes */
+.badge-rol {
+    min-width: 110px; /* Ancho fijo suficiente para "Administrador" */
+    display: inline-block;
+    text-align: center;
+    padding: 8px 0; /* Un poco más de aire vertical */
+}
+
+/* 3. Badges de Estado Uniformes */
+.badge-estado {
+    min-width: 80px; /* Ancho fijo */
+    display: inline-block;
+    text-align: center;
+    padding: 6px 0;
+}
+/* --- FIX FORMULARIOS Y MODALES EN MODO OSCURO --- */
+
+/* 1. Inputs Oscuros (Para bajar el contraste) */
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+    background-color: #1e293b !important; /* Gris azulado oscuro */
+    border-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .form-control:focus,
+[data-theme="dark"] .form-select:focus {
+    background-color: #1e293b !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 4px rgba(77, 168, 218, 0.15) !important;
+}
+
+/* 2. Etiquetas (Labels) legibles */
+[data-theme="dark"] .form-label,
+[data-theme="dark"] .modal-title {
+    color: var(--text-main) !important;
+}
+
+/* 3. Input Groups (Iconos junto a inputs, como la lupa) */
+[data-theme="dark"] .input-group-text {
+    background-color: #1e293b !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-muted) !important;
+}
+
+/* 4. Parche para el Auto-completar de Chrome (que se pone blanco feo) */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus {
+    -webkit-text-fill-color: white !important;
+    -webkit-box-shadow: 0 0 0px 1000px #1e293b inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}

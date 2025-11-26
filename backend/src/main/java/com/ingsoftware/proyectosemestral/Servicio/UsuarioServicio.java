@@ -273,4 +273,10 @@ public class UsuarioServicio {
             throw new RuntimeException("Error al enviar token de email", e);
         }
     }
+    // --- MÉTODO NUEVO PARA OBTENER PERFIL ---
+    public UsuarioResponseDto getByRut(String rut) {
+        Usuario u = usuarioRepositorio.findByRut(rut)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + rut));
+        return toResponseDto(u);
+    }
 }

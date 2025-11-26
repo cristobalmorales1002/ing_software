@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
-import { PersonCircle, Envelope, Phone, Lock, Save, PersonVcard, ShieldLock } from 'react-bootstrap-icons';
+// 1. Agregamos InputGroup
+import { Container, Row, Col, Card, Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
+// 2. Agregamos Eye y EyeSlash
+import { PersonCircle, Envelope, Phone, Lock, Save, PersonVcard, ShieldLock, Eye, EyeSlash } from 'react-bootstrap-icons';
 import api from '../api/axios';
 
 const UserProfile = () => {
-    // 1. Estado del Usuario (Datos de lectura)
     const [currentUser, setCurrentUser] = useState({
         nombres: '',
         apellidos: '',
@@ -12,7 +13,6 @@ const UserProfile = () => {
         rol: ''
     });
 
-    // 2. Estado del Formulario (Datos de edición)
     const [formData, setFormData] = useState({
         email: '',
         telefono: '',
@@ -20,30 +20,49 @@ const UserProfile = () => {
         confirmPassword: ''
     });
 
+    // 3. Estados para controlar la visibilidad de cada campo independientemente
+    const [showNewPass, setShowNewPass] = useState(false);
+    const [showConfirmPass, setShowConfirmPass] = useState(false);
+
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
-    // Cargar datos iniciales
     useEffect(() => {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-            const user = JSON.parse(userStr);
+        const fetchProfile = async () => {
+            try {
+                const res = await api.get('/api/usuarios/me');
+                const user = res.data;
 
-            // Llenamos datos de solo lectura
-            setCurrentUser({
-                nombres: user.nombres || '',
-                apellidos: user.apellidos || '',
-                rut: user.rut || '',
-                rol: user.rol || 'USUARIO'
-            });
+                setCurrentUser({
+                    nombres: user.nombres || '',
+                    apellidos: user.apellidos || '',
+                    rut: user.rut || '',
+                    rol: user.rol || 'USUARIO'
+                });
 
-            // Llenamos el formulario editable
-            setFormData(prev => ({
-                ...prev,
-                email: user.email || '',
-                telefono: user.telefono || ''
-            }));
-        }
+                setFormData(prev => ({
+                    ...prev,
+                    email: user.email || '',
+                    telefono: user.telefono || ''
+                }));
+
+                localStorage.setItem('user', JSON.stringify(user));
+
+            } catch (err) {
+                console.error("Error cargando perfil", err);
+                const localUser = JSON.parse(localStorage.getItem('user'));
+                if (localUser) {
+                    setCurrentUser({
+                        nombres: localUser.nombres || '',
+                        apellidos: localUser.apellidos || '',
+                        rut: localUser.rut || '',
+                        rol: localUser.rol || ''
+                    });
+                }
+            }
+        };
+
+        fetchProfile();
     }, []);
 
     const handleInputChange = (e) => {
@@ -54,7 +73,6 @@ const UserProfile = () => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
 
-        // Validaciones
         if (formData.password || formData.confirmPassword) {
             if (formData.password !== formData.confirmPassword) {
                 setMessage({ type: 'danger', text: 'Las contraseñas no coinciden.' });
@@ -82,13 +100,11 @@ const UserProfile = () => {
             setMessage({ type: 'success', text: 'Perfil actualizado correctamente.' });
             setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
 
-            // Actualizar localStorage
+            const updatedUser = res.data;
+            setCurrentUser(prev => ({ ...prev, ...updatedUser }));
+
             const oldUser = JSON.parse(localStorage.getItem('user'));
-            const newUser = {
-                ...oldUser,
-                email: res.data.email,
-                telefono: res.data.telefono
-            };
+            const newUser = { ...oldUser, ...updatedUser };
             localStorage.setItem('user', JSON.stringify(newUser));
 
         } catch (err) {
@@ -102,6 +118,19 @@ const UserProfile = () => {
         }
     };
 
+    // Estilo para el botón del ojo (para que coincida con el borde del input según el tema)
+    const eyeButtonStyle = {
+        backgroundColor: 'transparent',
+        borderLeft: 'none',
+        borderColor: 'var(--border-color)', // Usa la variable del tema
+        color: 'var(--text-muted)'
+    };
+
+    // Estilo para el input (para quitar el borde derecho y unirlo al botón)
+    const inputStyle = {
+        borderRight: 'none'
+    };
+
     return (
         <Container fluid className="p-0">
             <h2 className="mb-4">MI PERFIL</h2>
@@ -113,7 +142,6 @@ const UserProfile = () => {
             )}
 
             <Row>
-                {/* --- COLUMNA IZQUIERDA: DATOS FIJOS (Solo Lectura) --- */}
                 <Col md={4} className="mb-4">
                     <Card className="h-100 shadow-sm border-0">
                         <Card.Body className="text-center py-5">
@@ -124,16 +152,17 @@ const UserProfile = () => {
                             <h4 className="fw-bold mb-1">
                                 {currentUser.nombres} {currentUser.apellidos}
                             </h4>
-                            <p className="text-muted mb-3">
-                                {currentUser.rol.replace('ROLE_', '')}
+                            <p className="mb-3" style={{ color: 'var(--text-muted)' }}>
+                                {currentUser.rol ? currentUser.rol.replace('ROLE_', '') : ''}
                             </p>
 
                             <hr className="my-4 opacity-25"/>
 
-                            {/* Sección de Datos Fijos */}
                             <div className="text-start px-3">
                                 <div className="mb-3">
-                                    <label className="small text-muted fw-bold text-uppercase">RUT (Identificador)</label>
+                                    <label className="small fw-bold text-uppercase" style={{ color: 'var(--text-muted)' }}>
+                                        RUT (Identificador)
+                                    </label>
                                     <div className="d-flex align-items-center gap-2 fs-5">
                                         <PersonVcard className="text-primary"/>
                                         <span>{currentUser.rut}</span>
@@ -141,7 +170,9 @@ const UserProfile = () => {
                                 </div>
 
                                 <div>
-                                    <label className="small text-muted fw-bold text-uppercase">Rol en el sistema</label>
+                                    <label className="small fw-bold text-uppercase" style={{ color: 'var(--text-muted)' }}>
+                                        Rol en el sistema
+                                    </label>
                                     <div className="d-flex align-items-center gap-2 fs-5">
                                         <ShieldLock className="text-primary"/>
                                         <span>{currentUser.rol}</span>
@@ -152,7 +183,6 @@ const UserProfile = () => {
                     </Card>
                 </Col>
 
-                {/* --- COLUMNA DERECHA: FORMULARIO EDITABLE --- */}
                 <Col md={8}>
                     <Card className="shadow-sm border-0 h-100">
                         <Card.Header className="bg-transparent py-3">
@@ -163,7 +193,6 @@ const UserProfile = () => {
                                 <Row>
                                     <Col md={6}>
                                         <Form.Group className="mb-3">
-                                            {/* Quitamos className="text-white" para que se adapte al tema */}
                                             <Form.Label className="fw-bold">
                                                 <Envelope className="me-2"/>Correo Electrónico
                                             </Form.Label>
@@ -196,29 +225,55 @@ const UserProfile = () => {
                                 <h6 className="text-primary mb-3 fw-bold">Seguridad (Cambiar Contraseña)</h6>
 
                                 <Row>
+                                    {/* --- CAMPO NUEVA CONTRASEÑA CON OJO --- */}
                                     <Col md={6}>
                                         <Form.Group className="mb-3">
                                             <Form.Label>Nueva Contraseña</Form.Label>
-                                            <Form.Control
-                                                type="password"
-                                                name="password"
-                                                value={formData.password}
-                                                onChange={handleInputChange}
-                                                placeholder="Dejar en blanco para mantener la actual"
-                                            />
+                                            <InputGroup>
+                                                <Form.Control
+                                                    type={showNewPass ? "text" : "password"}
+                                                    name="password"
+                                                    value={formData.password}
+                                                    onChange={handleInputChange}
+                                                    placeholder="Dejar en blanco para mantener"
+                                                    style={inputStyle}
+                                                />
+                                                <Button
+                                                    variant="outline-secondary"
+                                                    onClick={() => setShowNewPass(!showNewPass)}
+                                                    style={eyeButtonStyle}
+                                                    tabIndex="-1"
+                                                >
+                                                    {showNewPass ? <EyeSlash/> : <Eye/>}
+                                                </Button>
+                                            </InputGroup>
                                         </Form.Group>
                                     </Col>
+
+                                    {/* --- CAMPO CONFIRMAR CONTRASEÑA CON OJO --- */}
                                     <Col md={6}>
                                         <Form.Group className="mb-3">
                                             <Form.Label>Repetir Nueva Contraseña</Form.Label>
-                                            <Form.Control
-                                                type="password"
-                                                name="confirmPassword"
-                                                value={formData.confirmPassword}
-                                                onChange={handleInputChange}
-                                                placeholder="Confirmar contraseña"
-                                                disabled={!formData.password}
-                                            />
+                                            <InputGroup>
+                                                <Form.Control
+                                                    type={showConfirmPass ? "text" : "password"}
+                                                    name="confirmPassword"
+                                                    value={formData.confirmPassword}
+                                                    onChange={handleInputChange}
+                                                    placeholder="Confirmar contraseña"
+                                                    disabled={!formData.password}
+                                                    style={inputStyle}
+                                                />
+                                                <Button
+                                                    variant="outline-secondary"
+                                                    onClick={() => setShowConfirmPass(!showConfirmPass)}
+                                                    style={eyeButtonStyle}
+                                                    disabled={!formData.password}
+                                                    tabIndex="-1"
+                                                >
+                                                    {showConfirmPass ? <EyeSlash/> : <Eye/>}
+                                                </Button>
+                                            </InputGroup>
                                         </Form.Group>
                                     </Col>
                                 </Row>

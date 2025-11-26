@@ -60,7 +60,14 @@ public class UsuarioControlador {
         usuarioServicio.desactivate(id);
         return ResponseEntity.noContent().build();
     }
-
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UsuarioResponseDto> getMyProfile(Authentication authentication) {
+        // Obtenemos el RUT del usuario que está logueado automáticamente
+        String rut = authentication.getName();
+        // Buscamos sus datos y los devolvemos
+        return ResponseEntity.ok(usuarioServicio.getByRut(rut));
+    }
     @PutMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UsuarioResponseDto> updateProfile(Authentication authentication,

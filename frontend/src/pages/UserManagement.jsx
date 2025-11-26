@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Container, Row, Col, Badge, Spinner, Alert, Pagination, InputGroup } from 'react-bootstrap';
-import { PencilSquare, Trash, PlusLg, Search } from 'react-bootstrap-icons';
+// 1. IMPORTAMOS EL NUEVO ICONO PARA RESTAURAR
+import { PencilSquare, Trash, PlusLg, Search, ArrowCounterclockwise } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut, validateRut } from '../utils/rutUtils';
 
@@ -11,9 +12,13 @@ const UserManagement = () => {
     const [rutError, setRutError] = useState(null);
 
     const [showFormModal, setShowFormModal] = useState(false);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    // Cambiamos el nombre del estado para que sea genérico (sirve para activar o desactivar)
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [statusAction, setStatusAction] = useState('desactivar'); // 'desactivar' o 'activar'
+
     const [isEditing, setIsEditing] = useState(false);
-    const [selectedUserId, setSelectedUserId] = useState(null);
+    const [selectedUser, setSelectedUser] = useState(null); // Guardamos el usuario completo, no solo el ID
 
     const initialFormState = {
         rut: '', nombres: '', apellidos: '', email: '', telefono: '',
@@ -36,6 +41,7 @@ const UserManagement = () => {
 
     useEffect(() => { fetchUsers(); }, []);
 
+    // 1. FILTRADO
     const filteredUsers = users.filter((user) => {
         if (searchTerm === '') return true;
         const searchLower = searchTerm.toLowerCase();
@@ -47,12 +53,27 @@ const UserManagement = () => {
         );
     });
 
+    // 2. NUEVA LÓGICA DE ORDENAMIENTO: Inactivos al final
+    const sortedUsers = [...filteredUsers].sort((a, b) => {
+        const isActiveA = a.estadoU === 'ACTIVO' || a.estadoU === true;
+        const isActiveB = b.estadoU === 'ACTIVO' || b.estadoU === true;
+
+        // Si A es activo y B inactivo, A va primero (-1)
+        if (isActiveA && !isActiveB) return -1;
+        // Si A es inactivo y B activo, B va primero (1)
+        if (!isActiveA && isActiveB) return 1;
+        // Si son iguales, mantenemos el orden (o podrías ordenar por nombre/rut)
+        return 0;
+    });
+
     useEffect(() => { setCurrentPage(1); }, [searchTerm]);
 
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+    // Usamos sortedUsers para la paginación en lugar de filteredUsers
+    const currentUsers = sortedUsers.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     const handleInputChange = (e) => {
@@ -84,13 +105,19 @@ const UserManagement = () => {
             rol: user.rol || 'ROLE_INVESTIGADOR'
         });
         setRutError(null);
-        setSelectedUserId(user.usuarioId);
+        setSelectedUser(user); // Guardamos el usuario completo
         setIsEditing(true);
         setShowFormModal(true);
         setError(null);
     };
 
-    const openDeleteModal = (id) => { setSelectedUserId(id); setShowDeleteModal(true); };
+    // 3. ABRIR MODAL DE CAMBIO DE ESTADO (ACTIVAR/DESACTIVAR)
+    const openStatusModal = (user) => {
+        setSelectedUser(user);
+        const isActive = user.estadoU === 'ACTIVO' || user.estadoU === true;
+        setStatusAction(isActive ? 'desactivar' : 'activar');
+        setShowStatusModal(true);
+    };
 
     const handleSaveUser = async (e) => {
         e.preventDefault();
@@ -100,10 +127,10 @@ const UserManagement = () => {
             const dataToSend = {
                 rut: formData.rut, nombres: formData.nombres, apellidos: formData.apellidos,
                 email: formData.email, telefono: formData.telefono, rol: formData.rol,
-                activo: true
+                activo: formData.activo // Esto respeta lo que diga el checkbox del form
             };
             if (isEditing) {
-                await api.put(`/api/usuarios/${selectedUserId}`, dataToSend);
+                await api.put(`/api/usuarios/${selectedUser.usuarioId}`, dataToSend);
             } else {
                 dataToSend.password = "Temporal123!";
                 await api.post('/api/usuarios', dataToSend);
@@ -114,7 +141,27 @@ const UserManagement = () => {
         }
     };
 
-    const handleDeleteUser = async () => { try { await api.delete(`/api/usuarios/${selectedUserId}`); fetchUsers(); setShowDeleteModal(false); } catch (err) { setError('Error al eliminar.'); } };
+    // 4. LÓGICA DE TOGGLE (ACTIVAR/DESACTIVAR)
+    // 4. LÓGICA DE TOGGLE (ACTIVAR/DESACTIVAR) ACTUALIZADA
+    const handleToggleStatus = async () => {
+        try {
+            if (statusAction === 'desactivar') {
+                // Si la acción es desactivar, llamamos al DELETE (Tu backend ejecuta desactivate)
+                await api.delete(`/api/usuarios/${selectedUser.usuarioId}`);
+            } else {
+                // Si la acción es activar, llamamos al endpoint específico de activar
+                // Nota: Asegúrate de que en tu backend la ruta sea "/{id}/activate"
+                await api.put(`/api/usuarios/${selectedUser.usuarioId}/activate`);
+            }
+
+            // Recargamos la lista y cerramos el modal
+            fetchUsers();
+            setShowStatusModal(false);
+        } catch (err) {
+            console.error(err);
+            setError('Error al cambiar el estado del usuario.');
+        }
+    };
 
     const formatRoleName = (role) => { switch(role) { case 'ROLE_ADMIN': return 'Administrador'; case 'ROLE_INVESTIGADOR': return 'Investigador'; case 'ROLE_MEDICO': return 'Médico'; case 'ROLE_ESTUDIANTE': return 'Estudiante'; default: return role; } };
 
@@ -125,7 +172,6 @@ const UserManagement = () => {
                     <h2 className="mb-0">GESTIÓN DE USUARIOS</h2>
                 </Col>
                 <Col md={7} className="d-flex justify-content-end gap-3">
-                    {/* CAMBIO: Quitamos los estilos hardcodeados y usamos clases limpias */}
                     <InputGroup style={{ maxWidth: '300px' }} className="search-bar-custom">
                         <InputGroup.Text className="bg-transparent border-end-0" style={{color: 'var(--text-muted)', borderColor: 'var(--border-color)'}}>
                             <Search />
@@ -172,32 +218,44 @@ const UserManagement = () => {
                             {searchTerm ? 'No se encontraron resultados.' : 'No hay usuarios registrados.'}
                         </td></tr>
                     ) : (
-                        currentUsers.map((user) => (
-                            <tr key={user.usuarioId}>
-                                <td className="fw-bold">{user.rut}</td>
-                                <td>{user.nombres} {user.apellidos}</td>
-                                <td className="text-center">
-                                    <Badge bg="info" text="dark" className="badge-rol">
-                                        {formatRoleName(user.rol)}
-                                    </Badge>
-                                </td>
-                                <td>{user.email}</td>
-                                <td>{user.telefono || '-'}</td>
-                                <td className="text-center">
-                                    {(user.estadoU === 'ACTIVO' || user.estadoU === true)
-                                        ? <Badge bg="success" className="badge-estado">Activo</Badge>
-                                        : <Badge bg="secondary" className="badge-estado">Inactivo</Badge>}
-                                </td>
-                                <td className="text-end">
-                                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => openEditModal(user)}>
-                                        <PencilSquare />
-                                    </Button>
-                                    <Button variant="outline-danger" size="sm" onClick={() => openDeleteModal(user.usuarioId)}>
-                                        <Trash />
-                                    </Button>
-                                </td>
-                            </tr>
-                        ))
+                        currentUsers.map((user) => {
+                            const isActive = user.estadoU === 'ACTIVO' || user.estadoU === true;
+                            return (
+                                <tr key={user.usuarioId} style={{ opacity: isActive ? 1 : 0.6 }}>
+                                    {/* Bajamos opacidad si es inactivo para efecto visual */}
+                                    <td className="fw-bold">{user.rut}</td>
+                                    <td>{user.nombres} {user.apellidos}</td>
+                                    <td className="text-center">
+                                        <Badge bg="info" text="dark" className="badge-rol">
+                                            {formatRoleName(user.rol)}
+                                        </Badge>
+                                    </td>
+                                    <td>{user.email}</td>
+                                    <td>{user.telefono || '-'}</td>
+                                    <td className="text-center">
+                                        {isActive
+                                            ? <Badge bg="success" className="badge-estado">Activo</Badge>
+                                            : <Badge bg="secondary" className="badge-estado">Inactivo</Badge>}
+                                    </td>
+                                    <td className="text-end">
+                                        <Button variant="outline-primary" size="sm" className="me-2" onClick={() => openEditModal(user)}>
+                                            <PencilSquare />
+                                        </Button>
+
+                                        {/* 5. BOTÓN DINÁMICO: BASURA O RESTAURAR */}
+                                        {isActive ? (
+                                            <Button variant="outline-danger" size="sm" onClick={() => openStatusModal(user)} title="Desactivar usuario">
+                                                <Trash />
+                                            </Button>
+                                        ) : (
+                                            <Button variant="outline-success" size="sm" onClick={() => openStatusModal(user)} title="Reactivar usuario">
+                                                <ArrowCounterclockwise />
+                                            </Button>
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })
                     )}
                     </tbody>
                 </Table>
@@ -218,7 +276,7 @@ const UserManagement = () => {
                 </div>
             )}
 
-            {/* MODALES */}
+            {/* MODAL CREAR/EDITAR */}
             <Modal show={showFormModal} onHide={() => setShowFormModal(false)} backdrop="static" size="lg">
                 <Modal.Header closeButton><Modal.Title>{isEditing ? 'Editar' : 'Crear'}</Modal.Title></Modal.Header>
                 <Form onSubmit={handleSaveUser}>
@@ -255,12 +313,26 @@ const UserManagement = () => {
                 </Form>
             </Modal>
 
-            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-                <Modal.Header closeButton><Modal.Title>Confirmar Eliminación</Modal.Title></Modal.Header>
-                <Modal.Body>¿Estás seguro?</Modal.Body>
+            {/* 6. MODAL DINÁMICO DE ACTIVACIÓN/DESACTIVACIÓN */}
+            <Modal show={showStatusModal} onHide={() => setShowStatusModal(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>
+                        {statusAction === 'desactivar' ? 'Confirmar Desactivación' : 'Confirmar Reactivación'}
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {statusAction === 'desactivar'
+                        ? '¿Estás seguro de que deseas desactivar este usuario? Perderá acceso al sistema.'
+                        : '¿Deseas reactivar este usuario? Volverá a tener acceso al sistema.'}
+                </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
-                    <Button variant="danger" onClick={handleDeleteUser}>Eliminar</Button>
+                    <Button variant="secondary" onClick={() => setShowStatusModal(false)}>Cancelar</Button>
+                    <Button
+                        variant={statusAction === 'desactivar' ? 'danger' : 'success'}
+                        onClick={handleToggleStatus}
+                    >
+                        {statusAction === 'desactivar' ? 'Desactivar' : 'Activar'}
+                    </Button>
                 </Modal.Footer>
             </Modal>
         </Container>

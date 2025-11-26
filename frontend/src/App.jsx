@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 // Páginas de Autenticación
 import LoginPage from './pages/LoginPage';
 import RequestPasswordReset from './pages/RequestPasswordReset';
-import ResetPasswordCombined from './pages/ResetPasswordCombined';
+import VerifyCode from './pages/VerifyCode';
+import NewPassword from './pages/NewPassword';
 
 // Layout y Seguridad
 import DashboardLayout from './layouts/DashboardLayout';
@@ -17,6 +18,8 @@ import UserManagement from './pages/UserManagement';
 import CasesControls from './pages/CasesControls';
 import SurveyBuilder from './pages/SurveyBuilder';
 
+import Messages from './pages/Messages';
+
 function App() {
     return (
         <BrowserRouter>
@@ -25,7 +28,8 @@ function App() {
                     {/* Rutas Públicas */}
                     <Route path="/" element={<LoginPage />} />
                     <Route path="/recuperar-password" element={<RequestPasswordReset />} />
-                    <Route path="/verificar-codigo" element={<ResetPasswordCombined />} />
+                    <Route path="/verificar-codigo" element={<VerifyCode />} />
+                    <Route path="/cambiar-password" element={<NewPassword />} />
 
                     {/* Rutas Protegidas (Requieren Login) */}
                     <Route element={<ProtectedRoute />}>
@@ -41,6 +45,8 @@ function App() {
                             {/* 3. Gestión y Auditoría (Solo Admins idealmente) */}
                             <Route path="usuarios" element={<UserManagement />} />
                             <Route path="auditoria" element={<AuditLog />} />
+
+                            <Route path="mensajes" element={<Messages />} />
 
                             {/* NUEVA RUTA PERFIL */}
                             <Route path="perfil" element={<UserProfile />} />

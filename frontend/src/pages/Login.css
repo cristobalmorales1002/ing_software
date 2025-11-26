@@ -1,24 +1,28 @@
-/* Importamos la fuente Poppins */
+/* frontend/src/pages/Login.css */
+
+/* 1. CONFIGURACIÓN BASE (FUENTE Y FONDO) */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
 
-/* Fondo general de la página: Oscuro y elegante */
 .login-page {
     background: radial-gradient(circle at center, #1a2a3a 0%, #0b1219 100%);
     font-family: 'Poppins', sans-serif;
     color: #333;
+    min-height: 100vh;
 }
 
-/* La tarjeta blanca */
-.login-card {
-    border: none;
-    border-radius: 16px; /* Bordes redondeados modernos */
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); /* Sombra suave pero profunda */
+/* 2. ESTILO UNIFICADO PARA TARJETAS (Login, Recuperar, Resetear) */
+/* Usamos .card aquí para afectar a cualquier tarjeta dentro de .login-page */
+.login-page .card {
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
     overflow: hidden;
+    background-color: #ffffff !important; /* SIEMPRE BLANCO */
 }
 
-/* El logo */
+/* 3. EL LOGO */
 .login-logo {
-    width: 120px; /* Tamaño mediano */
+    width: 120px;
     height: auto;
     margin-bottom: 1rem;
     display: block;
@@ -26,48 +30,63 @@
     margin-right: auto;
 }
 
-/* Títulos */
-.login-header h3 {
-    font-weight: 600;
-    color: #003366; /* Azul oscuro del logo */
-    font-size: 1.5rem;
+/* 4. TÍTULOS (H3, H4, etc.) DENTRO DE LAS TARJETAS */
+.login-page .card h3,
+.login-page .card h4,
+.login-page .card h5 {
+    font-weight: 600 !important;
+    color: #003366 !important; /* Azul oscuro */
     margin-bottom: 0.5rem;
 }
 
-.login-header p {
-    font-weight: 300;
-    font-size: 0.9rem;
-    color: #6c757d;
+.login-page .card p,
+.login-page .text-muted {
+    font-weight: 300 !important;
+    color: #6c757d !important; /* Gris suave */
 }
 
-/* Inputs del formulario */
-.form-control {
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
+/* 5. ETIQUETAS (LABELS) - FIX IMPORTANTE */
+/* Forzamos a que sean grises oscuras siempre */
+[data-theme="dark"] .login-page .form-label,
+.login-page .form-label {
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    color: #495057 !important; /* Gris oscuro */
+    margin-bottom: 0.5rem;
+}
+
+/* 6. INPUTS (CAMPOS DE TEXTO) */
+/* Forzamos fondo claro y texto oscuro siempre */
+[data-theme="dark"] .login-page .form-control,
+.login-page .form-control {
+    background-color: #f8f9fa !important;
+    border: 1px solid #e9ecef !important;
+    color: #212529 !important; /* Texto casi negro */
     border-radius: 8px;
     padding: 12px;
     font-size: 0.95rem;
-    transition: all 0.3s ease;
 }
 
-.form-control:focus {
-    background-color: #fff;
-    border-color: #4da8da; /* Celeste del logo */
-    box-shadow: 0 0 0 4px rgba(77, 168, 218, 0.1);
+/* Placeholder (texto de ayuda) */
+[data-theme="dark"] .login-page .form-control::placeholder,
+.login-page .form-control::placeholder {
+    color: #adb5bd !important;
+    opacity: 1;
 }
 
-/* Etiquetas de los inputs */
-.form-label {
-    font-weight: 500;
-    font-size: 0.9rem;
-    color: #495057;
-    margin-bottom: 0.5rem;
+/* Input Focus */
+[data-theme="dark"] .login-page .form-control:focus,
+.login-page .form-control:focus {
+    background-color: #ffffff !important;
+    border-color: #4da8da !important;
+    color: #212529 !important;
+    box-shadow: 0 0 0 4px rgba(77, 168, 218, 0.1) !important;
 }
 
-/* Botón principal */
-.btn-primary {
-    background-color: #003366; /* Azul oscuro institucional */
-    border: none;
+/* 7. BOTONES Y ENLACES */
+.login-page .btn-primary {
+    background-color: #003366 !important;
+    border: none !important;
     border-radius: 8px;
     padding: 12px;
     font-weight: 500;
@@ -75,80 +94,45 @@
     transition: all 0.3s ease;
 }
 
-.btn-primary:hover, .btn-primary:focus {
-    background-color: #004080; /* Un poco más claro al pasar el mouse */
-    transform: translateY(-1px); /* Efecto sutil de elevación */
+.login-page .btn-primary:hover {
+    background-color: #004080 !important;
+    transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 51, 102, 0.3);
 }
 
-.btn-primary:disabled {
-    background-color: #6c757d;
-}
-
-/* Link de olvidar contraseña */
-.login-form a {
-    color: #4da8da; /* Celeste del logo */
+.login-page a {
+    color: #4da8da !important;
     font-size: 0.9rem;
     font-weight: 400;
+    text-decoration: none;
     transition: color 0.2s;
 }
 
-.login-form a:hover {
-    color: #003366;
+.login-page a:hover {
+    color: #003366 !important;
     text-decoration: underline;
 }
-/* --- FIX DEFINITIVO PARA EL LOGIN --- */
 
-/* Usamos el selector `[data-theme="dark"] .login-card ...`
-   para tener mayor prioridad que la regla global.
-*/
-
-/* 1. Forzar Input Blanco y Texto Oscuro */
-[data-theme="dark"] .login-card .form-control,
-.login-card .form-control {
-    background-color: #f8f9fa !important;
-    border: 1px solid #e9ecef !important;
-    color: #212529 !important; /* Texto casi negro */
-}
-
-/* 2. Color del Placeholder (el texto de ayuda gris) */
-[data-theme="dark"] .login-card .form-control::placeholder,
-.login-card .form-control::placeholder {
-    color: #adb5bd !important;
-    opacity: 1;
-}
-
-/* 3. Input Focus (Borde azul al escribir) */
-[data-theme="dark"] .login-card .form-control:focus,
-.login-card .form-control:focus {
-    background-color: #ffffff !important;
-    border-color: #4da8da !important;
-    color: #212529 !important;
-    box-shadow: 0 0 0 4px rgba(77, 168, 218, 0.1) !important;
-}
-
-/* 4. Botón del Ojo (Input Group) */
-[data-theme="dark"] .login-card .input-group .btn,
-.login-card .input-group .btn {
+/* 8. FIX BOTÓN DEL OJO */
+[data-theme="dark"] .login-page .input-group .btn,
+.login-page .input-group .btn {
     background-color: #f8f9fa !important;
     border-color: #e9ecef !important;
-    color: #6c757d !important; /* Icono gris */
+    color: #6c757d !important;
 }
 
-[data-theme="dark"] .login-card .input-group .btn:hover,
-.login-card .input-group .btn:hover {
+[data-theme="dark"] .login-page .input-group .btn:hover,
+.login-page .input-group .btn:hover {
     background-color: #e2e6ea !important;
     color: #333 !important;
 }
-[data-theme="dark"] .login-card input:-webkit-autofill,
-[data-theme="dark"] .login-card input:-webkit-autofill:hover,
-[data-theme="dark"] .login-card input:-webkit-autofill:focus,
-[data-theme="dark"] .login-card input:-webkit-autofill:active {
-    /* Forzamos el color del texto a gris oscuro */
+
+/* 9. FIX AUTOCOMPLETE (Chrome) */
+[data-theme="dark"] .login-page input:-webkit-autofill,
+[data-theme="dark"] .login-page input:-webkit-autofill:hover,
+[data-theme="dark"] .login-page input:-webkit-autofill:focus,
+[data-theme="dark"] .login-page input:-webkit-autofill:active {
     -webkit-text-fill-color: #212529 !important;
-
-    /* Forzamos el fondo a gris claro usando una sombra interna gigante (Truco CSS estándar) */
     -webkit-box-shadow: 0 0 0px 1000px #f8f9fa inset !important;
-
     transition: background-color 5000s ease-in-out 0s;
 }

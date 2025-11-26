@@ -16,4 +16,5 @@ public class UsuarioResponseDto {
     private String telefono;
     private String rol;
     private String estadoU;
+    private String fotoBase64;
 }

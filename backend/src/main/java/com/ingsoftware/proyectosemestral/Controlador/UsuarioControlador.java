@@ -13,6 +13,9 @@ import com.ingsoftware.proyectosemestral.DTO.UsuarioActualizarDto;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -101,5 +104,16 @@ public class UsuarioControlador {
         String rut = authentication.getName();
         usuarioServicio.confirmarCambioEmail(rut, dto.getToken(), dto.getNuevoEmail());
         return ResponseEntity.ok(Map.of("mensaje", "Correo electrónico actualizado exitosamente."));
+    }
+    @PostMapping("/me/foto")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> subirFotoPerfil(@RequestParam("archivo") MultipartFile archivo, Authentication authentication) throws IOException {
+        String rut = authentication.getName();
+
+        if (archivo != null && !archivo.isEmpty()) {
+            usuarioServicio.actualizarFoto(rut, archivo.getBytes());
+        }
+
+        return ResponseEntity.ok().build();
     }
 }

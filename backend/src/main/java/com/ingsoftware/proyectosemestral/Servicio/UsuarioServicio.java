@@ -182,8 +182,27 @@ public class UsuarioServicio {
                 "Cambió correo de " + emailAntiguo + " a " + nuevoEmail);
     }
 
+    @Transactional
+    public void actualizarFoto(String rut, byte[] bytesFoto) {
+        Usuario u = usuarioRepositorio.findByRut(rut)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        u.setFotoPerfil(bytesFoto);
+        usuarioRepositorio.save(u);
+    }
+
+    // 2. Método actualizado para enviar la foto al front
     private UsuarioResponseDto toResponseDto(Usuario u) {
-        String rolNombre = u.getRoles().stream().findFirst().map(Rol::getNombre).orElse("SIN_ROL");
+        String rolNombre = u.getRoles().stream()
+                .findFirst()
+                .map(Rol::getNombre)
+                .orElse("SIN_ROL");
+
+        // Convertir bytes a Base64 para que el navegador lo entienda
+        String imagenBase64 = null;
+        if (u.getFotoPerfil() != null && u.getFotoPerfil().length > 0) {
+            imagenBase64 = java.util.Base64.getEncoder().encodeToString(u.getFotoPerfil());
+        }
+
         return UsuarioResponseDto.builder()
                 .usuarioId(u.getIdUsuario())
                 .rut(u.getRut())
@@ -193,6 +212,7 @@ public class UsuarioServicio {
                 .telefono(u.getTelefono())
                 .rol(rolNombre)
                 .estadoU(u.isActivo() ? "ACTIVO" : "INACTIVO")
+                .fotoBase64(imagenBase64)
                 .build();
     }
 

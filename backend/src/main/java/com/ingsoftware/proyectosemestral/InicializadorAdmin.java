@@ -99,9 +99,10 @@ public class InicializadorAdmin implements CommandLineRunner {
         Permiso pEliminar = crearPermisoSiNoExiste("ELIMINAR_PACIENTE", "Archivar paciente");
 
         Rol rolAdmin = crearRolSiNoExiste("ROLE_ADMIN");
+        Rol rolInvestigador = crearRolSiNoExiste("ROLE_INVESTIGADOR");
         Rol rolMedico = crearRolSiNoExiste("ROLE_MEDICO");
         Rol rolEstudiante = crearRolSiNoExiste("ROLE_ESTUDIANTE");
-        Rol rolInvestigador = crearRolSiNoExiste("ROLE_INVESTIGADOR");
+        Rol rolVisualizador = crearRolSiNoExiste("ROLE_VISUALIZADOR");
 
         rolAdmin.setPermisos(Set.of(pCrearControl, pEditarControl, pVerPaciente, pVerListado, pEliminar));
         rolRepositorio.save(rolAdmin);
@@ -110,6 +111,7 @@ public class InicializadorAdmin implements CommandLineRunner {
 
         crearUsuarioSiNoExiste("11.111.111-1", "clavesecreta", "Admin", "Principal", "admin@plataforma.cl", rolAdmin);
         crearUsuarioSiNoExiste("22.222.222-2", "clavemedico", "Dra. Ana", "Perez", "medico@plataforma.cl", rolMedico);
+        crearUsuarioSiNoExiste("21.232.674-7", "123", "Cristóbal", "Morales", "moralescristobal1002@gmail.com", rolAdmin);
 
         logger.info("--- Inicializando CRF ---");
         crearCategoriaSiNoExiste("Identificación", 1);

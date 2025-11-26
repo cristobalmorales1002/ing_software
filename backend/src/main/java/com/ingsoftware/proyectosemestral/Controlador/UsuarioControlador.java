@@ -63,6 +63,14 @@ public class UsuarioControlador {
         usuarioServicio.desactivate(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}/activate") // O @PatchMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> activate(@PathVariable Long id) {
+        usuarioServicio.activate(id);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UsuarioResponseDto> getMyProfile(Authentication authentication) {

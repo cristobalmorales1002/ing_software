@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/autenticacion")
 public class AutenticacionControlador {
@@ -26,6 +28,18 @@ public class AutenticacionControlador {
             return ResponseEntity.badRequest().body("Error al procesar la solicitud.");
         }
     }
+
+    @PostMapping("/validar-token")
+    public ResponseEntity<?> validarToken(@RequestBody Map<String, String> payload) {
+        try {
+            autenticacionServicio.verificarTokenValido(payload.get("token"));
+            return ResponseEntity.ok(Map.of("valido", true));
+        } catch (RuntimeException e) {
+            // Retornamos 400 Bad Request con el mensaje de error (ej: "Código expirado")
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PostMapping("/reset-clave")
     public ResponseEntity<?> resetearClave(@RequestBody SolicitudResetClave solicitud) {
         try {

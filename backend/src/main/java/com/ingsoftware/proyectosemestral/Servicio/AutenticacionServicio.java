@@ -57,19 +57,34 @@ public class AutenticacionServicio {
         enviarCorreoRecuperacion(usuario.getEmail(), token);
     }
 
-    public void resetearClave(String token, String nuevaContrasena) {
+    public void verificarTokenValido(String token) {
         Usuario usuario = usuarioRepositorio.findByTokenRecuperacion(token)
                 .orElseThrow(() -> new RuntimeException("Código de recuperación inválido o no encontrado"));
 
-
+        // Usamos tu misma lógica de expiración
         if (usuario.getToken_rec_expiracion().isBefore(LocalDateTime.now())) {
+            // Limpiamos el token vencido por seguridad
             usuario.setTokenRecuperacion(null);
             usuario.setToken_rec_expiracion(null);
             usuarioRepositorio.save(usuario);
             throw new RuntimeException("El código de recuperación ha expirado");
         }
+        // Si llega aquí, el token es válido y no ha expirado.
+    }
 
+    // 2. MÉTODO ORIGINAL: Ahora reutiliza la validación anterior
+    public void resetearClave(String token, String nuevaContrasena) {
+        // Paso 1: Validamos (si falla, lanzará la excepción del método de arriba)
+        verificarTokenValido(token);
+
+        // Paso 2: Buscamos al usuario para editarlo
+        // (Usamos .get() con confianza porque verificarTokenValido ya aseguró que existe)
+        Usuario usuario = usuarioRepositorio.findByTokenRecuperacion(token).get();
+
+        // Paso 3: Actualizamos la clave
         usuario.setContrasena(codificadorDeContrasena.encode(nuevaContrasena));
+
+        // Paso 4: Quemamos el token para que no se pueda volver a usar
         usuario.setTokenRecuperacion(null);
         usuario.setToken_rec_expiracion(null);
         usuarioRepositorio.save(usuario);

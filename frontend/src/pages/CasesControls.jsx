@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, InputGroup, Button, Card, ListGroup, Badge, Spinner, Modal, ProgressBar, Table } from 'react-bootstrap';
-import { Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft, Save, FileEarmarkMedical } from 'react-bootstrap-icons';
+import { Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft, Save, FileEarmarkMedical, FileEarmarkPdf, Download } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut } from '../utils/rutUtils';
 
@@ -12,6 +12,10 @@ const CasesControls = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const [filters, setFilters] = useState({ showCasos: true, showControles: true });
+
+    // Estados para Selección Múltiple y Descargas
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [isDownloading, setIsDownloading] = useState(false);
 
     // Estados del Modal
     const [showModal, setShowModal] = useState(false);
@@ -37,7 +41,8 @@ const CasesControls = () => {
                 respuestas: p.respuestas || []
             }));
             setItems(dataMapeada);
-            if (dataMapeada.length > 0) setSelectedItem(dataMapeada[0]);
+            // Si hay datos y no hay seleccionado, seleccionar el primero
+            if (dataMapeada.length > 0 && !selectedItem) setSelectedItem(dataMapeada[0]);
         } catch (err) {
             console.error("Error cargando pacientes", err);
         } finally {
@@ -74,7 +79,7 @@ const CasesControls = () => {
         fetchSurveyStructure();
     }, []);
 
-    // --- HANDLERS ---
+    // --- HANDLERS FILTROS ---
     const handleFilterChange = (e) => {
         const { name, checked } = e.target;
         setFilters({ ...filters, [name]: checked });
@@ -87,7 +92,73 @@ const CasesControls = () => {
         return matchText && matchType;
     });
 
-    // --- LÓGICA MODAL ---
+    // --- HANDLERS SELECCIÓN MASIVA ---
+    const handleToggleSelect = (id) => {
+        const newSet = new Set(selectedIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedIds(newSet);
+    };
+
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            // Seleccionar solo los visibles en el filtro actual
+            const allVisibleIds = filteredItems.map(i => i.dbId);
+            setSelectedIds(new Set(allVisibleIds));
+        } else {
+            setSelectedIds(new Set());
+        }
+    };
+
+    // --- HANDLERS DESCARGAS ---
+    // 1. Descarga ZIP Masiva
+    const handleBulkDownload = async () => {
+        if (selectedIds.size === 0) return;
+        setIsDownloading(true);
+        try {
+            const idsArray = Array.from(selectedIds);
+            const response = await api.post('/api/pdf/crf/zip', idsArray, {
+                responseType: 'blob'
+            });
+
+            const urlBlob = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = urlBlob;
+            link.setAttribute('download', `CRFs_Lote_${new Date().toISOString().slice(0,10)}.zip`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (err) {
+            console.error("Error descargando ZIP", err);
+            alert("Error al generar el archivo ZIP.");
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    // 2. Descarga Individual PDF
+    const handleDownloadPdf = async (pacienteId, codigo) => {
+        try {
+            const response = await api.get(`/api/pdf/crf/paciente/${pacienteId}`, {
+                responseType: 'blob'
+            });
+            const urlBlob = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = urlBlob;
+            link.setAttribute('download', `CRF_${codigo}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (err) {
+            console.error("Error descargando PDF", err);
+            alert("Error al generar el PDF.");
+        }
+    };
+
+    // --- LÓGICA MODAL ENCUESTA ---
     const handleOpenModal = (esCaso) => {
         setIsCase(esCaso);
         setFormData({});
@@ -130,17 +201,14 @@ const CasesControls = () => {
 
             <Row className="flex-grow-1 overflow-hidden g-3">
 
-                {/* --- IZQUIERDA (LISTA) --- */}
+                {/* --- COLUMNA IZQUIERDA (LISTA) --- */}
                 <Col md={4} lg={3} className="d-flex flex-column h-100">
                     <Card className="h-100 shadow-sm border-0 overflow-hidden">
 
-                        {/* Cabecera de la lista: Buscador y Filtros */}
+                        {/* CABECERA LISTA: Buscador y Acciones Masivas */}
                         <div className="p-3 border-bottom border-secondary border-opacity-25">
                             <InputGroup className="mb-3">
-                                <InputGroup.Text
-                                    className="bg-transparent border-secondary border-opacity-50"
-                                    style={{ color: 'var(--text-muted)' }}
-                                >
+                                <InputGroup.Text className="bg-transparent border-secondary border-opacity-50" style={{ color: 'var(--text-muted)' }}>
                                     <Search />
                                 </InputGroup.Text>
                                 <Form.Control
@@ -148,14 +216,11 @@ const CasesControls = () => {
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="border-secondary border-opacity-50 bg-transparent shadow-none"
-                                    style={{
-                                        borderLeft: 'none',
-                                        color: 'var(--text-main)'
-                                    }}
+                                    style={{ borderLeft: 'none', color: 'var(--text-main)' }}
                                 />
                             </InputGroup>
 
-                            <div className="d-flex justify-content-around">
+                            <div className="d-flex justify-content-around mb-3">
                                 <Form.Check
                                     type="checkbox"
                                     label={<span className="small fw-bold" style={{color: 'var(--text-muted)'}}>Casos</span>}
@@ -173,9 +238,33 @@ const CasesControls = () => {
                                     className="user-select-none"
                                 />
                             </div>
+
+                            {/* BARRA DE ACCIONES MASIVAS */}
+                            <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
+                                <Form.Check
+                                    type="checkbox"
+                                    label={<span className="small fw-bold ms-1">Seleccionar Todos</span>}
+                                    checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length}
+                                    onChange={handleSelectAll}
+                                    className="m-0 user-select-none"
+                                />
+
+                                {selectedIds.size > 0 && (
+                                    <Button
+                                        size="sm"
+                                        variant="primary"
+                                        onClick={handleBulkDownload}
+                                        disabled={isDownloading}
+                                        className="py-0 px-2"
+                                        style={{fontSize: '0.8rem'}}
+                                    >
+                                        {isDownloading ? <Spinner size="sm" animation="border"/> : <><Download className="me-1"/> Descargar ({selectedIds.size})</>}
+                                    </Button>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Cuerpo de la lista con Scroll */}
+                        {/* CUERPO LISTA */}
                         <div className="flex-grow-1 overflow-auto">
                             <ListGroup variant="flush">
                                 {filteredItems.length === 0 ? (
@@ -188,22 +277,34 @@ const CasesControls = () => {
                                             key={item.dbId}
                                             action
                                             active={selectedItem && selectedItem.dbId === item.dbId}
-                                            onClick={() => setSelectedItem(item)}
-                                            className="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary border-opacity-10"
+                                            className="d-flex align-items-center py-3 border-bottom border-secondary border-opacity-10 px-2"
                                             style={{
                                                 backgroundColor: selectedItem?.dbId === item.dbId ? 'var(--hover-bg)' : 'transparent',
                                                 color: selectedItem?.dbId === item.dbId ? 'var(--accent-color)' : 'var(--text-main)',
                                                 borderLeft: selectedItem?.dbId === item.dbId ? '4px solid var(--accent-color)' : '4px solid transparent',
-                                                transition: 'all 0.2s'
+                                                transition: 'all 0.2s',
+                                                cursor: 'pointer'
                                             }}
+                                            onClick={() => setSelectedItem(item)}
                                         >
-                                            <div className="d-flex flex-column">
-                                                <span className="fw-bold">{item.id}</span>
-                                                <small style={{fontSize: '0.75rem', opacity: 0.7}}>{item.nombre}</small>
+                                            {/* CHECKBOX INDIVIDUAL */}
+                                            <div className="me-3" onClick={(e) => e.stopPropagation()}>
+                                                <Form.Check
+                                                    type="checkbox"
+                                                    checked={selectedIds.has(item.dbId)}
+                                                    onChange={() => handleToggleSelect(item.dbId)}
+                                                />
                                             </div>
-                                            <Badge bg={item.tipo === 'CASO' ? 'danger' : 'success'} pill className="opacity-75" style={{fontSize: '0.7em'}}>
-                                                {item.tipo}
-                                            </Badge>
+
+                                            <div className="d-flex justify-content-between align-items-center flex-grow-1">
+                                                <div className="d-flex flex-column">
+                                                    <span className="fw-bold">{item.id}</span>
+                                                    <small style={{fontSize: '0.75rem', opacity: 0.7}}>{item.nombre}</small>
+                                                </div>
+                                                <Badge bg={item.tipo === 'CASO' ? 'danger' : 'success'} pill className="opacity-75" style={{fontSize: '0.7em'}}>
+                                                    {item.tipo}
+                                                </Badge>
+                                            </div>
                                         </ListGroup.Item>
                                     ))
                                 )}
@@ -212,7 +313,7 @@ const CasesControls = () => {
                     </Card>
                 </Col>
 
-                {/* --- DERECHA (DETALLE) --- */}
+                {/* --- COLUMNA DERECHA (DETALLE) --- */}
                 <Col md={8} lg={9} className="h-100">
                     {selectedItem ? (
                         <Card className="h-100 shadow-sm border-0 overflow-hidden">
@@ -223,9 +324,22 @@ const CasesControls = () => {
                                     </h4>
                                     <small className="text-muted font-monospace">{selectedItem.id} • Ingreso: {selectedItem.fechaIngreso}</small>
                                 </div>
-                                <Badge bg={selectedItem.tipo === 'CASO' ? 'danger' : 'success'} className="fs-6 px-3 py-2">
-                                    {selectedItem.tipo}
-                                </Badge>
+
+                                <div className="d-flex gap-2 align-items-center">
+                                    {/* BOTÓN DESCARGA INDIVIDUAL */}
+                                    <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => handleDownloadPdf(selectedItem.dbId, selectedItem.id)}
+                                        title="Descargar Ficha en PDF"
+                                    >
+                                        <FileEarmarkPdf className="me-2"/> Descargar CRF
+                                    </Button>
+
+                                    <Badge bg={selectedItem.tipo === 'CASO' ? 'danger' : 'success'} className="fs-6 px-3 py-2">
+                                        {selectedItem.tipo}
+                                    </Badge>
+                                </div>
                             </Card.Header>
 
                             <Card.Body className="p-0 overflow-auto">
@@ -290,12 +404,9 @@ const CasesControls = () => {
                     {loadingSurvey ? (
                         <div className="text-center py-5"><Spinner animation="border" /></div>
                     ) : surveyStructure.length === 0 ? (
-
-                        /* --- AQUÍ ESTÁ EL CAMBIO QUE ME PEDISTE --- */
                         <div className="text-center py-5" style={{ color: 'var(--text-muted)' }}>
                             No hay encuesta configurada.
                         </div>
-
                     ) : (
                         <div>
                             <h5 className="mb-4 text-primary border-bottom pb-2">{currentCat?.nombre}</h5>

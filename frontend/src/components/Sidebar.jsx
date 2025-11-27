@@ -12,7 +12,8 @@ import {
     Sun,
     Moon,
     PersonCircle,
-    Envelope
+    Envelope,
+    FileEarmarkText
 } from 'react-bootstrap-icons';
 
 import { useTheme } from '../context/ThemeContext';
@@ -77,6 +78,12 @@ const Sidebar = () => {
             name: 'Registro de auditoría',
             icon: <JournalText />,
             allowedRoles: ['ROLE_ADMIN']
+        },
+        {
+            path: '/dashboard/documentos',
+            name: 'Documentos',
+            icon: <FileEarmarkText />,
+            allowedRoles: ['ROLE_ADMIN', 'ROLE_INVESTIGADOR']
         }
     ];
 

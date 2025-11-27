@@ -259,3 +259,56 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 input[type="date"] {
     -moz-appearance: textfield;
 }
+/* =========================================================
+   FIX VISIBILIDAD MODO OSCURO (Reportes y Documentos)
+   ========================================================= */
+
+/* 1. Arreglar texto gris (text-muted) que no se lee en fondo oscuro */
+[data-theme="dark"] .text-muted {
+    color: #a6b0cf !important; /* Un gris perla mucho más claro y legible */
+}
+
+/* 2. Botón "Base Completa" (Verde) */
+/* En modo oscuro, el verde original es muy oscuro. Lo cambiamos a verde neón. */
+[data-theme="dark"] .btn-outline-success {
+    color: #4ade80 !important;
+    border-color: #4ade80 !important;
+}
+[data-theme="dark"] .btn-outline-success:hover {
+    background-color: #4ade80 !important;
+    color: #000 !important; /* Texto negro al pasar el mouse */
+}
+
+/* 3. Botón "Base Dicotomizada" (Dark) */
+/* CRÍTICO: El btn-outline-dark es texto negro. En fondo negro NO SE VE.
+   Lo cambiamos a blanco/gris claro. */
+[data-theme="dark"] .btn-outline-dark {
+    color: #f1f5f9 !important;
+    border-color: #f1f5f9 !important;
+}
+[data-theme="dark"] .btn-outline-dark:hover {
+    background-color: #f1f5f9 !important;
+    color: #000 !important;
+}
+
+/* 4. Botón "PDF" (Rojo) */
+/* Aclaramos el rojo para que no vibre tanto y se lea bien */
+[data-theme="dark"] .btn-outline-danger {
+    color: #f87171 !important;
+    border-color: #f87171 !important;
+}
+[data-theme="dark"] .btn-outline-danger:hover {
+    background-color: #f87171 !important;
+    color: #000 !important;
+}
+
+/* 5. Botón "Base Anonimizada" (Primary/Azul) */
+/* Aclaramos el azul */
+[data-theme="dark"] .btn-outline-primary {
+    color: #60a5fa !important;
+    border-color: #60a5fa !important;
+}
+[data-theme="dark"] .btn-outline-primary:hover {
+    background-color: #60a5fa !important;
+    color: #000 !important;
+}

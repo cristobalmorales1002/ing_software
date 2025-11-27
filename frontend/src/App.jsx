@@ -17,6 +17,7 @@ import UserProfile from './pages/UserProfile';// <--- NUEVO
 import UserManagement from './pages/UserManagement';
 import CasesControls from './pages/CasesControls';
 import SurveyBuilder from './pages/SurveyBuilder';
+import Reports from './pages/Reports';
 
 import Messages from './pages/Messages';
 
@@ -48,6 +49,7 @@ function App() {
 
                             <Route path="mensajes" element={<Messages />} />
 
+                            <Route path="documentos" element={<Reports />} />
                             {/* NUEVA RUTA PERFIL */}
                             <Route path="perfil" element={<UserProfile />} />
 

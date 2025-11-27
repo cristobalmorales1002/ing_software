@@ -1,5 +1,6 @@
 package com.ingsoftware.proyectosemestral.Controlador;
 
+import com.ingsoftware.proyectosemestral.DTO.DicotomizacionDto;
 import com.ingsoftware.proyectosemestral.DTO.PreguntaDto;
 import com.ingsoftware.proyectosemestral.Modelo.*;
 import com.ingsoftware.proyectosemestral.Repositorio.UsuarioRepositorio;
@@ -93,11 +94,22 @@ public class VariableControlador {
         if (entidad.getCategoria() != null) {
             dto.setCategoriaId(entidad.getCategoria().getId_cat());
         }
-        dto.setDicotomizacion(entidad.getDicotomizacion());
-        dto.setSentido_corte(entidad.getSentido_corte());
+
+        // --- MAPEO DE LISTA DICOTOMIZACIONES ---
+        if (entidad.getDicotomizaciones() != null) {
+            List<DicotomizacionDto> listaDic = entidad.getDicotomizaciones().stream().map(d -> {
+                DicotomizacionDto dDto = new DicotomizacionDto();
+                dDto.setId_dicotomizacion(d.getId_dicotomizacion());
+                dDto.setValor(d.getValor());
+                dDto.setSentido(d.getSentido());
+                return dDto;
+            }).collect(Collectors.toList());
+            dto.setDicotomizaciones(listaDic);
+        }
+        // ---------------------------------------
+
         dto.setExportable(entidad.isExportable());
         dto.setTipoCorte(entidad.getTipoCorte());
-
         dto.setGenerarEstadistica(entidad.isGenerarEstadistica());
 
         if (entidad.getTipo_dato() == TipoDato.ENUM && entidad.getOpciones() != null) {
@@ -107,7 +119,6 @@ public class VariableControlador {
                     .collect(Collectors.toList());
             dto.setOpciones(listaOpciones);
         }
-
         return dto;
     }
 }

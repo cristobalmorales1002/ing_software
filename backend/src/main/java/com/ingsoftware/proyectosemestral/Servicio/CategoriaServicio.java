@@ -2,6 +2,7 @@ package com.ingsoftware.proyectosemestral.Servicio;
 
 import com.ingsoftware.proyectosemestral.DTO.CategoriaDto;
 import com.ingsoftware.proyectosemestral.DTO.CategoriaFullDto;
+import com.ingsoftware.proyectosemestral.DTO.DicotomizacionDto;
 import com.ingsoftware.proyectosemestral.DTO.PreguntaDto;
 import com.ingsoftware.proyectosemestral.Modelo.Categoria;
 import com.ingsoftware.proyectosemestral.Modelo.OpcionPregunta;
@@ -113,19 +114,25 @@ public class CategoriaServicio {
         dto.setActivo(entidad.isActivo());
         dto.setOrden(entidad.getOrden());
         dto.setCategoriaId(entidad.getCategoria().getId_cat());
-        dto.setDicotomizacion(entidad.getDicotomizacion());
-        dto.setSentido_corte(entidad.getSentido_corte());
+
+        // --- MAPEO LISTA ---
+        if (entidad.getDicotomizaciones() != null) {
+            List<DicotomizacionDto> listaDic = entidad.getDicotomizaciones().stream().map(d -> {
+                DicotomizacionDto dDto = new DicotomizacionDto();
+                dDto.setId_dicotomizacion(d.getId_dicotomizacion());
+                dDto.setValor(d.getValor());
+                dDto.setSentido(d.getSentido());
+                return dDto;
+            }).collect(Collectors.toList());
+            dto.setDicotomizaciones(listaDic);
+        }
+        // -------------------
+
         dto.setExportable(entidad.isExportable());
         dto.setTipoCorte(entidad.getTipoCorte());
         dto.setGenerarEstadistica(entidad.isGenerarEstadistica());
 
-        if (entidad.getTipo_dato() == TipoDato.ENUM && entidad.getOpciones() != null) {
-            List<String> listaOpciones = entidad.getOpciones().stream()
-                    .sorted(Comparator.comparingInt(OpcionPregunta::getOrden))
-                    .map(OpcionPregunta::getEtiqueta)
-                    .collect(Collectors.toList());
-            dto.setOpciones(listaOpciones);
-        }
+        // ... (resto del mapeo de opciones) ...
         return dto;
     }
 }

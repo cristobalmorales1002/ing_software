@@ -1,6 +1,6 @@
 package com.ingsoftware.proyectosemestral.Servicio;
 
-import com.ingsoftware.proyectosemestral.DTO.PreguntaDto;
+import com.ingsoftware.proyectosemestral.DTO.*;
 import com.ingsoftware.proyectosemestral.Modelo.*;
 import com.ingsoftware.proyectosemestral.Repositorio.*;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,167 +20,152 @@ public class VariableServicio {
     private final UsuarioRepositorio usuarioRepositorio;
     private final RegistroServicio registroServicio;
 
+    // --- CREAR ---
     @Transactional
     public Pregunta crearPregunta(PreguntaDto dto) {
-        if (dto.getCategoriaId() == null) {
-            throw new IllegalArgumentException("categoriaId es obligatorio");
-        }
-        if (dto.getTipo_dato() == null) {
-            throw new IllegalArgumentException("tipo_dato es obligatorio");
+        if (dto.getCategoriaId() == null) throw new IllegalArgumentException("Categoría obligatoria");
+
+        // Validar unicidad de etiqueta interna
+        if (dto.getCodigoStata() != null && !dto.getCodigoStata().isBlank()) {
+            if (preguntaRepositorio.existsByCodigoStata(dto.getCodigoStata())) {
+                throw new IllegalArgumentException("La etiqueta '" + dto.getCodigoStata() + "' ya existe.");
+            }
         }
 
         Categoria categoria = categoriaRepositorio.findById(dto.getCategoriaId())
-                .orElseThrow(() -> new IllegalArgumentException("No existe Categoria con id=" + dto.getCategoriaId()));
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada"));
 
         Pregunta p = new Pregunta();
-        p.setEtiqueta(dto.getEtiqueta());
-        p.setCodigoStata(dto.getCodigoStata());
-        p.setDescripcion(dto.getDescripcion());
-        p.setTipo_dato(dto.getTipo_dato());
-        p.setDato_sensible(dto.isDato_sensible());
-        p.setActivo(dto.isActivo());
-        p.setOrden(dto.getOrden());
+        mapearDatosBasicos(p, dto);
         p.setCategoria(categoria);
+        // Si no trae orden, lo mandamos al final
+        p.setOrden(dto.getOrden() > 0 ? dto.getOrden() : 999);
 
-        p.setDicotomizacion(dto.getDicotomizacion());
-        p.setSentido_corte(dto.getSentido_corte());
+        // --- LÓGICA CRÍTICA: GUARDAR LISTA DE DICOTOMIZACIONES ---
+        if (dto.getDicotomizaciones() != null) {
+            for (DicotomizacionDto dDto : dto.getDicotomizaciones()) {
+                Dicotomizacion dic = new Dicotomizacion();
+                dic.setValor(dDto.getValor());
+                dic.setSentido(dDto.getSentido());
 
-        p.setExportable(dto.isExportable());
-        p.setTipoCorte(dto.getTipoCorte() != null ? dto.getTipoCorte() : TipoCorte.NINGUNO);
-
-        if (dto.getTipo_dato() == TipoDato.ENUM) {
-            p.setGenerarEstadistica(dto.isGenerarEstadistica());
-        } else {
-            p.setGenerarEstadistica(false);
+                // VINCULACIÓN BIDIRECCIONAL IMPORTANTE
+                dic.setPregunta(p);
+                p.getDicotomizaciones().add(dic);
+            }
         }
+        // ---------------------------------------------------------
 
         p = preguntaRepositorio.save(p);
+        guardarOpciones(p, dto);
 
-        if (dto.getTipo_dato() == TipoDato.ENUM) {
-            List<String> opciones = Optional.ofNullable(dto.getOpciones()).orElseGet(ArrayList::new);
-            int i = 1;
-            for (String etiqueta : opciones) {
-                if (etiqueta == null || etiqueta.isBlank()) continue;
-
-                OpcionPregunta op = new OpcionPregunta();
-                op.setPregunta(p);
-                op.setEtiqueta(etiqueta.trim());
-                op.setOrden(i++);
-                op.setValorDicotomizado(null);
-
-                opcionPreguntaRepositorio.save(op);
-            }
-        }
-
-        if (dto.getUsuarioId() != null) {
-            var usrOpt = usuarioRepositorio.findById(dto.getUsuarioId());
-            if (usrOpt.isPresent()) {
-                var usr = usrOpt.get();
-                String detalles = "Creó la pregunta ID=" + p.getPregunta_id() + " (" + p.getEtiqueta() + ")";
-                registroServicio.registrarAccion(usr, "CREAR_PREGUNTA", detalles);
-            }
-        }
+        if(dto.getUsuarioId() != null) registrarAccion(dto.getUsuarioId(), "CREAR", p);
 
         return p;
     }
 
-    @Transactional(readOnly = true)
-    public Pregunta obtenerPorId(Long id) {
-        return preguntaRepositorio.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No existe Pregunta con id=" + id));
-    }
-
-    @Transactional
-    public void archivarPregunta(Long idPregunta, Long idUsuario) {
-        Pregunta p = obtenerPorId(idPregunta);
-
-        p.setActivo(false);
-        preguntaRepositorio.save(p);
-
-        var usrOpt = usuarioRepositorio.findById(idUsuario);
-        if (usrOpt.isPresent()) {
-            String detalles = "Archivó la pregunta ID=" + p.getPregunta_id() + " (" + p.getEtiqueta() + ")";
-            registroServicio.registrarAccion(usrOpt.get(), "ARCHIVAR_PREGUNTA", detalles);
-        }
-    }
-
-    @Transactional(readOnly = true)
-    public List<Pregunta> obtenerTodasLasPreguntas() {
-        return preguntaRepositorio.findAll();
-    }
-
+    // --- ACTUALIZAR ---
     @Transactional
     public Pregunta actualizarPregunta(Long id, PreguntaDto dto) {
-        Pregunta p = obtenerPorId(id);
+        Pregunta p = preguntaRepositorio.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Pregunta no encontrada"));
 
+        // Validar unicidad (excluyendo la propia pregunta)
+        if (dto.getCodigoStata() != null && !dto.getCodigoStata().isBlank()) {
+            if (preguntaRepositorio.existsByCodigoStataAndIdNot(dto.getCodigoStata(), id)) {
+                throw new IllegalArgumentException("La etiqueta '" + dto.getCodigoStata() + "' ya está en uso.");
+            }
+        }
+
+        mapearDatosBasicos(p, dto);
+
+        // Actualizar Categoría (Si cambió)
+        if (dto.getCategoriaId() != null && !p.getCategoria().getId_cat().equals(dto.getCategoriaId())) {
+            Categoria nuevaCat = categoriaRepositorio.findById(dto.getCategoriaId())
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría destino no existe"));
+            p.setCategoria(nuevaCat);
+        }
+
+        // --- LÓGICA CRÍTICA: ACTUALIZAR LISTA (Borrar viejas e insertar nuevas) ---
+        // Gracias a orphanRemoval=true en la entidad Pregunta, al hacer clear() se borran de la BD.
+        p.getDicotomizaciones().clear();
+
+        if (dto.getDicotomizaciones() != null) {
+            for (DicotomizacionDto dDto : dto.getDicotomizaciones()) {
+                Dicotomizacion dic = new Dicotomizacion();
+                dic.setValor(dDto.getValor());
+                dic.setSentido(dDto.getSentido());
+
+                // VINCULACIÓN
+                dic.setPregunta(p);
+                p.getDicotomizaciones().add(dic);
+            }
+        }
+        // --------------------------------------------------------------------------
+
+        guardarOpciones(p, dto);
+
+        if(dto.getUsuarioId() != null) registrarAccion(dto.getUsuarioId(), "ACTUALIZAR", p);
+
+        return preguntaRepositorio.save(p);
+    }
+
+    // --- HELPERS ---
+    private void mapearDatosBasicos(Pregunta p, PreguntaDto dto) {
         p.setEtiqueta(dto.getEtiqueta());
         p.setCodigoStata(dto.getCodigoStata());
         p.setDescripcion(dto.getDescripcion());
         p.setTipo_dato(dto.getTipo_dato());
         p.setDato_sensible(dto.isDato_sensible());
         p.setActivo(dto.isActivo());
-        p.setOrden(dto.getOrden());
-        p.setDicotomizacion(dto.getDicotomizacion());
-        p.setSentido_corte(dto.getSentido_corte());
         p.setExportable(dto.isExportable());
+        if(dto.getOrden() > 0) p.setOrden(dto.getOrden());
+        p.setGenerarEstadistica(dto.isGenerarEstadistica());
+    }
 
-        if (dto.getTipoCorte() != null) {
-            p.setTipoCorte(dto.getTipoCorte());
-        }
-
-        if (dto.getTipo_dato() == TipoDato.ENUM) {
-            p.setGenerarEstadistica(dto.isGenerarEstadistica());
-        } else {
-            p.setGenerarEstadistica(false);
-        }
-
-        if (dto.getCategoriaId() != null && !p.getCategoria().getId_cat().equals(dto.getCategoriaId())) {
-            Categoria categoria = categoriaRepositorio.findById(dto.getCategoriaId())
-                    .orElseThrow(() -> new IllegalArgumentException("No existe Categoria con id=" + dto.getCategoriaId()));
-            p.setCategoria(categoria);
-        }
-
+    private void guardarOpciones(Pregunta p, PreguntaDto dto) {
         opcionPreguntaRepositorio.deleteByPregunta(p);
-
-        if (dto.getTipo_dato() == TipoDato.ENUM) {
-            List<String> opciones = Optional.ofNullable(dto.getOpciones()).orElseGet(ArrayList::new);
+        if (dto.getTipo_dato() == TipoDato.ENUM && dto.getOpciones() != null) {
             int i = 1;
-            for (String etiqueta : opciones) {
-                if (etiqueta == null || etiqueta.isBlank()) continue;
-
+            for (String txt : dto.getOpciones()) {
                 OpcionPregunta op = new OpcionPregunta();
                 op.setPregunta(p);
-                op.setEtiqueta(etiqueta.trim());
+                op.setEtiqueta(txt);
                 op.setOrden(i++);
-                op.setValorDicotomizado(null);
-
                 opcionPreguntaRepositorio.save(op);
             }
         }
-
-        if (dto.getUsuarioId() != null) {
-            var usrOpt = usuarioRepositorio.findById(dto.getUsuarioId());
-            if (usrOpt.isPresent()) {
-                var usr = usrOpt.get();
-                String detalles = "Actualizó la pregunta ID=" + p.getPregunta_id() + " (" + p.getEtiqueta() + ")";
-                registroServicio.registrarAccion(usr, "ACTUALIZAR_PREGUNTA", detalles);
-            }
-        }
-
-        return preguntaRepositorio.save(p);
     }
 
-    // --- METODO NUEVO: REORDENAR PREGUNTAS ---
-    @Transactional
-    public void reordenarPreguntas(List<Long> idsOrdenados) {
-        for (int i = 0; i < idsOrdenados.size(); i++) {
-            Long id = idsOrdenados.get(i);
-            int orden = i + 1; // effectively final
+    // --- OTROS MÉTODOS ---
+    @Transactional(readOnly = true)
+    public List<Pregunta> obtenerTodasLasPreguntas() { return preguntaRepositorio.findAll(); }
 
+    @Transactional(readOnly = true)
+    public Pregunta obtenerPorId(Long id) { return preguntaRepositorio.findById(id).orElse(null); }
+
+    @Transactional
+    public void archivarPregunta(Long id, Long userId) {
+        Pregunta p = preguntaRepositorio.findById(id).orElseThrow();
+        p.setActivo(false);
+        preguntaRepositorio.save(p);
+        registrarAccion(userId, "ARCHIVAR", p);
+    }
+
+    @Transactional
+    public void reordenarPreguntas(List<Long> ids) {
+        for (int i = 0; i < ids.size(); i++) {
+            Long id = ids.get(i);
+            int orden = i + 1;
             preguntaRepositorio.findById(id).ifPresent(p -> {
                 p.setOrden(orden);
                 preguntaRepositorio.save(p);
             });
         }
+    }
+
+    private void registrarAccion(Long uid, String accion, Pregunta p) {
+        usuarioRepositorio.findById(uid).ifPresent(u ->
+                registroServicio.registrarAccion(u, accion, "Pregunta ID: " + p.getPregunta_id())
+        );
     }
 }

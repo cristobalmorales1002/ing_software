@@ -14,6 +14,9 @@ import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
 @Service
 public class PdfServicio {
 
@@ -84,6 +87,34 @@ public class PdfServicio {
             return os.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Error al generar PDF del CRF", e);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] generarZipCrfs(List<Long> pacienteIds) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             ZipOutputStream zos = new ZipOutputStream(baos)) {
+
+            for (Long id : pacienteIds) {
+                // 1. Buscamos al paciente para usar su código en el nombre del archivo
+                Paciente p = pacienteRepositorio.findById(id).orElse(null);
+                if (p == null) continue;
+
+                // 2. Reutilizamos el método existente para generar el PDF
+                byte[] pdfBytes = generarCrfPdf(id);
+
+                // 3. Creamos la entrada en el ZIP
+                ZipEntry entry = new ZipEntry("CRF_" + p.getParticipanteCod() + ".pdf");
+                entry.setSize(pdfBytes.length);
+                zos.putNextEntry(entry);
+                zos.write(pdfBytes);
+                zos.closeEntry();
+            }
+
+            zos.finish();
+            return baos.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Error al generar ZIP de CRFs", e);
         }
     }
 }

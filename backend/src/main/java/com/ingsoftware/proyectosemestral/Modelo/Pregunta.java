@@ -1,74 +1,46 @@
 package com.ingsoftware.proyectosemestral.Modelo;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-import java.util.HashSet;
-import java.util.Set;
+import lombok.Data;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
+@Table(name = "preguntas")
+@Data
 public class Pregunta {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long pregunta_id;
 
-    @Column(nullable = false)
-    private int orden;
+    private String etiqueta;
+    private String codigoStata;
+    private String descripcion;
 
-    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private TipoDato tipo_dato;
 
-    @Column(nullable = false)
-    private String etiqueta; // Ej: "¿Cuál es su peso?"
-
-    // Campo para Stata
-    @Column(length = 50)
-    private String codigoStata;
-
-    @Column(nullable = false)
     private boolean dato_sensible;
+    private boolean activo = true;
+    private int orden;
 
-    @Column(nullable = false)
-    private boolean activo;
-
-    @Column(nullable = false)
-    private String descripcion;
-
-    @Column
-    private Double dicotomizacion;
-
-    @Column
-    @Enumerated(EnumType.STRING)
-    private SentidoCorte sentido_corte;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "categoria_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "id_cat")
     private Categoria categoria;
 
+    // --- CAMBIO PRINCIPAL: LISTA DE DICOTOMIZACIONES ---
     @OneToMany(mappedBy = "pregunta", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<OpcionPregunta> opciones = new HashSet<>();
+    private List<Dicotomizacion> dicotomizaciones = new ArrayList<>();
+    // ---------------------------------------------------
 
-    @OneToMany(mappedBy = "pregunta", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Respuesta> respuestas = new HashSet<>();
+    private boolean exportable;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "varchar(20) default 'NINGUNO'")
-    private TipoCorte tipoCorte = TipoCorte.NINGUNO;
+    private TipoCorte tipoCorte;
 
-    @Column(nullable = false, columnDefinition = "boolean default true")
-    private boolean exportable = true;
+    private boolean generarEstadistica;
 
-    // NUEVO CAMPO PARA ESTADÍSTICAS
-    // Por defecto false, para que no se generen gráficos a menos que se pida explícitamente
-    @Column(nullable = false, columnDefinition = "boolean default false")
-    private boolean generarEstadistica = false;
+    @OneToMany(mappedBy = "pregunta", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OpcionPregunta> opciones;
 }

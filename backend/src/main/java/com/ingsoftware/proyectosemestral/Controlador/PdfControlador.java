@@ -11,6 +11,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/pdf")
 public class PdfControlador {
@@ -40,5 +44,16 @@ public class PdfControlador {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=CRF_Paciente_" + id + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdfBytes);
+    }
+
+    @PostMapping("/crf/zip")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_INVESTIGADOR')")
+    public ResponseEntity<byte[]> descargarZipCrfs(@RequestBody List<Long> ids) {
+        byte[] zipBytes = pdfServicio.generarZipCrfs(ids);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=CRFs_Seleccionados.zip")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(zipBytes);
     }
 }

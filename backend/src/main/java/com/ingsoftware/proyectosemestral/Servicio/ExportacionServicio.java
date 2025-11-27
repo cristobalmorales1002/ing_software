@@ -15,15 +15,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class ExportacionServicio {
 
-    @Autowired
-    private PacienteRepositorio pacienteRepositorio;
-
-    @Autowired
-    private PreguntaRepositorio preguntaRepositorio;
+    @Autowired private PacienteRepositorio pacienteRepositorio;
+    @Autowired private PreguntaRepositorio preguntaRepositorio;
 
     @Transactional(readOnly = true)
     public ByteArrayInputStream generarExcel(boolean anonimo, boolean dicotomizar) throws IOException {
@@ -31,340 +29,380 @@ public class ExportacionServicio {
         List<Paciente> pacientes = pacienteRepositorio.findByActivoTrue();
         List<Pregunta> preguntas;
 
-        if (anonimo) {
-            preguntas = preguntaRepositorio.findByActivoTrueAndDato_sensibleFalseAndExportableTrueOrderByOrdenAsc();
-
+        // 1. SELECCIÓN DE PREGUNTAS
+        if (dicotomizar) {
+            // MODO STATA: Solo variables de estudio (filtro estricto: Numéricas y ENUMs exportables)
+            List<Pregunta> base;
+            if (anonimo) {
+                base = preguntaRepositorio.findByActivoTrueAndDato_sensibleFalseAndExportableTrueOrderByOrdenAsc();
+            } else {
+                base = preguntaRepositorio.findByActivoTrueAndExportableTrueOrderByOrdenAsc();
+            }
+            // Filtramos explícitamente cualquier texto libre que se haya colado, ya que no se puede dicotomizar
+            preguntas = base.stream()
+                    .filter(p -> p.getTipo_dato() != TipoDato.TEXTO)
+                    .collect(Collectors.toList());
         } else {
-            preguntas = preguntaRepositorio.findByActivoTrueAndExportableTrueOrderByOrdenAsc();
+            // MODO COMPLETO: Todas las variables activas (incluso texto libre)
+            List<Pregunta> todas = preguntaRepositorio.findByActivo(true);
+            Stream<Pregunta> stream = todas.stream().sorted(Comparator.comparingInt(Pregunta::getOrden));
+
+            // Si es anónimo, filtramos manualmente las sensibles (RUT, Nombre, Dirección, etc.)
+            if (anonimo) {
+                stream = stream.filter(p -> !p.isDato_sensible());
+            }
+            preguntas = stream.collect(Collectors.toList());
         }
 
+        // 2. CÁLCULOS ESTADÍSTICOS (Solo necesarios para cortes automáticos en modo dicotomizado)
         Map<Long, Double> medias = new HashMap<>();
         Map<Long, Double> medianas = new HashMap<>();
-
         if (dicotomizar) {
             calcularEstadisticasGlobales(preguntas, pacientes, medias, medianas);
         }
 
-        boolean generarDiccionario = anonimo || dicotomizar;
-
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            // CREACIÓN DE HOJAS
-            XSSFSheet sheetDatos = workbook.createSheet("Datos_Stata");
+            XSSFSheet sheetDatos = workbook.createSheet("Datos");
             XSSFSheet sheetResumen = workbook.createSheet("Resumen_Conteos");
-            XSSFSheet sheetDiccionario = null;
-            if (generarDiccionario) {
-                sheetDiccionario = workbook.createSheet("Diccionario_Variables");
-            }
 
-            // ENCABEZADOS
-            Row headerRowDatos = sheetDatos.createRow(0);
-            Row headerRowResumen = sheetResumen.createRow(0);
+            // Diccionario SOLO si es dicotomizado (Stata)
+            XSSFSheet sheetDiccionario = dicotomizar ? workbook.createSheet("Diccionario_Variables") : null;
 
-            List<String> headersList = new ArrayList<>();
-            if (!anonimo) {
-                headersList.add("ID_Participante");
-                headersList.add("Codigo_Participante");
+            // 3. HEADERS
+            Row hRow = sheetDatos.createRow(0);
+            List<String> hList = new ArrayList<>();
+
+            if (anonimo) {
+                hList.add("ID");
             } else {
-                headersList.add("ID");
+                hList.add("ID_Participante");
+                hList.add("Codigo_Participante");
             }
-            headersList.add("Es_Caso_Cod");
+            hList.add("Es_Caso_Cod");
 
             for (Pregunta p : preguntas) {
-                String label = (p.getCodigoStata() != null && !p.getCodigoStata().isBlank()) ? p.getCodigoStata() : p.getEtiqueta();
-                headersList.add(label);
+                // Etiqueta legible para Completo, Código técnico para Dicotomizado
+                String label = (dicotomizar && p.getCodigoStata() != null && !p.getCodigoStata().isBlank())
+                        ? p.getCodigoStata()
+                        : p.getEtiqueta();
+                hList.add(label);
 
-                if (dicotomizar && p.getTipo_dato() == TipoDato.NUMERO) {
-                    headersList.add(label + "_media_cod");
-                    headersList.add(label + "_mediana_cod");
-                    if (p.getDicotomizacion() != null) {
-                        headersList.add(label + "_corte_" + p.getDicotomizacion() + "_cod");
+                // Columnas extra SOLO si estamos dicotomizando
+                if (dicotomizar) {
+                    if (p.getTipo_dato() == TipoDato.NUMERO) {
+                        hList.add(label + "_media_cod");
+                        hList.add(label + "_mediana_cod");
+                    }
+                    // Cortes manuales (para Numéricas y ENUMs)
+                    if (p.getDicotomizaciones() != null) {
+                        for (Dicotomizacion d : p.getDicotomizaciones()) {
+                            hList.add(label + "_corte_" + d.getValor() + "_cod");
+                        }
                     }
                 }
             }
-
-            for (int i = 0; i < headersList.size(); i++) {
-                headerRowDatos.createCell(i).setCellValue(headersList.get(i));
-                headerRowResumen.createCell(i).setCellValue(headersList.get(i));
+            // Escribir headers
+            for (int i = 0; i < hList.size(); i++) {
+                hRow.createCell(i).setCellValue(hList.get(i));
             }
 
-            // DATOS
-            int rowNum = 1;
-            Map<Integer, Map<String, Integer>> mapaDeConteos = new HashMap<>();
+            // 4. LLENADO DE DATOS
+            int rNum = 1;
+            Map<Integer, Map<String, Integer>> mapaConteos = new HashMap<>();
 
             for (Paciente p : pacientes) {
-                Row dataRow = sheetDatos.createRow(rowNum++);
-                int currentCell = 0;
-                Map<Long, Respuesta> mapaRespuestas = p.getRespuestas().stream()
+                Row row = sheetDatos.createRow(rNum++);
+                int c = 0;
+
+                // Mapa rápido de respuestas
+                Map<Long, Respuesta> mapR = p.getRespuestas().stream()
                         .filter(r -> r.getPregunta() != null)
                         .collect(Collectors.toMap(r -> r.getPregunta().getPregunta_id(), r -> r, (a, b) -> a));
 
                 // IDs
-                if (!anonimo) {
-                    dataRow.createCell(currentCell++).setCellValue(p.getParticipante_id());
-                    dataRow.createCell(currentCell++).setCellValue(p.getParticipanteCod());
+                if (anonimo) {
+                    row.createCell(c++).setCellValue(p.getParticipanteCod());
                 } else {
-                    dataRow.createCell(currentCell++).setCellValue(p.getParticipanteCod());
+                    row.createCell(c++).setCellValue(p.getParticipante_id());
+                    row.createCell(c++).setCellValue(p.getParticipanteCod());
                 }
 
-                // Caso  0/1
-                String valCaso = p.getEsCaso() ? "1" : "0";
-                dataRow.createCell(currentCell).setCellValue(valCaso);
-                registrarConteo(mapaDeConteos, currentCell, valCaso);
-                currentCell++;
+                // Caso Base
+                String vCaso = p.getEsCaso() ? "1" : "0";
+                row.createCell(c).setCellValue(vCaso);
+                registrarConteo(mapaConteos, c++, vCaso);
 
-                // Preguntas Dinámicas
-                for (Pregunta pHeader : preguntas) {
-                    Respuesta r = mapaRespuestas.get(pHeader.getPregunta_id());
-                    String valorRaw = r != null ? r.getValor() : "";
-                    String valorFinal = valorRaw;
+                // Preguntas
+                for (Pregunta ph : preguntas) {
+                    Respuesta r = mapR.get(ph.getPregunta_id());
+                    String vRaw = r != null ? r.getValor() : "";
+                    String vFin = vRaw;
 
-                    if (dicotomizar || anonimo) {
-                        if (pHeader.getTipo_dato() == TipoDato.ENUM) {
-                            valorFinal = buscarValorDicotomizado(pHeader.getOpciones(), valorRaw);
-                        } else if (pHeader.getTipo_dato() == TipoDato.NUMERO) {
-                            valorFinal = valorRaw;
-                        } else if (isBooleano(valorRaw)) {
-                            valorFinal = convertirBooleano(valorRaw);
+                    // Si es dicotomizado, transformamos texto a número (0/1) si aplica
+                    if (dicotomizar) {
+                        if (ph.getTipo_dato() == TipoDato.ENUM) {
+                            vFin = buscarValorDicotomizado(ph.getOpciones(), vRaw);
+                        } else if (isBooleano(vRaw)) {
+                            vFin = convertirBooleano(vRaw);
                         }
                     }
-                    dataRow.createCell(currentCell).setCellValue(valorFinal);
+                    row.createCell(c).setCellValue(vFin);
 
-                    boolean esContable = (pHeader.getTipo_dato() == TipoDato.ENUM) || isBooleano(valorRaw);
-                    if (esContable) registrarConteo(mapaDeConteos, currentCell, valorFinal);
-                    currentCell++;
+                    // Lógica de conteo para Resumen
+                    registrarConteo(mapaConteos, c, vFin);
+                    c++;
 
-                    // Dicotomización Automática (Numéricas)
-                    if (dicotomizar && pHeader.getTipo_dato() == TipoDato.NUMERO) {
-                        Double valorNum = parseDoubleSeguro(valorRaw);
+                    // Columnas calculadas (Solo en modo Dicotomizado)
+                    if (dicotomizar) {
+                        Double valNum = null;
+                        if (ph.getTipo_dato() == TipoDato.NUMERO) {
+                            valNum = parseDoubleSeguro(vRaw);
+                        } else if (ph.getTipo_dato() == TipoDato.ENUM) {
+                            valNum = obtenerOrdenOpcion(ph.getOpciones(), vRaw);
+                        }
 
-                        Double umbralMedia = medias.get(pHeader.getPregunta_id());
-                        String resMedia = aplicarCorte(valorNum, umbralMedia, pHeader.getSentido_corte());
-                        dataRow.createCell(currentCell).setCellValue(resMedia);
-                        registrarConteo(mapaDeConteos, currentCell, resMedia);
-                        currentCell++;
+                        // Automáticas (solo números)
+                        if (ph.getTipo_dato() == TipoDato.NUMERO) {
+                            String rm = aplicarCorte(valNum, medias.get(ph.getPregunta_id()), SentidoCorte.MAYOR_O_IGUAL);
+                            row.createCell(c).setCellValue(rm);
+                            registrarConteo(mapaConteos, c++, rm);
 
-                        Double umbralMediana = medianas.get(pHeader.getPregunta_id());
-                        String resMediana = aplicarCorte(valorNum, umbralMediana, pHeader.getSentido_corte());
-                        dataRow.createCell(currentCell).setCellValue(resMediana);
-                        registrarConteo(mapaDeConteos, currentCell, resMediana);
-                        currentCell++;
+                            String rmd = aplicarCorte(valNum, medianas.get(ph.getPregunta_id()), SentidoCorte.MAYOR_O_IGUAL);
+                            row.createCell(c).setCellValue(rmd);
+                            registrarConteo(mapaConteos, c++, rmd);
+                        }
 
-                        if (pHeader.getDicotomizacion() != null) {
-                            String resFijo = aplicarCorte(valorNum, pHeader.getDicotomizacion(), pHeader.getSentido_corte());
-                            dataRow.createCell(currentCell).setCellValue(resFijo);
-                            registrarConteo(mapaDeConteos, currentCell, resFijo);
-                            currentCell++;
+                        // Manuales (lista de cortes)
+                        if (ph.getDicotomizaciones() != null) {
+                            for (Dicotomizacion dic : ph.getDicotomizaciones()) {
+                                String rf = aplicarCorte(valNum, dic.getValor(), dic.getSentido());
+                                row.createCell(c).setCellValue(rf);
+                                registrarConteo(mapaConteos, c++, rf);
+                            }
                         }
                     }
                 }
             }
 
-            // RESUMEN
-            generarFilasResumen(sheetResumen, 0, headersList.size(), mapaDeConteos, anonimo);
+            // 5. GENERAR RESUMEN (Lógica diferenciada)
+            if (dicotomizar) {
+                generarResumenDicotomizado(sheetResumen, hList, mapaConteos);
+            } else {
+                generarResumenCompleto(sheetResumen, hList, mapaConteos);
+            }
 
-            // DICCIONARIO (CON 0/1)
-            if (generarDiccionario && sheetDiccionario != null) {
+            // 6. DICCIONARIO (Solo si corresponde)
+            if (sheetDiccionario != null) {
                 generarHojaDiccionario(sheetDiccionario, preguntas, medias, medianas, dicotomizar);
             }
 
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            workbook.write(outputStream);
-            return new ByteArrayInputStream(outputStream.toByteArray());
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
         }
     }
 
-    //      LÓGICA DE DICCIONARIO
+    // --- MÉTODOS DE RESUMEN Y CONTEO ---
+
+    private void registrarConteo(Map<Integer, Map<String, Integer>> mapa, int col, String val) {
+        String key = (val == null || val.isBlank()) ? "(Vacío)" : val;
+        mapa.computeIfAbsent(col, k -> new HashMap<>()).merge(key, 1, Integer::sum);
+    }
+
+    // Resumen para Stata: Detalle de 0, 1 y Vacíos
+    private void generarResumenDicotomizado(XSSFSheet sheet, List<String> headers, Map<Integer, Map<String, Integer>> mapaConteos) {
+        Row rowH = sheet.createRow(0);
+        for(int i=0; i<headers.size(); i++) rowH.createCell(i).setCellValue(headers.get(i));
+
+        List<String> keys = Arrays.asList("(Vacío)", "0", "1");
+        int r = 1;
+        for (String k : keys) {
+            Row row = sheet.createRow(r++);
+            row.createCell(0).setCellValue("Contar '" + k + "'");
+            for (int c = 1; c < headers.size(); c++) {
+                if (mapaConteos.containsKey(c)) {
+                    Integer count = mapaConteos.get(c).getOrDefault(k, 0);
+                    if (count > 0) row.createCell(c).setCellValue(count);
+                }
+            }
+        }
+        generarFilaTotal(sheet, headers, mapaConteos, r);
+        sheet.autoSizeColumn(0);
+    }
+
+    // Resumen para Completo: Válidos vs Vacíos (Limpio)
+    private void generarResumenCompleto(XSSFSheet sheet, List<String> headers, Map<Integer, Map<String, Integer>> mapaConteos) {
+        Row rowH = sheet.createRow(0);
+        for(int i=0; i<headers.size(); i++) rowH.createCell(i).setCellValue(headers.get(i));
+
+        int r = 1;
+        Row rowValidos = sheet.createRow(r++);
+        rowValidos.createCell(0).setCellValue("Datos Válidos (Respondidos)");
+
+        Row rowVacios = sheet.createRow(r++);
+        rowVacios.createCell(0).setCellValue("Vacíos / Sin Información");
+
+        for (int c = 1; c < headers.size(); c++) {
+            if (mapaConteos.containsKey(c)) {
+                Map<String, Integer> colData = mapaConteos.get(c);
+                int vacios = colData.getOrDefault("(Vacío)", 0);
+                int total = colData.values().stream().mapToInt(Integer::intValue).sum();
+                int validos = total - vacios;
+
+                if (validos > 0) rowValidos.createCell(c).setCellValue(validos);
+                if (vacios > 0) rowVacios.createCell(c).setCellValue(vacios);
+            }
+        }
+        generarFilaTotal(sheet, headers, mapaConteos, r);
+        sheet.autoSizeColumn(0);
+    }
+
+    private void generarFilaTotal(XSSFSheet sheet, List<String> headers, Map<Integer, Map<String, Integer>> mapaConteos, int rowIdx) {
+        Row rowT = sheet.createRow(rowIdx);
+        rowT.createCell(0).setCellValue("Total Registros");
+        for (int c = 1; c < headers.size(); c++) {
+            if (mapaConteos.containsKey(c)) {
+                int total = mapaConteos.get(c).values().stream().mapToInt(i -> i).sum();
+                rowT.createCell(c).setCellValue(total);
+            }
+        }
+    }
+
+    // --- DICCIONARIO DE VARIABLES ---
 
     private void generarHojaDiccionario(XSSFSheet sheet, List<Pregunta> preguntas, Map<Long, Double> medias, Map<Long, Double> medianas, boolean dicotomizar) {
-        Row header = sheet.createRow(0);
-        header.createCell(0).setCellValue("Código Variable (Stata)");
-        header.createCell(1).setCellValue("Etiqueta Original / Pregunta");
-        header.createCell(2).setCellValue("Codificación / Significado");
+        Row h = sheet.createRow(0);
+        h.createCell(0).setCellValue("Código");
+        h.createCell(1).setCellValue("Pregunta");
+        h.createCell(2).setCellValue("Significado");
 
-        int rowIdx = 1;
-
-        Row rowCaso = sheet.createRow(rowIdx++);
+        int r = 1;
+        // Fila fija para Grupo
+        Row rowCaso = sheet.createRow(r++);
         rowCaso.createCell(0).setCellValue("Es_Caso_Cod");
         rowCaso.createCell(1).setCellValue("Grupo del participante");
         rowCaso.createCell(2).setCellValue("1 = Caso (Cáncer), 0 = Control (Sano)");
 
         for (Pregunta p : preguntas) {
-            String codigo = (p.getCodigoStata() != null && !p.getCodigoStata().isBlank()) ? p.getCodigoStata() : p.getEtiqueta();
+            String cod = (p.getCodigoStata() != null && !p.getCodigoStata().isBlank()) ? p.getCodigoStata() : p.getEtiqueta();
+            Row row = sheet.createRow(r++);
+            row.createCell(0).setCellValue(cod);
+            row.createCell(1).setCellValue(p.getEtiqueta());
+            row.createCell(2).setCellValue(p.getTipo_dato() == TipoDato.ENUM ? verOpciones(p) : "Valor directo");
 
-            Row rowP = sheet.createRow(rowIdx++);
-            rowP.createCell(0).setCellValue(codigo);
-            rowP.createCell(1).setCellValue(p.getEtiqueta());
+            if (dicotomizar) {
+                if (p.getTipo_dato() == TipoDato.NUMERO) {
+                    Row rm = sheet.createRow(r++);
+                    rm.createCell(0).setCellValue(cod + "_media");
+                    rm.createCell(2).setCellValue("1 si >= Media (" + String.format("%.2f", medias.getOrDefault(p.getPregunta_id(), 0.0)) + ")");
 
-            String definicion = "Texto libre / Numérico continuo";
-
-            if (p.getTipo_dato() == TipoDato.ENUM) {
-                List<OpcionPregunta> opcionesOrdenadas = new ArrayList<>(p.getOpciones());
-                opcionesOrdenadas.sort(Comparator.comparingInt(OpcionPregunta::getOrden));
-
-                StringBuilder sb = new StringBuilder();
-                int totalOpciones = opcionesOrdenadas.size();
-
-                for (OpcionPregunta op : opcionesOrdenadas) {
-                    String val = calcularValorOpcion(op, totalOpciones);
-                    sb.append(val).append("=").append(op.getEtiqueta()).append("; ");
+                    Row rmd = sheet.createRow(r++);
+                    rmd.createCell(0).setCellValue(cod + "_mediana");
+                    rmd.createCell(2).setCellValue("1 si >= Mediana (" + String.format("%.2f", medianas.getOrDefault(p.getPregunta_id(), 0.0)) + ")");
                 }
-                definicion = sb.toString();
-            }
 
-            rowP.createCell(2).setCellValue(definicion);
+                if (p.getDicotomizaciones() != null) {
+                    for (Dicotomizacion d : p.getDicotomizaciones()) {
+                        Row rf = sheet.createRow(r++);
+                        rf.createCell(0).setCellValue(cod + "_corte_" + d.getValor() + "_cod");
 
-            if (dicotomizar && p.getTipo_dato() == TipoDato.NUMERO) {
-                String sentido = p.getSentido_corte() != null ? p.getSentido_corte().toString() : "MAYOR_O_IGUAL";
-
-                Row rowMedia = sheet.createRow(rowIdx++);
-                rowMedia.createCell(0).setCellValue(codigo + "_media_cod");
-                rowMedia.createCell(1).setCellValue("Corte por Media (" + p.getEtiqueta() + ")");
-                Double valMedia = medias.getOrDefault(p.getPregunta_id(), 0.0);
-                rowMedia.createCell(2).setCellValue("1 si " + sentido + " a " + String.format("%.2f", valMedia) + "; 0 si no");
-
-                Row rowMediana = sheet.createRow(rowIdx++);
-                rowMediana.createCell(0).setCellValue(codigo + "_mediana_cod");
-                rowMediana.createCell(1).setCellValue("Corte por Mediana (" + p.getEtiqueta() + ")");
-                Double valMediana = medianas.getOrDefault(p.getPregunta_id(), 0.0);
-                rowMediana.createCell(2).setCellValue("1 si " + sentido + " a " + String.format("%.2f", valMediana) + "; 0 si no");
-
-                if (p.getDicotomizacion() != null) {
-                    Row rowFijo = sheet.createRow(rowIdx++);
-                    rowFijo.createCell(0).setCellValue(codigo + "_corte_" + p.getDicotomizacion() + "_cod");
-                    rowFijo.createCell(1).setCellValue("Corte Fijo Definido (" + p.getEtiqueta() + ")");
-                    rowFijo.createCell(2).setCellValue("1 si " + sentido + " a " + p.getDicotomizacion() + "; 0 si no");
+                        String criterio;
+                        if (p.getTipo_dato() == TipoDato.ENUM) {
+                            criterio = "Opción Orden >= " + d.getValor().intValue();
+                        } else {
+                            criterio = "Valor " + (d.getSentido() != null ? d.getSentido() : "MAYOR_O_IGUAL") + " " + d.getValor();
+                        }
+                        rf.createCell(2).setCellValue("1 si " + criterio);
+                    }
                 }
             }
         }
-
         sheet.autoSizeColumn(0);
         sheet.autoSizeColumn(1);
-        sheet.setColumnWidth(2, 10000);
+        sheet.setColumnWidth(2, 12000);
     }
 
-    //      LÓGICA CENTRALIZADA (0/1)
+    // --- UTILS Y HELPERS ---
 
-    // Metodo maestro para saber qué número le corresponde a una opción
-    private String calcularValorOpcion(OpcionPregunta op, int totalOpciones) {
-        // Prioridad: Valor manual asignado por Admin
-        if (op.getValorDicotomizado() != null) {
-            double valor = op.getValorDicotomizado();
-            if (valor == Math.floor(valor)) return String.valueOf((int) valor);
-            return String.valueOf(valor);
-        }
-
-        // Detección inteligente de Sí/No (Estándar: Sí=1, No=0)
-        String label = op.getEtiqueta().trim().toLowerCase();
-        if (label.equals("no")) return "0";
-        if (label.equals("si") || label.equals("sí")) return "1";
-
-        if (totalOpciones == 2) {
-            return String.valueOf(op.getOrden() - 1);
-        }
-
-        return String.valueOf(op.getOrden());
+    private String verOpciones(Pregunta p) {
+        if (p.getOpciones() == null) return "";
+        return p.getOpciones().stream()
+                .sorted(Comparator.comparingInt(OpcionPregunta::getOrden))
+                .map(o -> o.getOrden() + "=" + o.getEtiqueta())
+                .collect(Collectors.joining("; "));
     }
 
-    private String buscarValorDicotomizado(Set<OpcionPregunta> opciones, String etiquetaGuardada) {
-        if (etiquetaGuardada == null || opciones == null || opciones.isEmpty()) {
-            if (isBooleano(etiquetaGuardada)) return convertirBooleano(etiquetaGuardada);
-            return "";
-        }
-
-        int totalOpciones = opciones.size();
-
-        for (OpcionPregunta op : opciones) {
-            if (etiquetaGuardada.trim().equalsIgnoreCase(op.getEtiqueta().trim())) {
-                return calcularValorOpcion(op, totalOpciones);
-            }
-        }
-        return "";
-    }
-
-    //          OTROS MÉTODOS AUXILIARES
-
-    private void calcularEstadisticasGlobales(List<Pregunta> preguntas, List<Paciente> pacientes, Map<Long, Double> medias, Map<Long, Double> medianas) {
-        for (Pregunta p : preguntas) {
+    private void calcularEstadisticasGlobales(List<Pregunta> l, List<Paciente> lp, Map<Long, Double> media, Map<Long, Double> median) {
+        for (Pregunta p : l) {
             if (p.getTipo_dato() == TipoDato.NUMERO) {
-                List<Double> valores = pacientes.stream()
+                List<Double> v = lp.stream()
                         .map(pac -> parseDoubleSeguro(obtenerValorRespuesta(pac, p.getPregunta_id())))
-                        .filter(Objects::nonNull).sorted().collect(Collectors.toList());
-                if (valores.isEmpty()) continue;
-                double media = valores.stream().mapToDouble(d -> d).average().orElse(0.0);
-                medias.put(p.getPregunta_id(), media);
-                double mediana;
-                int size = valores.size();
-                if (size % 2 == 0) mediana = (valores.get(size / 2 - 1) + valores.get(size / 2)) / 2.0;
-                else mediana = valores.get(size / 2);
-                medianas.put(p.getPregunta_id(), mediana);
+                        .filter(Objects::nonNull)
+                        .sorted()
+                        .collect(Collectors.toList());
+
+                if (!v.isEmpty()) {
+                    media.put(p.getPregunta_id(), v.stream().mapToDouble(d -> d).average().orElse(0.0));
+                    int size = v.size();
+                    double medVal = (size % 2 == 0) ? (v.get(size / 2 - 1) + v.get(size / 2)) / 2.0 : v.get(size / 2);
+                    median.put(p.getPregunta_id(), medVal);
+                }
             }
         }
     }
 
-    private String aplicarCorte(Double valor, Double umbral, SentidoCorte sentido) {
-        if (valor == null || umbral == null) return "";
-        boolean cumple = false;
-        if (sentido == null) sentido = SentidoCorte.MAYOR_O_IGUAL;
-        switch (sentido) {
-            case MAYOR_QUE: cumple = valor > umbral; break;
-            case MENOR_QUE: cumple = valor < umbral; break;
-            case MAYOR_O_IGUAL: cumple = valor >= umbral; break;
-            case MENOR_O_IGUAL: cumple = valor <= umbral; break;
-            case IGUAL_A: cumple = valor.equals(umbral); break;
+    private String aplicarCorte(Double v, Double u, SentidoCorte s) {
+        if (v == null || u == null) return "";
+        if (s == null) s = SentidoCorte.MAYOR_O_IGUAL;
+        boolean c = false;
+        switch (s) {
+            case MAYOR_QUE: c = v > u; break;
+            case MENOR_QUE: c = v < u; break;
+            case MAYOR_O_IGUAL: c = v >= u; break;
+            case MENOR_O_IGUAL: c = v <= u; break;
+            case IGUAL_A: c = v.equals(u); break;
         }
-        return cumple ? "1" : "0";
+        return c ? "1" : "0";
     }
 
-    private void registrarConteo(Map<Integer, Map<String, Integer>> mapa, int colIdx, String valor) {
-        if (valor == null || valor.isBlank()) return;
-        mapa.computeIfAbsent(colIdx, k -> new HashMap<>()).merge(valor, 1, Integer::sum);
+    private Double parseDoubleSeguro(String v) {
+        try { return Double.parseDouble(v); } catch (Exception e) { return null; }
     }
 
-    private void generarFilasResumen(XSSFSheet sheet, int startRow, int totalCols, Map<Integer, Map<String, Integer>> mapaDeConteos, boolean anonimo) {
-        Set<String> valoresEncontrados = new HashSet<>();
-        mapaDeConteos.values().forEach(mapa -> valoresEncontrados.addAll(mapa.keySet()));
-        List<String> valoresOrdenados = new ArrayList<>(valoresEncontrados);
-        Collections.sort(valoresOrdenados);
-        int currentRow = startRow + 1;
-        for (String valorRef : valoresOrdenados) {
-            if (valorRef.isBlank()) continue;
-            Row rowResumen = sheet.createRow(currentRow++);
-            rowResumen.createCell(0).setCellValue("Contar " + valorRef);
-            int startCol = (!anonimo) ? 2 : 1;
-            for (int c = startCol; c < totalCols; c++) {
-                Integer cantidad = mapaDeConteos.getOrDefault(c, new HashMap<>()).getOrDefault(valorRef, 0);
-                if (cantidad > 0) rowResumen.createCell(c).setCellValue(cantidad);
-            }
+    private String obtenerValorRespuesta(Paciente p, Long id) {
+        return p.getRespuestas().stream()
+                .filter(r -> r.getPregunta().getPregunta_id().equals(id))
+                .findFirst()
+                .map(Respuesta::getValor)
+                .orElse(null);
+    }
+
+    private String buscarValorDicotomizado(List<OpcionPregunta> l, String v) {
+        if (v == null || l == null) return isBooleano(v) ? convertirBooleano(v) : "";
+        for (OpcionPregunta o : l) {
+            if (o.getEtiqueta().trim().equalsIgnoreCase(v.trim())) return calcularValorOpcion(o, l.size());
         }
-        Row rowTotal = sheet.createRow(currentRow++);
-        rowTotal.createCell(0).setCellValue("Total Registros");
-        int startCol = (!anonimo) ? 2 : 1;
-        for (int c = startCol; c < totalCols; c++) {
-            int total = mapaDeConteos.getOrDefault(c, new HashMap<>()).values().stream().mapToInt(Integer::intValue).sum();
-            if (total > 0) rowTotal.createCell(c).setCellValue(total);
-        }
-    }
-
-    private Double parseDoubleSeguro(String valor) {
-        if (valor == null || valor.isBlank()) return null;
-        try { return Double.parseDouble(valor); } catch (Exception e) { return null; }
-    }
-
-    private String obtenerValorRespuesta(Paciente p, Long preguntaId) {
-        return p.getRespuestas().stream().filter(r -> r.getPregunta().getPregunta_id().equals(preguntaId))
-                .findFirst().map(Respuesta::getValor).orElse(null);
-    }
-
-    private boolean isBooleano(String val) {
-        if (val == null) return false;
-        String v = val.trim().toLowerCase();
-        return v.equals("si") || v.equals("sí") || v.equals("no");
-    }
-
-    private String convertirBooleano(String val) {
-        String v = val.trim().toLowerCase();
-        if (v.equals("si") || v.equals("sí")) return "1";
-        if (v.equals("no")) return "0";
         return "";
+    }
+
+    private String calcularValorOpcion(OpcionPregunta o, int t) {
+        // CORRECCIÓN: Devolver simplemente el orden (0, 1, 2...)
+        return String.valueOf(o.getOrden());
+    }
+
+    private Double obtenerOrdenOpcion(List<OpcionPregunta> opciones, String valorTexto) {
+        if (valorTexto == null || valorTexto.isBlank() || opciones == null) return null;
+        for (OpcionPregunta op : opciones) {
+            if (op.getEtiqueta().trim().equalsIgnoreCase(valorTexto.trim())) return (double) op.getOrden();
+        }
+        return null;
+    }
+
+    private boolean isBooleano(String v) {
+        return v != null && (v.equalsIgnoreCase("si") || v.equalsIgnoreCase("no") || v.equalsIgnoreCase("sí"));
+    }
+
+    private String convertirBooleano(String v) {
+        return (v.equalsIgnoreCase("si") || v.equalsIgnoreCase("sí")) ? "1" : "0";
     }
 }

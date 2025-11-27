@@ -31,26 +31,45 @@ public class PdfServicio {
 
     @Transactional(readOnly = true)
     public byte[] generarCrfPdf(Long pacienteId) {
-        // 1. Obtener la estructura completa del formulario (Categorías y Preguntas activas)
-        // Ordenamos por el campo 'orden'
-        List<Categoria> categorias = categoriaRepositorio.findAll().stream()
+        // 1. Obtener datos crudos de la BD
+        List<Categoria> categoriasEntidad = categoriaRepositorio.findAll().stream()
                 .sorted(Comparator.comparingInt(Categoria::getOrden))
-                .peek(cat -> {
-                    // Ordenar preguntas internas también
-                    List<Pregunta> preguntasOrdenadas = cat.getPreguntas().stream()
-                            .filter(Pregunta::isActivo) // Solo mostrar preguntas activas
-                            .sorted(Comparator.comparingInt(Pregunta::getOrden))
-                            .collect(Collectors.toList());
-                    // Convertimos a Set o List para la vista (Thymeleaf itera Lists mejor)
-                    cat.setPreguntas(new HashSet<>(preguntasOrdenadas));
-                })
                 .collect(Collectors.toList());
 
-        // 2. Preparar Contexto de Thymeleaf (Variables para el HTML)
-        Context context = new Context();
-        context.setVariable("categorias", categorias);
+        // 2. CONSTRUIR VISTA MANUALMENTE (ESTRATEGIA SEGURA)
+        // Convertimos las Entidades a una Lista de Mapas.
+        // Al usar una List<Pregunta> explícita en el mapa, garantizamos que Thymeleaf
+        // respete el orden visual al 100%, sin interferencia de JPA/Hibernate.
+        List<Map<String, Object>> categoriasVista = new ArrayList<>();
 
-        // 3. Si hay paciente, cargar sus datos
+        for (Categoria cat : categoriasEntidad) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id_cat", cat.getId_cat());
+            map.put("nombre", cat.getNombre());
+            map.put("orden", cat.getOrden());
+
+            // Ordenamos las preguntas y las guardamos en una LISTA
+            List<Pregunta> preguntasOrdenadas = cat.getPreguntas().stream()
+                    .filter(Pregunta::isActivo)
+                    .sorted(Comparator.comparingInt(Pregunta::getOrden))
+                    .collect(Collectors.toList());
+
+            // Opcional: Ordenar también las opciones dentro de cada pregunta para asegurar (Sí, No, etc.)
+            preguntasOrdenadas.forEach(p -> {
+                if (p.getOpciones() != null) {
+                    p.getOpciones().sort(Comparator.comparingInt(OpcionPregunta::getOrden));
+                }
+            });
+
+            map.put("preguntas", preguntasOrdenadas);
+            categoriasVista.add(map);
+        }
+
+        // 3. Preparar Contexto usando nuestra lista segura "categoriasVista"
+        Context context = new Context();
+        context.setVariable("categorias", categoriasVista);
+
+        // 4. Si hay paciente, cargar sus datos
         if (pacienteId != null) {
             Paciente paciente = pacienteRepositorio.findById(pacienteId)
                     .orElseThrow(() -> new RuntimeException("Paciente no encontrado"));
@@ -59,7 +78,7 @@ public class PdfServicio {
             context.setVariable("esCaso", paciente.getEsCaso());
             context.setVariable("fechaInclusion", paciente.getFechaIncl().toString());
 
-            // Mapear respuestas para acceso rápido: ID_PREGUNTA -> RESPUESTA
+            // Mapear respuestas
             Map<Long, Respuesta> respuestasMap = new HashMap<>();
             for (Respuesta r : paciente.getRespuestas()) {
                 if (r.getPregunta() != null) {
@@ -74,10 +93,10 @@ public class PdfServicio {
             context.setVariable("respuestasMap", new HashMap<>());
         }
 
-        // 4. Renderizar HTML
+        // 5. Renderizar HTML
         String htmlContent = templateEngine.process("crf_template", context);
 
-        // 5. Convertir HTML a PDF
+        // 6. Convertir HTML a PDF
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
@@ -96,14 +115,11 @@ public class PdfServicio {
              ZipOutputStream zos = new ZipOutputStream(baos)) {
 
             for (Long id : pacienteIds) {
-                // 1. Buscamos al paciente para usar su código en el nombre del archivo
                 Paciente p = pacienteRepositorio.findById(id).orElse(null);
                 if (p == null) continue;
 
-                // 2. Reutilizamos el método existente para generar el PDF
                 byte[] pdfBytes = generarCrfPdf(id);
 
-                // 3. Creamos la entrada en el ZIP
                 ZipEntry entry = new ZipEntry("CRF_" + p.getParticipanteCod() + ".pdf");
                 entry.setSize(pdfBytes.length);
                 zos.putNextEntry(entry);

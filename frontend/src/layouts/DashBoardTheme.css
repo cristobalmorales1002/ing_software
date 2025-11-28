@@ -312,3 +312,41 @@ input[type="date"] {
     background-color: #60a5fa !important;
     color: #000 !important;
 }
+
+/*_____________________________CAMBIOS DE ESTILOS 28-11-2025----------------------------*/
+/* --- FIX: Subtítulo negro al hacer hover en el botón rojo (Modo Oscuro) --- */
+/* Usamos 'body' para ganar especificidad sobre la regla general */
+body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
+    color: #000000 !important;
+    opacity: 1 !important;
+}
+/* =========================================================
+   FIX: ACORDEONES (FORMULARIO) EN MODO OSCURO
+   ========================================================= */
+
+/* 1. El contenedor del ítem (el bloque principal) */
+[data-theme="dark"] .accordion-item {
+    background-color: var(--bg-card) !important; /* Fondo oscuro */
+    border-color: var(--border-color) !important; /* Borde sutil */
+    color: var(--text-main) !important;
+}
+
+/* 2. El botón/cabecera (lo que se ve blanco en tu foto) */
+[data-theme="dark"] .accordion-button {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    box-shadow: none !important; /* Quita el brillo azul por defecto al hacer click */
+}
+
+/* 3. El botón cuando está ABIERTO (Desplegado) */
+[data-theme="dark"] .accordion-button:not(.collapsed) {
+    background-color: var(--hover-bg) !important; /* Un tono ligeramente distinto para indicar activo */
+    color: var(--accent-color) !important;        /* Texto en tu color de acento (celeste/azul) */
+    box-shadow: inset 0 -1px 0 var(--border-color) !important; /* Pequeña línea divisoria */
+}
+
+/* 4. La flecha (Chevron) del acordeón */
+/* Por defecto es negra (SVG), así que la invertimos para que sea blanca */
+[data-theme="dark"] .accordion-button::after {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}

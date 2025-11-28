@@ -258,7 +258,7 @@ const SurveyBuilder = () => {
                                                                                             <div {...provided.dragHandleProps} className="text-muted"><GripVertical /></div>
                                                                                             <div className="d-flex flex-column">
                                                                                                 <div className="d-flex gap-2 align-items-center">
-                                                                                                    <span className="fw-bold text-white">{q.etiqueta}</span>
+                                                                                                    <span className="fw-bold" style={{ color: 'var(--text-main)' }}>{q.etiqueta}</span>
                                                                                                     <span className="text-muted small ms-2 font-monospace">[{q.codigoStata}]</span>
                                                                                                 </div>
                                                                                                 <span className="text-muted small fst-italic">{q.descripcion || 'Sin descripción'}</span>

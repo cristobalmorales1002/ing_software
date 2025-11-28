@@ -3,9 +3,11 @@ import { Container, Accordion, Button, Card, Badge, Spinner } from 'react-bootst
 import { PlusLg, PencilSquare, Trash, GripVertical, Scissors } from 'react-bootstrap-icons';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
-// --- IMPORTAMOS LOS COMPONENTES OPTIMIZADOS ---
+// Importamos Axios configurado (Esto arregla la conexión)
+import api from '../api/axios';
+
 import QuestionFormModal from '../components/QuestionFormModal';
-import CategoryFormModal from '../components/CategoryFormModal'; // <--- IMPORTANTE
+import CategoryFormModal from '../components/CategoryFormModal';
 
 const SurveyBuilder = () => {
     // --- ESTADOS ---
@@ -15,55 +17,42 @@ const SurveyBuilder = () => {
     // Modales de Categoría
     const [showCatModal, setShowCatModal] = useState(false);
     const [editingCat, setEditingCat] = useState(null);
-    // const [catForm, setCatForm] = useState({ nombre: '' }); // <-- ELIMINADO (causaba el lag)
 
     // Modales de Pregunta
     const [showQModal, setShowQModal] = useState(false);
     const [editingQuestion, setEditingQuestion] = useState(null);
     const [targetCatId, setTargetCatId] = useState(null);
 
-    // --- HELPER: HEADERS ---
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem('token');
-        return {
-            'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : ''
-        };
-    };
-
     // --- CARGA INICIAL ---
     const fetchEncuesta = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/encuesta/completa', { headers: getAuthHeaders() });
-            if (response.ok) {
-                const data = await response.json();
+            const response = await api.get('/api/encuesta/completa');
+            const data = response.data;
 
-                // Procesamiento de datos (Null Safety)
-                const processedData = data.map(cat => ({
-                    ...cat,
-                    preguntas: cat.preguntas ? cat.preguntas.map(q => ({
-                        ...q,
-                        dicotomizaciones: q.dicotomizaciones || []
-                    })) : []
-                }));
+            const processedData = data.map(cat => ({
+                ...cat,
+                preguntas: cat.preguntas ? cat.preguntas.map(q => ({
+                    ...q,
+                    dicotomizaciones: q.dicotomizaciones || []
+                })) : []
+            }));
 
-                setCategories(processedData);
-            } else {
-                console.error("Error cargando encuesta");
-            }
+            setCategories(processedData);
         } catch (error) {
-            console.error("Error de conexión:", error);
+            console.error("Error cargando encuesta:", error);
         } finally {
             setLoading(false);
         }
     };
 
+    // Eliminamos diagnosticarConexion() porque ya no es necesaria
+
     useEffect(() => {
         fetchEncuesta();
     }, []);
 
-    // --- DRAG AND DROP ---
+    // --- DRAG AND DROP (CORREGIDO A AXIOS) ---
     const handleDragEnd = async (result) => {
         const { source, destination, type } = result;
         if (!destination) return;
@@ -74,17 +63,19 @@ const SurveyBuilder = () => {
         if (type === 'CATEGORY') {
             const [movedCat] = newCategories.splice(source.index, 1);
             newCategories.splice(destination.index, 0, movedCat);
+
+            // Actualización visual optimista
             const updatedVisual = newCategories.map((cat, idx) => ({ ...cat, orden: idx + 1 }));
             setCategories(updatedVisual);
 
             const idsOrdenados = updatedVisual.map(c => c.id_cat);
             try {
-                await fetch('/api/categorias/reordenar', {
-                    method: 'PUT',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify(idsOrdenados)
-                });
-            } catch (err) { console.error(err); fetchEncuesta(); }
+                // CAMBIO: fetch -> api.put (Axios envía JSON automáticamente)
+                await api.put('/api/categorias/reordenar', idsOrdenados);
+            } catch (err) {
+                console.error(err);
+                fetchEncuesta(); // Revertir si falla
+            }
         }
         else if (type === 'QUESTION') {
             const sourceCatId = source.droppableId.replace('questions-', '');
@@ -100,69 +91,70 @@ const SurveyBuilder = () => {
 
             try {
                 if (sourceCatId === destCatId) {
+                    // Reordenar en la misma categoría
                     const idsOrdenados = destCat.preguntas.map(q => q.pregunta_id);
-                    await fetch(`/api/variables/reordenar`, {
-                        method: 'PUT',
-                        headers: getAuthHeaders(),
-                        body: JSON.stringify(idsOrdenados)
-                    });
+                    await api.put(`/api/variables/reordenar`, idsOrdenados);
                 } else {
+                    // Mover a otra categoría
                     const payload = {
                         ...movedQuestion,
                         categoriaId: destCatId,
                         opciones: movedQuestion.opciones,
                         dicotomizaciones: movedQuestion.dicotomizaciones
                     };
-                    await fetch(`/api/variables/${movedQuestion.pregunta_id}`, {
-                        method: 'PUT',
-                        headers: getAuthHeaders(),
-                        body: JSON.stringify(payload)
-                    });
+                    // 1. Actualizar la pregunta con la nueva categoría
+                    await api.put(`/api/variables/${movedQuestion.pregunta_id}`, payload);
+
+                    // 2. Reordenar la categoría de destino
                     const idsDestino = destCat.preguntas.map(q => q.pregunta_id);
-                    await fetch(`/api/variables/reordenar`, {
-                        method: 'PUT',
-                        headers: getAuthHeaders(),
-                        body: JSON.stringify(idsDestino)
-                    });
+                    await api.put(`/api/variables/reordenar`, idsDestino);
                 }
-            } catch (err) { console.error(err); fetchEncuesta(); }
+            } catch (err) {
+                console.error(err);
+                fetchEncuesta();
+            }
         }
     };
 
-    // --- GESTIÓN CATEGORÍAS ---
+    // --- GESTIÓN CATEGORÍAS (CORREGIDO A AXIOS) ---
     const openCatModal = (cat = null) => {
         setEditingCat(cat);
-        // Ya no reseteamos form aquí, el modal hijo lo hace
         setShowCatModal(true);
     };
 
-    // Recibimos "formData" desde el componente hijo
     const handleSaveCategory = async (formData) => {
         try {
-            const endpoint = editingCat ? `/api/categorias/${editingCat.id_cat}` : '/api/categorias';
-            const method = editingCat ? 'PUT' : 'POST';
             const payload = editingCat ? formData : { ...formData, orden: categories.length + 1 };
 
-            const res = await fetch(endpoint, {
-                method: method,
-                headers: getAuthHeaders(),
-                body: JSON.stringify(payload)
-            });
+            if (editingCat) {
+                // PUT
+                await api.put(`/api/categorias/${editingCat.id_cat}`, payload);
+            } else {
+                // POST
+                await api.post('/api/categorias', payload);
+            }
 
-            if (res.ok) { fetchEncuesta(); setShowCatModal(false); }
-            else { alert("Error al guardar categoría"); }
-        } catch (err) { console.error(err); }
+            fetchEncuesta();
+            setShowCatModal(false);
+        } catch (err) {
+            console.error(err);
+            alert("Error al guardar categoría");
+        }
     };
 
     const handleDeleteCategory = async (catId) => {
         if(!window.confirm("¿Eliminar categoría y sus preguntas?")) return;
         try {
-            const res = await fetch(`/api/categorias/${catId}`, { method: 'DELETE', headers: getAuthHeaders() });
-            if(res.ok) fetchEncuesta();
-        } catch (err) { console.error(err); }
+            // CAMBIO: fetch -> api.delete
+            await api.delete(`/api/categorias/${catId}`);
+            fetchEncuesta();
+        } catch (err) {
+            console.error(err);
+            alert("Error al eliminar categoría");
+        }
     };
 
-    // --- GESTIÓN PREGUNTAS ---
+    // --- GESTIÓN PREGUNTAS (CORREGIDO A AXIOS) ---
     const openQuestionModal = (catId, question = null) => {
         setTargetCatId(catId);
         setEditingQuestion(question);
@@ -171,40 +163,45 @@ const SurveyBuilder = () => {
 
     const handleSaveQuestion = async (formData) => {
         try {
-            const payload = { ...formData };
-            let url = '/api/variables';
-            let method = 'POST';
+            // Preservar dicotomizaciones existentes si el form no las envía
+            const existingDicos = editingQuestion && editingQuestion.dicotomizaciones
+                ? editingQuestion.dicotomizaciones
+                : [];
+
+            const payload = {
+                ...formData,
+                dicotomizaciones: formData.dicotomizaciones || existingDicos
+            };
 
             if (editingQuestion) {
-                url = `/api/variables/${editingQuestion.pregunta_id}`;
-                method = 'PUT';
+                // PUT
+                await api.put(`/api/variables/${editingQuestion.pregunta_id}`, payload);
             } else {
+                // POST
+                // Asegurar orden y categoría
                 payload.categoriaId = targetCatId;
                 const catActual = categories.find(c => c.id_cat === targetCatId);
                 payload.orden = catActual ? (catActual.preguntas ? catActual.preguntas.length + 1 : 1) : 1;
+
+                await api.post('/api/variables', payload);
             }
 
-            const response = await fetch(url, {
-                method: method,
-                headers: getAuthHeaders(),
-                body: JSON.stringify(payload)
-            });
+            fetchEncuesta();
+            setShowQModal(false);
 
-            if (response.ok) {
-                fetchEncuesta();
-                setShowQModal(false);
-            } else {
-                const txt = await response.text();
-                alert("Error: " + txt);
-            }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+            const msg = err.response?.data?.message || err.message;
+            alert("Error: " + msg);
+        }
     };
 
     const handleDeleteQuestion = async (catId, qId) => {
         if(!window.confirm("¿Eliminar esta pregunta?")) return;
         try {
-            const res = await fetch(`/api/variables/${qId}`, { method: 'DELETE', headers: getAuthHeaders() });
-            if(res.ok) fetchEncuesta();
+            // CAMBIO: fetch -> api.delete
+            await api.delete(`/api/variables/${qId}`);
+            fetchEncuesta();
         } catch (err) { console.error(err); }
     };
 
@@ -297,7 +294,6 @@ const SurveyBuilder = () => {
                 </Droppable>
             </DragDropContext>
 
-            {/* --- MODAL CATEGORÍA OPTIMIZADO --- */}
             <CategoryFormModal
                 show={showCatModal}
                 onHide={() => setShowCatModal(false)}
@@ -306,7 +302,6 @@ const SurveyBuilder = () => {
                 isEditing={!!editingCat}
             />
 
-            {/* --- MODAL PREGUNTA OPTIMIZADO --- */}
             <QuestionFormModal
                 show={showQModal}
                 onHide={() => setShowQModal(false)}

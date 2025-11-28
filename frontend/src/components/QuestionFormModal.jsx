@@ -107,7 +107,7 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
     return (
         <Modal show={show} onHide={onHide} backdrop="static" size="lg" centered>
             <Modal.Header closeButton>
-                <Modal.Title>{isEditing ? 'Editar Variable' : 'Nueva Variable'}</Modal.Title>
+                <Modal.Title>{isEditing ? 'Editar Pregunta' : 'Nueva Pregunta'}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <Row>
@@ -222,12 +222,16 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                                 </Col>
                                 <Col>
                                     <Form.Label className="small">Condición</Form.Label>
-                                    <Form.Select value={newDicSentido} onChange={e => setNewDicSentido(e.target.value)} size="sm">
-                                        <option value="MAYOR">Mayor que</option>
-                                        <option value="MENOR">Menor que</option>
-                                        <option value="IGUAL">Igual a</option>
-                                        <option value="MAYOR_IGUAL">Mayor o igual</option>
-                                        <option value="MENOR_IGUAL">Menor o igual</option>
+                                    <Form.Select
+                                        value={newDicSentido}
+                                        onChange={e => setNewDicSentido(e.target.value)}
+                                        size="sm"
+                                    >
+                                        <option value="MAYOR_QUE">Mayor que</option>
+                                        <option value="MENOR_QUE">Menor que</option>
+                                        <option value="IGUAL_A">Igual a</option>
+                                        <option value="MAYOR_O_IGUAL">Mayor o igual</option>
+                                        <option value="MENOR_O_IGUAL">Menor o igual</option>
                                     </Form.Select>
                                 </Col>
                                 <Col xs="auto">
@@ -256,7 +260,7 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onHide}>Cancelar</Button>
-                <Button variant="primary" onClick={handleSubmit}>Guardar Variable</Button>
+                <Button variant="primary" onClick={handleSubmit}>Guardar Pregunta</Button>
             </Modal.Footer>
         </Modal>
     );

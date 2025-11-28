@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -293,10 +294,19 @@ public class UsuarioServicio {
             throw new RuntimeException("Error al enviar token de email", e);
         }
     }
-    // --- MÉTODO NUEVO PARA OBTENER PERFIL ---
+
+
+    public Optional<Usuario> buscarPorEmail(String email) {
+        return usuarioRepositorio.findByEmail(email);
+    }
+
     public UsuarioResponseDto getByRut(String rut) {
         Usuario u = usuarioRepositorio.findByRut(rut)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + rut));
         return toResponseDto(u);
+    }
+
+    public Optional<Usuario> buscarPorRut(String rut) {
+        return usuarioRepositorio.findByRut(rut);
     }
 }

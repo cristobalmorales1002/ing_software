@@ -239,16 +239,40 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                                 </Col>
                             </Row>
                             {form.dicotomizaciones.length > 0 ? (
-                                <Table size="sm" borderless hover className="mb-0 text-white small">
+                                <Table
+                                    size="sm"
+                                    borderless
+                                    hover
+                                    className="mb-0 small rounded overflow-hidden"
+                                    style={{
+                                        /* 1. Usamos la nueva variable para igualar a los inputs */
+                                        backgroundColor: 'var(--bg-form)',
+
+                                        /* 2. IMPORTANTE: Forzamos el color del texto a la variable principal */
+                                        color: 'var(--text-main)',
+
+                                        /* 3. Ajustes de Bootstrap */
+                                        '--bs-table-bg': 'var(--bg-form)',
+                                        '--bs-table-color': 'var(--text-main)', /* Esto arregla el texto negro de las filas */
+                                        '--bs-table-accent-bg': 'transparent'
+                                    }}
+                                >
                                     <thead>
-                                    <tr><th className="text-muted font-monospace">Condición</th><th className="text-muted font-monospace">Valor</th><th></th></tr>
+                                    <tr>
+                                        <th className="text-muted font-monospace">Condición</th>
+                                        <th className="text-muted font-monospace">Valor</th>
+                                        <th></th>
+                                    </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody style={{ backgroundColor: 'transparent' }}>
                                     {form.dicotomizaciones.map((dic, idx) => (
                                         <tr key={idx}>
                                             <td className="text-info">{dic.sentido}</td>
+                                            {/* Quitamos clases de color fijo si las hubiera, dejamos que herede de la tabla */}
                                             <td className="fw-bold">{dic.valor}</td>
-                                            <td className="text-end"><Trash className="text-danger cursor-pointer" onClick={() => removeDicotomizacion(idx)} /></td>
+                                            <td className="text-end">
+                                                <Trash className="text-danger cursor-pointer" onClick={() => removeDicotomizacion(idx)} />
+                                            </td>
                                         </tr>
                                     ))}
                                     </tbody>

@@ -11,6 +11,7 @@
     --accent-color: #4da8da;
     --sidebar-bg: linear-gradient(180deg, #0f1923 0%, #080c11 100%);
     --hover-bg: rgba(77, 168, 218, 0.1);
+    --bg-form: #1e293b;
 
     /* --- NUEVAS VARIABLES PARA EL LOGO --- */
     --logo-bg: rgba(0, 0, 0, 0.2);          /* El oscuro original */
@@ -28,6 +29,7 @@
     --accent-color: #0d6efd;
     --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f1f3f5 100%);
     --hover-bg: rgba(13, 110, 253, 0.1);
+    --bg-form: #ffffff;
 
     /* --- NUEVAS VARIABLES PARA EL LOGO (MODO CLARO) --- */
     --logo-bg: #ffffff;       /* Blanco puro y limpio */

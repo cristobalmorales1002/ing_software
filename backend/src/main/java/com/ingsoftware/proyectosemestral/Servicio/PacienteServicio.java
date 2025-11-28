@@ -12,6 +12,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -78,7 +79,7 @@ public class PacienteServicio {
     public PacienteResponseDto crearPacienteConRespuestas(PacienteCreateDto dto, Usuario reclutador) {
         Paciente paciente = new Paciente();
         paciente.setEsCaso(dto.getEsCaso());
-        paciente.setFechaIncl(dto.getFechaIncl());
+        paciente.setFechaIncl(LocalDate.now());
         paciente.setActivo(true);
         paciente.setReclutador(reclutador);
         paciente.setParticipanteCod(generarCodigoPaciente(dto.getEsCaso()));

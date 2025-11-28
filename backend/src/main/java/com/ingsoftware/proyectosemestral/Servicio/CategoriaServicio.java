@@ -115,7 +115,7 @@ public class CategoriaServicio {
         dto.setOrden(entidad.getOrden());
         dto.setCategoriaId(entidad.getCategoria().getId_cat());
 
-        // --- MAPEO LISTA ---
+        // --- MAPEO LISTA DICOTOMIZACIONES ---
         if (entidad.getDicotomizaciones() != null) {
             List<DicotomizacionDto> listaDic = entidad.getDicotomizaciones().stream().map(d -> {
                 DicotomizacionDto dDto = new DicotomizacionDto();
@@ -126,13 +126,21 @@ public class CategoriaServicio {
             }).collect(Collectors.toList());
             dto.setDicotomizaciones(listaDic);
         }
-        // -------------------
+
+        // --- MAPEO LISTA OPCIONES (CORRECCIÓN APLICADA AQUÍ) ---
+        if (entidad.getTipo_dato() == TipoDato.ENUM && entidad.getOpciones() != null) {
+            List<String> listaOpciones = entidad.getOpciones().stream()
+                    .sorted(Comparator.comparingInt(OpcionPregunta::getOrden))
+                    .map(OpcionPregunta::getEtiqueta)
+                    .collect(Collectors.toList());
+            dto.setOpciones(listaOpciones);
+        }
+        // --------------------------------------------------------
 
         dto.setExportable(entidad.isExportable());
         dto.setTipoCorte(entidad.getTipoCorte());
         dto.setGenerarEstadistica(entidad.isGenerarEstadistica());
 
-        // ... (resto del mapeo de opciones) ...
         return dto;
     }
 }

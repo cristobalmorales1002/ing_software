@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
 import { FileEarmarkExcel, FileEarmarkPdf, Download, ShieldLock, Table } from 'react-bootstrap-icons';
 import api from '../api/axios';
@@ -6,6 +6,20 @@ import api from '../api/axios';
 const Reports = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [userRole, setUserRole] = useState(null);
+
+    // Obtener el rol al cargar
+    useEffect(() => {
+        const fetchUserRole = async () => {
+            try {
+                const res = await api.get('/api/usuarios/me');
+                setUserRole(res.data.rol);
+            } catch (error) {
+                console.error("Error al obtener rol:", error);
+            }
+        };
+        fetchUserRole();
+    }, []);
 
     const handleDownload = async (url, filename, params = {}) => {
         setLoading(true);
@@ -31,19 +45,19 @@ const Reports = () => {
         }
     };
 
+    const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
+
     return (
         <Container fluid className="p-0">
-
-            {/* 1. AGREGADO: text-center para centrar el título */}
             <h2 className="mb-4 text-center">CENTRO DE DOCUMENTOS</h2>
 
             {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
 
-            {/* 2. AGREGADO: justify-content-center para centrar las tarjetas horizontalmente */}
-            <Row className="g-4 justify-content-center">
+            {/* CAMBIO: Quitamos 'justify-content-center' para que alínee a la izquierda por defecto */}
+            <Row className="g-4">
 
-                {/* TARJETA 1: EXCEL */}
-                <Col md={10} lg={6}> {/* Ajusté xl={4} para que no sean tan anchas en pantallas gigantes */}
+                {/* --- TARJETA 1: EXCEL (Visible para todos, botones internos restringidos) --- */}
+                <Col md={10} lg={6}>
                     <Card className="h-100 shadow-sm border-0">
                         <Card.Header className="bg-success bg-opacity-10 text-success fw-bold d-flex align-items-center gap-2 justify-content-center">
                             <FileEarmarkExcel size={20}/> Base de Datos (Excel)
@@ -54,16 +68,20 @@ const Reports = () => {
                             </p>
 
                             <div className="d-grid gap-3">
-                                <Button
-                                    variant="outline-success"
-                                    className="d-flex justify-content-between align-items-center"
-                                    onClick={() => handleDownload('/api/exportar/excel', 'Base_Completa.xlsx', { anonimo: false, dicotomizar: false })}
-                                    disabled={loading}
-                                >
-                                    <span><Table className="me-2"/> Base Completa</span>
-                                    <Download />
-                                </Button>
+                                {/* SOLO ADMIN E INVESTIGADOR ven la Base Completa */}
+                                {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR']) && (
+                                    <Button
+                                        variant="outline-success"
+                                        className="d-flex justify-content-between align-items-center"
+                                        onClick={() => handleDownload('/api/exportar/excel', 'Base_Completa.xlsx', { anonimo: false, dicotomizar: false })}
+                                        disabled={loading}
+                                    >
+                                        <span><Table className="me-2"/> Base Completa</span>
+                                        <Download />
+                                    </Button>
+                                )}
 
+                                {/* Bases Anonimizadas (Visibles para todos) */}
                                 <Button
                                     variant="outline-primary"
                                     className="d-flex justify-content-between align-items-center"
@@ -88,39 +106,41 @@ const Reports = () => {
                     </Card>
                 </Col>
 
-                {/* TARJETA 2: PDF */}
-                <Col md={10} lg={6}>
-                    <Card className="h-100 shadow-sm border-0">
-                        <Card.Header className="bg-danger bg-opacity-10 text-danger fw-bold d-flex align-items-center gap-2 justify-content-center">
-                            <FileEarmarkPdf size={20}/> Documentación Clínica
-                        </Card.Header>
-                        <Card.Body>
-                            <p className="text-muted small mb-4 text-center">
-                                Descarga plantillas vacías del Formulario de Reporte de Caso (CRF) para impresión.
-                            </p>
+                {/* --- TARJETA 2: PDF (SOLO VISIBLE PARA ADMIN) --- */}
+                {hasRole(['ROLE_ADMIN']) && (
+                    <Col md={10} lg={6}>
+                        <Card className="h-100 shadow-sm border-0">
+                            <Card.Header className="bg-danger bg-opacity-10 text-danger fw-bold d-flex align-items-center gap-2 justify-content-center">
+                                <FileEarmarkPdf size={20}/> Documentación Clínica
+                            </Card.Header>
+                            <Card.Body>
+                                <p className="text-muted small mb-4 text-center">
+                                    Descarga plantillas vacías del Formulario de Reporte de Caso (CRF) para impresión.
+                                </p>
 
-                            <div className="d-grid gap-2">
-                                <Button
-                                    variant="outline-danger"
-                                    className="d-flex justify-content-between align-items-center p-3"
-                                    onClick={() => handleDownload('/api/pdf/crf/vacio', 'CRF_Plantilla_Vacia.pdf')}
-                                    disabled={loading}
-                                >
-                                    <div className="text-start">
-                                        <div className="fw-bold">CRF Plantilla Vacía</div>
-                                        <div className="small text-muted" style={{fontSize:'0.75rem'}}>Formulario completo sin datos</div>
-                                    </div>
-                                    <Download />
-                                </Button>
-                            </div>
+                                <div className="d-grid gap-2">
+                                    <Button
+                                        variant="outline-danger"
+                                        className="d-flex justify-content-between align-items-center p-3"
+                                        onClick={() => handleDownload('/api/pdf/crf/vacio', 'CRF_Plantilla_Vacia.pdf')}
+                                        disabled={loading}
+                                    >
+                                        <div className="text-start">
+                                            <div className="fw-bold">CRF Plantilla Vacía</div>
+                                            <div className="small text-muted" style={{fontSize:'0.75rem'}}>Formulario completo sin datos</div>
+                                        </div>
+                                        <Download />
+                                    </Button>
+                                </div>
 
-                            <Alert variant="info" className="mt-4 mb-0 small text-center">
-                                <i className="bi bi-info-circle me-2"></i>
-                                Para descargar el CRF lleno, dirígete a <strong>Casos y Controles</strong>.
-                            </Alert>
-                        </Card.Body>
-                    </Card>
-                </Col>
+                                <Alert variant="info" className="mt-4 mb-0 small text-center">
+                                    <i className="bi bi-info-circle me-2"></i>
+                                    Para descargar el CRF lleno, dirígete a <strong>Casos y Controles</strong>.
+                                </Alert>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                )}
             </Row>
 
             {loading && (

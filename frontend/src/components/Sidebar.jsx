@@ -83,7 +83,7 @@ const Sidebar = () => {
             path: '/dashboard/documentos',
             name: 'Documentos',
             icon: <FileEarmarkText />,
-            allowedRoles: ['ROLE_ADMIN', 'ROLE_INVESTIGADOR']
+            allowedRoles: ['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO', 'ROLE_ESTUDIANTE', 'ROLE_VISUALIZADOR']
         }
     ];
 

@@ -253,8 +253,12 @@ const CasesControls = () => {
     const handleSave = async () => {
         setIsSaving(true);
         try {
+            /*const respuestasDTO = Object.entries(formData).map(([key, value]) => ({
+                preguntaId: parseInt(key), // ERROR
+                valor: value
+            }));*/
             const respuestasDTO = Object.entries(formData).map(([key, value]) => ({
-                preguntaId: parseInt(key),
+                pregunta_id: parseInt(key), // CORRECTO (igual que en el DTO Java)
                 valor: value
             }));
             const payload = { esCaso: isCase, respuestas: respuestasDTO };

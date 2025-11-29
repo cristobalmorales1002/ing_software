@@ -88,12 +88,24 @@ public class UsuarioControlador {
         return ResponseEntity.ok(updated);
     }
 
+    // --- CAMBIO PRINCIPAL: Ahora recibe Body con nuevoEmail y password ---
     @PostMapping("/me/email/solicitar")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> solicitarCambioEmail(Authentication authentication) {
+    public ResponseEntity<?> solicitarCambioEmail(Authentication authentication, @RequestBody Map<String, String> body) {
         String rut = authentication.getName();
-        usuarioServicio.solicitarCambioEmail(rut);
-        return ResponseEntity.ok(Map.of("mensaje", "Token enviado a su correo actual."));
+        String nuevoEmail = body.get("nuevoEmail");
+        String password = body.get("password");
+
+        if (nuevoEmail == null || password == null) {
+            return ResponseEntity.badRequest().body("Faltan datos obligatorios.");
+        }
+
+        try {
+            usuarioServicio.solicitarCambioEmail(rut, nuevoEmail, password);
+            return ResponseEntity.ok(Map.of("mensaje", "Código de verificación enviado a " + nuevoEmail));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/me/email/validar")

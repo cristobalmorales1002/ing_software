@@ -135,18 +135,31 @@ public class UsuarioServicio {
         return toResponseDto(saved);
     }
 
+    // --- CAMBIO PRINCIPAL AQUÍ ---
     @Transactional
-    public void solicitarCambioEmail(String rut) {
+    public void solicitarCambioEmail(String rut, String nuevoEmail, String passwordActual) {
         Usuario u = usuarioRepositorio.findByRut(rut)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
+        // 1. Validar contraseña por seguridad
+        if (!passwordEncoder.matches(passwordActual, u.getContrasena())) {
+            throw new RuntimeException("La contraseña actual es incorrecta.");
+        }
+
+        // 2. Validar que el nuevo email no esté ocupado
+        if (usuarioRepositorio.findByEmail(nuevoEmail).isPresent()) {
+            throw new RuntimeException("El correo electrónico ya está registrado en el sistema.");
+        }
+
+        // 3. Generar Token
         String token = generarTokenNumerico();
         u.setTokenCambioEmail(token);
         u.setTokenCambioEmailExpiracion(LocalDateTime.now().plusMinutes(15));
 
         usuarioRepositorio.save(u);
 
-        enviarCorreoTokenEmail(u.getEmail(), token);
+        // 4. Enviar correo al NUEVO destinatario para verificar que existe
+        enviarCorreoTokenEmail(nuevoEmail, token);
     }
 
     @Transactional(readOnly = true)
@@ -166,6 +179,7 @@ public class UsuarioServicio {
     public void confirmarCambioEmail(String rut, String token, String nuevoEmail) {
         validarTokenEmail(rut, token);
 
+        // Doble chequeo por si alguien se registró en el intertanto
         usuarioRepositorio.findByEmail(nuevoEmail).ifPresent(x -> {
             throw new RuntimeException("El nuevo correo ya está registrado por otro usuario");
         });
@@ -191,14 +205,12 @@ public class UsuarioServicio {
         usuarioRepositorio.save(u);
     }
 
-    // 2. Método actualizado para enviar la foto al front
     private UsuarioResponseDto toResponseDto(Usuario u) {
         String rolNombre = u.getRoles().stream()
                 .findFirst()
                 .map(Rol::getNombre)
                 .orElse("SIN_ROL");
 
-        // Convertir bytes a Base64 para que el navegador lo entienda
         String imagenBase64 = null;
         if (u.getFotoPerfil() != null && u.getFotoPerfil().length > 0) {
             imagenBase64 = java.util.Base64.getEncoder().encodeToString(u.getFotoPerfil());
@@ -276,8 +288,8 @@ public class UsuarioServicio {
             String htmlMsg = String.format(
                     "<div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px; max-width: 600px;'>" +
                             "  <h2 style='color: #333;'>Cambio de Correo</h2>" +
-                            "  <p style='font-size: 14px; color: #555;'>Se ha solicitado cambiar su dirección de correo electrónico.</p>" +
-                            "  <p style='font-size: 14px; color: #555;'>Use el siguiente código para confirmar el cambio:</p>" +
+                            "  <p style='font-size: 14px; color: #555;'>Se ha solicitado usar este correo para una cuenta existente.</p>" +
+                            "  <p style='font-size: 14px; color: #555;'>Use el siguiente código para confirmar:</p>" +
                             "  <div style='margin: 25px 0; text-align: center;'>" +
                             "    <span style='font-size: 36px; font-weight: bold; color: #0056b3; letter-spacing: 8px; background-color: #f8f9fa; padding: 10px 20px; border-radius: 5px; border: 1px dashed #0056b3;'>%s</span>" +
                             "  </div>" +

@@ -14,15 +14,67 @@ const AuditLog = () => {
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
 
-    const itemsPerPage = 14;
+    // Estado para la cantidad dinámica de registros por página
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
+    // --- CÁLCULO DINÁMICO DE FILAS ---
+    useEffect(() => {
+        const calculateItemsPerPage = () => {
+            // 1. Obtenemos la altura total de la ventana
+            const windowHeight = window.innerHeight;
+
+            // 2. Restamos los espacios ocupados por otros elementos (Aprox):
+            // - 100px: Margen superior/inferior del Layout general
+            // - 120px: Encabezado "REGISTRO DE AUDITORÍA" y barra de filtros
+            // - 60px: Paginación inferior
+            // - 50px: Cabecera de la tabla (thead)
+            const reservedSpace = 100 + 120 + 60 + 50;
+
+            // 3. Espacio disponible para el cuerpo de la tabla
+            const availableHeight = windowHeight - reservedSpace;
+
+            // 4. Altura aproximada de una fila de la tabla (bootstrap normal ~55px)
+            const rowHeight = 55;
+
+            // 5. Calculamos cuántas filas caben
+            let calculatedItems = Math.floor(availableHeight / rowHeight);
+
+            // 6. Establecemos límites de seguridad (mínimo 5, máximo 50)
+            if (calculatedItems < 5) calculatedItems = 5;
+            if (calculatedItems > 50) calculatedItems = 50;
+
+            setItemsPerPage(calculatedItems);
+        };
+
+        // Ejecutar al cargar
+        calculateItemsPerPage();
+
+        // Ejecutar al redimensionar la ventana (con debounce para no saturar)
+        let timeoutId;
+        const handleResize = () => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                calculateItemsPerPage();
+            }, 200); // Espera 200ms después de que dejes de redimensionar
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        // Limpieza
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            clearTimeout(timeoutId);
+        };
+    }, []);
+
+    // Modificamos fetchLogs para que dependa de itemsPerPage
     const fetchLogs = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
             const params = {
                 page: currentPage,
-                size: itemsPerPage,
+                size: itemsPerPage, // Usamos el valor dinámico
                 sort: 'registroFecha,desc'
             };
             if (dateFilters.inicio) params.fechaInicio = dateFilters.inicio;
@@ -37,7 +89,7 @@ const AuditLog = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [currentPage, dateFilters]);
+    }, [currentPage, dateFilters, itemsPerPage]); // Agregamos itemsPerPage a las dependencias
 
     useEffect(() => { fetchLogs(); }, [fetchLogs]);
 

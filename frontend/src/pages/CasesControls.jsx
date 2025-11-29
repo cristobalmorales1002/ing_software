@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'; // <--- IMPORTANTE: AGREGAR useMemo
+import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Form, InputGroup, Button, Card, ListGroup, Badge, Spinner, Modal, ProgressBar, Table, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import {
     Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft,
@@ -30,9 +30,7 @@ const CasesControls = () => {
 
     const [userRole, setUserRole] = useState(null);
 
-    // ... (funciones fetchPacientes y fetchSurveyStructure siguen igual) ...
-
-    // AGREGA ESTA FUNCIÓN PARA OBTENER EL ROL (Igual que en Reports.jsx)
+    // OBTENER EL ROL
     const fetchUserRole = async () => {
         try {
             const res = await api.get('/api/usuarios/me');
@@ -117,14 +115,11 @@ const CasesControls = () => {
 
     // 2. Filtro Inteligente
     const filteredItems = useMemo(() => {
-        // Función auxiliar para quitar tildes y pasar a minúsculas
-        // Esto permite que "genero" encuentre "Género"
         const normalize = (text) =>
             text ? text.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
 
         const term = normalize(searchTerm);
 
-        // 1. Filtro base por Tipo (Caso/Control)
         let result = items.filter(item =>
             (item.tipo === 'CASO' && filters.showCasos) ||
             (item.tipo === 'CONTROL' && filters.showControles)
@@ -132,11 +127,8 @@ const CasesControls = () => {
 
         if (!term) return result;
 
-        // 2. DETECCIÓN DE BÚSQUEDA AVANZADA (Si hay ":")
-        // Ejemplo: "edad: 56" o "sexo: fem edad: 20"
         if (term.includes(':')) {
-            const rawTerm = searchTerm.toLowerCase(); // Usamos el original para el regex
-            // Regex ajustado para capturar "clave: valor"
+            const rawTerm = searchTerm.toLowerCase();
             const regex = /([a-z0-9_ñáéíóú\s]+):\s*([^:]+?)(?=\s+[a-z0-9_ñáéíóú\s]+:|$)/gi;
 
             let match;
@@ -144,23 +136,17 @@ const CasesControls = () => {
 
             while ((match = regex.exec(rawTerm)) !== null) {
                 criteria.push({
-                    key: normalize(match[1]),   // ej: "edad"
-                    value: normalize(match[2])  // ej: "56"
+                    key: normalize(match[1]),
+                    value: normalize(match[2])
                 });
             }
 
-            // Si falló el regex pero hay dos puntos, devolvemos vacío por seguridad
             if (criteria.length === 0) return [];
 
-            // Obtenemos todas las preguntas planas
             const allQuestions = surveyStructure.flatMap(cat => cat.preguntas || []);
 
             return result.filter(patient => {
-                // El paciente debe cumplir TODOS los criterios (Lógica AND)
                 return criteria.every(criterion => {
-
-                    // A. Buscar preguntas cuya ETIQUETA o CÓDIGO coincida con lo buscado
-                    // Ej: Busco "edad", encuentro la pregunta con id 45 llamada "Edad del paciente"
                     const matchingQuestions = allQuestions.filter(q => {
                         const label = normalize(q.etiqueta);
                         const code = normalize(q.codigoStata);
@@ -169,27 +155,19 @@ const CasesControls = () => {
 
                     if (matchingQuestions.length === 0) return false;
 
-                    // B. Verificar si el paciente tiene la respuesta correcta en ALGUNA de esas preguntas
                     return matchingQuestions.some(q => {
-                        // Buscamos la respuesta del paciente para esta pregunta ID
-                        // IMPORTANTE: Chequeamos ambas nomenclaturas (preguntaId y pregunta_id) para evitar errores
                         const answer = patient.respuestas?.find(r =>
                             (r.preguntaId == q.pregunta_id) ||
                             (r.pregunta_id == q.pregunta_id)
                         );
 
                         if (!answer || !answer.valor) return false;
-
-                        // Comparamos el valor normalizado
-                        // Ej: valor en DB "56 años", búsqueda "56" -> Match
                         return normalize(answer.valor).includes(criterion.value);
                     });
                 });
             });
 
         } else {
-            // 3. BÚSQUEDA SIMPLE (Por ID)
-            // Si no hay dos puntos, buscamos solo en el ID del paciente
             return result.filter(item =>
                 normalize(item.id).includes(term)
             );
@@ -304,22 +282,16 @@ const CasesControls = () => {
             <div className="d-flex justify-content-between align-items-center mb-3 flex-shrink-0">
                 <h2 className="mb-0">CASOS Y CONTROLES</h2>
                 <div className="d-flex gap-2">
-
-                    {/* BOTÓN NUEVO CONTROL: Estudiante, Médico, Investigador, Admin */}
                     {hasRole(['ROLE_ESTUDIANTE', 'ROLE_MEDICO', 'ROLE_INVESTIGADOR', 'ROLE_ADMIN']) && (
                         <Button variant="outline-primary" onClick={() => handleOpenModal(false)}>
                             <PlusLg /> Nuevo Control
                         </Button>
                     )}
-
-                    {/* BOTÓN NUEVO CASO: Solo Médico (según tu instrucción) */}
-                    {/* Nota: A veces los admin también quieren entrar, si es así agrega 'ROLE_ADMIN' al array */}
                     {hasRole(['ROLE_MEDICO']) && (
                         <Button variant="primary" onClick={() => handleOpenModal(true)}>
                             <PlusLg /> Nuevo Caso
                         </Button>
                     )}
-
                 </div>
             </div>
 
@@ -420,7 +392,8 @@ const CasesControls = () => {
                 <Col md={8} lg={9} className="h-100">
                     {selectedItem ? (
                         <Card className="h-100 shadow-sm border-0 overflow-hidden">
-                            <Card.Header className="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary border-opacity-25 bg-white">
+                            {/* --- CORRECCIÓN 1: Quitamos bg-white para que sea transparente y respete el tema --- */}
+                            <Card.Header className="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary border-opacity-25 bg-transparent">
                                 <div>
                                     <h4 className="mb-0 d-flex align-items-center gap-2 text-primary">
                                         <PersonVcard />
@@ -444,7 +417,8 @@ const CasesControls = () => {
                                 {surveyStructure.map((cat) => {
                                     const preguntasDeCategoria = cat.preguntas || [];
                                     return (
-                                        <div key={cat.id_cat} className="mb-4 bg-white shadow-sm mx-3 mt-3 rounded border border-light">
+                                        /* --- CORRECCIÓN 2: Fondo con variable de tema y borde sutil --- */
+                                        <div key={cat.id_cat} className="mb-4 shadow-sm mx-3 mt-3 rounded border border-secondary border-opacity-25" style={{ backgroundColor: 'var(--bg-card)' }}>
                                             <div className="px-4 py-2 bg-secondary bg-opacity-10 border-bottom fw-bold text-uppercase small text-muted d-flex align-items-center">
                                                 <ClipboardPulse className="me-2"/> {cat.nombre}
                                             </div>
@@ -469,7 +443,8 @@ const CasesControls = () => {
                                                     return (
                                                         <tr key={pregunta.pregunta_id}>
                                                             <td className="ps-4 py-3" style={{width: '60%'}}>
-                                                                <div className="fw-bold text-dark">{pregunta.etiqueta}</div>
+                                                                {/* --- CORRECCIÓN 3: Quitamos 'text-dark' para que se vea en ambos modos --- */}
+                                                                <div className="fw-bold">{pregunta.etiqueta}</div>
                                                                 {pregunta.dato_sensible && <Badge bg="warning" text="dark" style={{fontSize:'0.6em'}}>SENSIBLE</Badge>}
                                                             </td>
                                                             <td className="py-3">{cellContent}</td>
@@ -498,7 +473,6 @@ const CasesControls = () => {
             </Row>
 
             {/* MODAL WIZARD */}
-            {/* keyboard={false} para evitar cierre con Escape */}
             <Modal
                 show={showModal}
                 onHide={() => setShowModal(false)}
@@ -533,11 +507,9 @@ const CasesControls = () => {
                                 {currentCat?.preguntas.map(q => (
                                     <Col md={12} key={q.pregunta_id} className="mb-3">
                                         <Form.Group>
-                                            {/* --- MODIFICADO: TOOLTIP AGREGADO --- */}
                                             <Form.Label className="d-flex justify-content-between align-items-center w-100">
                                                 <div className="d-flex align-items-center">
                                                     <span>{q.etiqueta}</span>
-                                                    {/* Mostrar ícono de ayuda solo si hay descripción */}
                                                     {q.descripcion && (
                                                         <OverlayTrigger
                                                             placement="top"
@@ -549,7 +521,6 @@ const CasesControls = () => {
                                                 </div>
                                                 {q.dato_sensible && <Badge bg="warning" text="dark" style={{fontSize:'0.6em'}}>SENSIBLE</Badge>}
                                             </Form.Label>
-                                            {/* ------------------------------------- */}
 
                                             {(() => {
                                                 const val = formData[q.pregunta_id] || '';

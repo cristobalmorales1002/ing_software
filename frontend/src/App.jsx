@@ -39,6 +39,7 @@ function App() {
                             {/* 1. Dashboard Principal (Estadísticas) */}
                             <Route index element={<DashboardHome />} />
 
+
                             {/* 2. Módulos de Negocio */}
                             <Route path="casos-controles" element={<CasesControls />} />
                             <Route path="encuestas" element={<SurveyBuilder />} />

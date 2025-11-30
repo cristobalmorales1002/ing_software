@@ -67,7 +67,7 @@ public class PacienteControlador {
     }
 
     @PutMapping("/{pacienteId}/respuestas")
-    @PreAuthorize("hasAuthority('EDITAR_CASO') or hasAuthority('EDITAR_CONTROL')")
+    @PreAuthorize("hasAuthority('EDITAR_CASO') or hasAuthority('EDITAR_CONTROL') or hasRole('ROLE_ADMIN') or hasRole('ROLE_INVESTIGADOR')")
     public ResponseEntity<PacienteResponseDto> actualizarRespuestas(
             @PathVariable Long pacienteId,
             @RequestBody List<RespuestaDto> respuestasDto,
@@ -77,12 +77,32 @@ public class PacienteControlador {
         Usuario usuarioReal = usuarioRepositorio.findByRut(rut)
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado en BDD: " + rut));
 
+        // 1. Obtenemos el paciente actual para ver quién lo creó
+        PacienteResponseDto pacienteActual = pacienteServicio.getPacienteById(pacienteId);
+
+        // 2. Definimos quién puede editar todo (Admin e Investigador)
+        boolean esSuperUsuario = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") ||
+                        a.getAuthority().equals("ROLE_INVESTIGADOR"));
+
+        // 3. Verificamos propiedad: Si NO es superusuario, DEBE ser el creador
+        if (!esSuperUsuario) {
+            Long idCreador = pacienteActual.getUsuarioCreadorId();
+
+            // Si por alguna razón el DTO viene nulo (base de datos antigua), bloqueamos o permitimos según tu lógica.
+            // Aquí asumimos estricto:
+            if (idCreador == null || !idCreador.equals(usuarioReal.getIdUsuario())) {
+                throw new AccessDeniedException("No tienes permiso para editar este registro. Solo el creador puede hacerlo.");
+            }
+        }
+
+        // 4. Si pasa las validaciones, procedemos
         pacienteServicio.actualizarRespuestasDePaciente(pacienteId, respuestasDto, usuarioReal);
         return ResponseEntity.ok(pacienteServicio.getPacienteById(pacienteId));
     }
 
     @DeleteMapping("/{pacienteId}")
-    @PreAuthorize("hasAuthority('ELIMINAR_PACIENTE')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // CAMBIO: Restringido estrictamente a ADMIN
     public ResponseEntity<Void> archivarPaciente(
             @PathVariable Long pacienteId,
             Authentication authentication

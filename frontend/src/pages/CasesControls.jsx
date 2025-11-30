@@ -3,7 +3,7 @@ import { Container, Row, Col, Form, InputGroup, Button, Card, ListGroup, Badge, 
 import {
     Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft,
     Save, FileEarmarkPdf, Download,
-    ExclamationTriangle, QuestionCircle
+    ExclamationTriangle, QuestionCircle, Pencil, Trash // Agregados iconos
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut } from '../utils/rutUtils';
@@ -28,15 +28,17 @@ const CasesControls = () => {
     const [formData, setFormData] = useState({});
     const [loadingSurvey, setLoadingSurvey] = useState(false);
 
-    const [userRole, setUserRole] = useState(null);
+    // --- NUEVO: Estado de edición y usuario actual ---
+    const [editingId, setEditingId] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null); // Guardamos objeto completo (id y rol)
 
-    // OBTENER EL ROL
+    // OBTENER EL USUARIO ACTUAL (ROL e ID)
     const fetchUserRole = async () => {
         try {
             const res = await api.get('/api/usuarios/me');
-            setUserRole(res.data.rol);
+            setCurrentUser(res.data); // Asume que devuelve { idUsuario, rol, ... }
         } catch (error) {
-            console.error("Error al obtener rol:", error);
+            console.error("Error al obtener usuario:", error);
         }
     };
 
@@ -61,11 +63,22 @@ const CasesControls = () => {
                 tipo: p.esCaso ? 'CASO' : 'CONTROL',
                 fechaIngreso: p.fechaIncl,
                 estado: 'Activo',
+                creadorId: p.usuarioCreadorId, // Importante: Capturamos el ID del creador
                 respuestas: p.respuestas || []
             }));
 
             setItems(dataMapeada);
-            if (dataMapeada.length > 0 && !selectedItem) setSelectedItem(dataMapeada[0]);
+            // Mantener selección tras recargar si es posible
+            if (dataMapeada.length > 0) {
+                if (selectedItem) {
+                    const updatedItem = dataMapeada.find(i => i.dbId === selectedItem.dbId);
+                    setSelectedItem(updatedItem || dataMapeada[0]);
+                } else {
+                    setSelectedItem(dataMapeada[0]);
+                }
+            } else {
+                setSelectedItem(null);
+            }
 
         } catch (err) {
             console.error("Error cargando pacientes", err);
@@ -111,7 +124,34 @@ const CasesControls = () => {
         fetchUserRole();
     }, []);
 
+    // --- PERMISOS ---
+    const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
+
+    // Lógica de permiso para Editar
+    const canEdit = (item) => {
+        if (!currentUser || !item) return false;
+
+        // Admin e Investigador editan todo
+        if (['ROLE_ADMIN', 'ROLE_INVESTIGADOR'].includes(userRole)) return true;
+
+        // Estudiante: Solo CONTROLES que él haya creado
+        if (userRole === 'ROLE_ESTUDIANTE') {
+            return item.tipo === 'CONTROL' && item.creadorId === currentUser.idUsuario;
+        }
+
+        // Médico: Solo CASOS que él haya creado
+        if (userRole === 'ROLE_MEDICO') {
+            return item.tipo === 'CASO' && item.creadorId === currentUser.idUsuario;
+        }
+
+        return false;
+    };
+
+    // Lógica de permiso para Borrar
+    const canDelete = () => {
+        return userRole === 'ROLE_ADMIN';
+    };
 
     // 2. Filtro Inteligente
     const filteredItems = useMemo(() => {
@@ -234,9 +274,27 @@ const CasesControls = () => {
     };
 
     // --- MODAL Y GUARDADO ---
-    const handleOpenModal = (esCaso) => {
-        setIsCase(esCaso);
-        setFormData({});
+
+    // Modificado para soportar edición
+    const handleOpenModal = (esCaso, itemAEditar = null) => {
+        if (itemAEditar) {
+            setEditingId(itemAEditar.dbId);
+            setIsCase(itemAEditar.tipo === 'CASO');
+
+            // Poblar datos
+            const initialData = {};
+            if (itemAEditar.respuestas) {
+                itemAEditar.respuestas.forEach(r => {
+                    const pid = r.preguntaId || r.pregunta_id;
+                    initialData[pid] = r.valor;
+                });
+            }
+            setFormData(initialData);
+        } else {
+            setEditingId(null);
+            setIsCase(esCaso);
+            setFormData({});
+        }
         setCurrentStep(0);
         setShowModal(true);
     };
@@ -250,29 +308,47 @@ const CasesControls = () => {
     const handleNext = () => { if (currentStep < surveyStructure.length - 1) setCurrentStep(p => p + 1); };
     const handlePrev = () => { if (currentStep > 0) setCurrentStep(p => p - 1); };
 
+    // Manejo de Guardado (POST vs PUT)
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            /*const respuestasDTO = Object.entries(formData).map(([key, value]) => ({
-                preguntaId: parseInt(key), // ERROR
-                valor: value
-            }));*/
             const respuestasDTO = Object.entries(formData).map(([key, value]) => ({
-                pregunta_id: parseInt(key), // CORRECTO (igual que en el DTO Java)
+                pregunta_id: parseInt(key),
                 valor: value
             }));
-            const payload = { esCaso: isCase, respuestas: respuestasDTO };
 
-            await api.post('/api/pacientes', payload);
+            if (editingId) {
+                // Modo Edición: PUT a /respuestas (según tu backend controller)
+                await api.put(`/api/pacientes/${editingId}/respuestas`, respuestasDTO);
+            } else {
+                // Modo Creación: POST a /pacientes
+                const payload = { esCaso: isCase, respuestas: respuestasDTO };
+                await api.post('/api/pacientes', payload);
+            }
+
             setShowModal(false);
             setFormData({});
-            fetchPacientes();
+            setEditingId(null);
+            fetchPacientes(); // Recargar lista
         } catch (err) {
             console.error(err);
             const msg = err.response?.data?.message || "Error al guardar";
             alert(msg);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    // Manejo de Eliminación
+    const handleDelete = async (id) => {
+        if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) return;
+        try {
+            await api.delete(`/api/pacientes/${id}`);
+            if (selectedItem && selectedItem.dbId === id) setSelectedItem(null);
+            fetchPacientes();
+        } catch (err) {
+            console.error(err);
+            alert("Error al eliminar.");
         }
     };
 
@@ -304,15 +380,14 @@ const CasesControls = () => {
                 {/* --- COLUMNA IZQUIERDA (LISTA) --- */}
                 <Col md={4} lg={3} className="d-flex flex-column h-100">
                     <Card className="h-100 shadow-sm border-0 overflow-hidden">
-
-                        {/* CABECERA */}
+                        {/* (Código de lista sin cambios significativos, solo re-render) */}
                         <div className="p-3 border-bottom border-secondary border-opacity-25">
                             <InputGroup className="mb-3">
                                 <InputGroup.Text className="bg-transparent border-secondary border-opacity-50" style={{ color: 'var(--text-muted)' }}>
                                     <Search />
                                 </InputGroup.Text>
                                 <Form.Control
-                                    placeholder='Buscar ID o "Sexo: Femenino Edad: 25"...'
+                                    placeholder='Buscar ID o "Sexo: Femenino"...'
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="border-secondary border-opacity-50 bg-transparent shadow-none"
@@ -335,7 +410,6 @@ const CasesControls = () => {
                             </div>
                         </div>
 
-                        {/* CUERPO LISTA */}
                         <div className="flex-grow-1 overflow-auto">
                             <ListGroup variant="flush">
                                 {filteredItems.length === 0 ? (
@@ -396,7 +470,6 @@ const CasesControls = () => {
                 <Col md={8} lg={9} className="h-100">
                     {selectedItem ? (
                         <Card className="h-100 shadow-sm border-0 overflow-hidden">
-                            {/* --- CORRECCIÓN 1: Quitamos bg-white para que sea transparente y respete el tema --- */}
                             <Card.Header className="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary border-opacity-25 bg-transparent">
                                 <div>
                                     <h4 className="mb-0 d-flex align-items-center gap-2 text-primary">
@@ -411,7 +484,31 @@ const CasesControls = () => {
                                     <Button variant="outline-danger" size="sm" onClick={() => handleDownloadPdf(selectedItem.dbId, selectedItem.id)} title="Descargar PDF">
                                         <FileEarmarkPdf className="me-2"/> PDF
                                     </Button>
-                                    <Badge bg={selectedItem.tipo === 'CASO' ? 'danger' : 'success'} className="fs-6 px-3 py-2">
+
+                                    {/* --- BOTONES NUEVOS: Editar y Eliminar --- */}
+                                    {canEdit(selectedItem) && (
+                                        <Button
+                                            variant="outline-primary"
+                                            size="sm"
+                                            onClick={() => handleOpenModal(selectedItem.tipo === 'CASO', selectedItem)}
+                                            title="Editar Respuestas"
+                                        >
+                                            <Pencil className="me-2"/> Editar
+                                        </Button>
+                                    )}
+
+                                    {canDelete() && (
+                                        <Button
+                                            variant="outline-secondary" // Color sutil para no llamar la atención excesiva
+                                            size="sm"
+                                            onClick={() => handleDelete(selectedItem.dbId)}
+                                            title="Eliminar registro"
+                                        >
+                                            <Trash />
+                                        </Button>
+                                    )}
+
+                                    <Badge bg={selectedItem.tipo === 'CASO' ? 'danger' : 'success'} className="fs-6 px-3 py-2 ms-2">
                                         {selectedItem.tipo}
                                     </Badge>
                                 </div>
@@ -421,7 +518,6 @@ const CasesControls = () => {
                                 {surveyStructure.map((cat) => {
                                     const preguntasDeCategoria = cat.preguntas || [];
                                     return (
-                                        /* --- CORRECCIÓN 2: Fondo con variable de tema y borde sutil --- */
                                         <div key={cat.id_cat} className="mb-4 shadow-sm mx-3 mt-3 rounded border border-secondary border-opacity-25" style={{ backgroundColor: 'var(--bg-card)' }}>
                                             <div className="px-4 py-2 bg-secondary bg-opacity-10 border-bottom fw-bold text-uppercase small text-muted d-flex align-items-center">
                                                 <ClipboardPulse className="me-2"/> {cat.nombre}
@@ -447,7 +543,6 @@ const CasesControls = () => {
                                                     return (
                                                         <tr key={pregunta.pregunta_id}>
                                                             <td className="ps-4 py-3" style={{width: '60%'}}>
-                                                                {/* --- CORRECCIÓN 3: Quitamos 'text-dark' para que se vea en ambos modos --- */}
                                                                 <div className="fw-bold">{pregunta.etiqueta}</div>
                                                                 {pregunta.dato_sensible && <Badge bg="warning" text="dark" style={{fontSize:'0.6em'}}>SENSIBLE</Badge>}
                                                             </td>
@@ -488,7 +583,9 @@ const CasesControls = () => {
                 <Modal.Header closeButton>
                     <div className="w-100 me-3">
                         <Modal.Title className="mb-2 fs-5">
-                            Ingresar Nuevo {isCase ? <span className="text-danger">Caso</span> : <span className="text-success">Control</span>}
+                            {/* Título dinámico para editar o crear */}
+                            {editingId ? "Editar " : "Ingresar Nuevo "}
+                            {isCase ? <span className="text-danger">Caso</span> : <span className="text-success">Control</span>}
                         </Modal.Title>
                         {surveyStructure.length > 0 && (
                             <div className="d-flex align-items-center gap-2 small">
@@ -517,7 +614,7 @@ const CasesControls = () => {
                                                     {q.descripcion && (
                                                         <OverlayTrigger
                                                             placement="top"
-                                                            overlay={<Tooltip id={`tooltip-${q.pregunta_id}`}>{q.descripcion}</Tooltip>}
+                                                            overlay={<Tooltip id={`tooltip-${q.pregunta_id}`}>{q.codigoStata}: {q.descripcion}</Tooltip>}
                                                         >
                                                             <QuestionCircle className="ms-2 text-info" style={{ cursor: 'help' }} />
                                                         </OverlayTrigger>
@@ -561,7 +658,8 @@ const CasesControls = () => {
                     {currentStep === surveyStructure.length - 1 ? (
                         <Button variant="success" onClick={handleSave} disabled={isSaving}>
                             {isSaving ? <Spinner size="sm" animation="border" className="me-2"/> : <Save className="me-2" />}
-                            Guardar
+                            {/* Botón cambia texto */}
+                            {editingId ? "Actualizar" : "Guardar"}
                         </Button>
                     ) : (
                         <Button variant="primary" onClick={handleNext} disabled={isSaving}>

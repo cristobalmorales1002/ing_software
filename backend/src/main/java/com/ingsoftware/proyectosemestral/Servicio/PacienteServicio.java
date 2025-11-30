@@ -134,7 +134,8 @@ public class PacienteServicio {
 
     @Transactional(readOnly = true)
     public List<PacienteResponseDto> getAllPacientes(){
-        return pacienteRepositorio.findAll()
+        // CAMBIO: Usamos findByActivoTrue() en lugar de findAll()
+        return pacienteRepositorio.findByActivoTrue()
                 .stream()
                 .map(this::convertirA_PacienteResponseDto)
                 .collect(Collectors.toList());

@@ -11,5 +11,7 @@ public class PacienteResponseDto {
     private Boolean esCaso;
     private LocalDate fechaIncl;
 
+    private Long usuarioCreadorId;
+
     private List<RespuestaResponseDto> respuestas;
 }

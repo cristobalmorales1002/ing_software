@@ -395,6 +395,7 @@ public class InicializadorAdmin implements CommandLineRunner {
         crearUsuario("22.222.222-2", "medico", "Dr. Juan", "Pérez", "medico@hospital.cl", "ROLE_MEDICO");
         crearUsuario("33.333.333-3", "investigador", "Ana", "Silva", "investigacion@ubiobio.cl", "ROLE_INVESTIGADOR");
         crearUsuario("44.444.444-4", "estudiante", "Pedro", "Estudiante", "pedro@alumnos.cl", "ROLE_ESTUDIANTE");
+        crearUsuario("55.555.555-5", "visualizador", "Verónica", "Visualizadora", "visualizadora@email.com", "ROLE_VISUALIZADOR");
         return usuarioRepositorio.findByRut("11.111.111-1").orElseThrow();
     }
 

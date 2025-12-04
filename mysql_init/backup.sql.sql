@@ -257,11 +257,11 @@ CREATE TABLE `paciente` (
 --
 
 INSERT INTO `paciente` (`activo`, `es_caso`, `fecha_incl`, `participante_id`, `reclutador_id`, `participante_cod`) VALUES
-                                                                                                                       (b'1', b'1', '2025-12-04', 1, 1, 'CAS_001'),
-                                                                                                                       (b'1', b'1', '2025-12-04', 2, 1, 'CAS_002'),
-                                                                                                                       (b'1', b'1', '2025-12-04', 3, 1, 'CAS_003'),
-                                                                                                                       (b'1', b'1', '2025-12-04', 4, 1, 'CAS_004'),
-                                                                                                                       (b'1', b'1', '2025-12-04', 5, 1, 'CAS_005'),
+                                                                                                                       (b'1', b'1', '2025-12-04', 1, 2, 'CAS_001'),
+                                                                                                                       (b'1', b'1', '2025-12-04', 2, 2, 'CAS_002'),
+                                                                                                                       (b'1', b'1', '2025-12-04', 3, 2, 'CAS_003'),
+                                                                                                                       (b'1', b'1', '2025-12-04', 4, 2, 'CAS_004'),
+                                                                                                                       (b'1', b'1', '2025-12-04', 5, 2, 'CAS_005'),
                                                                                                                        (b'1', b'0', '2025-12-04', 6, 1, 'CONT_001'),
                                                                                                                        (b'1', b'0', '2025-12-04', 7, 1, 'CONT_002'),
                                                                                                                        (b'1', b'0', '2025-12-04', 8, 1, 'CONT_003'),
@@ -320,8 +320,8 @@ CREATE TABLE `preguntas` (
 
 INSERT INTO `preguntas` (`activo`, `dato_sensible`, `exportable`, `generar_estadistica`, `orden`, `id_cat`, `pregunta_id`, `codigo_stata`, `descripcion`, `etiqueta`, `tipo_corte`, `tipo_dato`) VALUES
                                                                                                                                                                                                      (b'1', b'1', b'0', b'0', 1, 1, 1, 'Nombre', 'Nombre completo', 'Nombre completo', 'NINGUNO', 'TEXTO'),
-                                                                                                                                                                                                     (b'1', b'0', b'0', b'0', 2, 1, 2, 'Telefono', 'Teléfono', 'Teléfono', 'NINGUNO', 'CELULAR'),
-                                                                                                                                                                                                     (b'1', b'0', b'0', b'0', 3, 1, 3, 'Email', 'Correo electrónico', 'Correo electrónico', 'NINGUNO', 'EMAIL'),
+                                                                                                                                                                                                     (b'1', b'1', b'0', b'0', 2, 1, 2, 'Telefono', 'Teléfono', 'Teléfono', 'NINGUNO', 'CELULAR'),
+                                                                                                                                                                                                     (b'1', b'1', b'0', b'0', 3, 1, 3, 'Email', 'Correo electrónico', 'Correo electrónico', 'NINGUNO', 'EMAIL'),
                                                                                                                                                                                                      (b'1', b'0', b'1', b'1', 1, 2, 4, 'Edad', 'Edad', 'Edad', 'VALOR_FIJO', 'NUMERO'),
                                                                                                                                                                                                      (b'1', b'0', b'1', b'1', 2, 2, 5, 'Sexo', 'Sexo', 'Sexo', 'NINGUNO', 'ENUM'),
                                                                                                                                                                                                      (b'1', b'0', b'0', b'0', 3, 2, 6, 'Nacionalidad', 'Nacionalidad', 'Nacionalidad', 'NINGUNO', 'TEXTO'),

@@ -31,7 +31,7 @@ public class PacienteServicio {
     // Método auxiliar para obtener el usuario conectado actualmente
     private Usuario obtenerUsuarioActual() {
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            return null; // Retorna null si no hay sesión (útil para lógica interna si fuera necesaria)
+            return null;
         }
         String rut = SecurityContextHolder.getContext().getAuthentication().getName();
         return usuarioRepositorio.findByRut(rut)
@@ -103,7 +103,6 @@ public class PacienteServicio {
         registroServicio.registrarAccion(reclutador, "CREAR_PACIENTE",
                 "Paciente creado con codigo: " + pacienteGuardado.getParticipanteCod());
 
-        // Construimos el DTO manualmente para no depender de la sesión de seguridad (importante para InicializadorAdmin)
         PacienteResponseDto responseDto = new PacienteResponseDto();
         responseDto.setParticipante_id(pacienteGuardado.getParticipante_id());
         responseDto.setParticipanteCod(pacienteGuardado.getParticipanteCod());
@@ -127,22 +126,18 @@ public class PacienteServicio {
         boolean esMedico = usuario.tieneRol("ROLE_MEDICO");
         boolean esEstudiante = usuario.tieneRol("ROLE_ESTUDIANTE");
 
-        // --- LÓGICA DE PERMISOS CORREGIDA ---
+        // Reglas de edición (Visualizador no edita, por lo que no necesita lógica aquí,
+        // su bloqueo debe estar a nivel de Controlador/Permisos)
 
-        // 1. Si es estudiante, SOLO puede editar lo que él creó (sea caso o control).
         if (esEstudiante) {
             if (!paciente.getReclutador().getIdUsuario().equals(usuario.getIdUsuario())) {
                 throw new AccessDeniedException("Acceso denegado: Los estudiantes solo pueden editar los participantes que ellos mismos ingresaron.");
             }
-        }
-        // 2. Si es un CASO y NO es propio del estudiante, solo Médicos o Admins pueden tocarlo.
-        else if (paciente.getEsCaso()) {
+        } else if (paciente.getEsCaso()) {
             if (!esMedico && !esAdminOInvestigador) {
                 throw new AccessDeniedException("Acceso denegado: Solo los Médicos pueden editar 'Casos'.");
             }
         }
-
-        // 3. (Implícito) Si es CONTROL y no es estudiante, asumimos que pueden editarlo según roles generales.
 
         guardarOActualizarRespuestas(paciente, respuestasDto, usuario);
         return paciente;
@@ -153,7 +148,6 @@ public class PacienteServicio {
         Paciente paciente = pacienteRepositorio.findById(pacienteId)
                 .orElseThrow(() -> new EntityNotFoundException("Paciente no encontrado: " + pacienteId));
 
-        // Aquí necesitamos saber quién pide la info para ocultar datos
         Usuario usuarioActual = obtenerUsuarioActual();
         return convertirA_PacienteResponseDto(paciente, usuarioActual);
     }
@@ -179,21 +173,28 @@ public class PacienteServicio {
             dto.setUsuarioCreadorId(paciente.getReclutador().getIdUsuario());
         }
 
-        // Lógica de Ocultamiento de Datos Sensibles
+        // --- LÓGICA DE OCULTAMIENTO DE DATOS SENSIBLES ---
         boolean ocultarSensible = false;
 
-        // Si hay un usuario viendo (no es null) y es Estudiante
-        if (usuarioViendo != null && usuarioViendo.tieneRol("ROLE_ESTUDIANTE")) {
-            boolean esPropio = paciente.getReclutador() != null &&
-                    paciente.getReclutador().getIdUsuario().equals(usuarioViendo.getIdUsuario());
+        if (usuarioViendo != null) {
+            boolean esEstudiante = usuarioViendo.tieneRol("ROLE_ESTUDIANTE");
+            // Agregamos VISUALIZADOR a la lógica de restricción
+            boolean esVisualizador = usuarioViendo.tieneRol("ROLE_VISUALIZADOR");
 
-            // Si NO es propio, activamos el modo oculto
-            if (!esPropio) {
-                ocultarSensible = true;
+            boolean esMedico = usuarioViendo.tieneRol("ROLE_MEDICO");
+
+            if (esEstudiante || esVisualizador || esMedico) {
+                boolean esPropio = paciente.getReclutador() != null &&
+                        paciente.getReclutador().getIdUsuario().equals(usuarioViendo.getIdUsuario());
+
+                // Si NO es propio, activamos el modo oculto
+                if (!esPropio) {
+                    ocultarSensible = true;
+                }
             }
         }
 
-        final boolean mascaraActiva = ocultarSensible; // Variable final efectiva para el lambda
+        final boolean mascaraActiva = ocultarSensible;
 
         List<RespuestaResponseDto> respuestasDto = paciente.getRespuestas().stream()
                 .map(respuesta -> {
@@ -220,8 +221,9 @@ public class PacienteServicio {
 
     @Transactional
     public void archivarPaciente(Long pacienteId, Usuario usuario){
-        if (usuario.tieneRol("ROLE_ESTUDIANTE")) {
-            throw new AccessDeniedException("Acceso denegado: Los estudiantes no tienen permiso para archivar participantes.");
+        // Bloqueamos también al Visualizador de archivar, por seguridad extra
+        if (usuario.tieneRol("ROLE_ESTUDIANTE") || usuario.tieneRol("VISUALIZADOR")) {
+            throw new AccessDeniedException("Acceso denegado: No tienes permiso para archivar participantes.");
         }
 
         Paciente paciente = pacienteRepositorio.findById(pacienteId)

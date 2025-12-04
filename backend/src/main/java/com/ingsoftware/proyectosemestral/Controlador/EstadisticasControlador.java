@@ -19,7 +19,6 @@ public class EstadisticasControlador {
     private EstadisticaServicio estadisticaServicio;
 
     @GetMapping("/dashboard")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_INVESTIGADOR')")
     public ResponseEntity<List<EstadisticaDto>> obtenerEstadisticasDashboard() {
         List<EstadisticaDto> estadisticas = estadisticaServicio.calcularEstadisticasDashboard();
         return ResponseEntity.ok(estadisticas);

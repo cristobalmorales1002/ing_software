@@ -9,6 +9,7 @@ import com.ingsoftware.proyectosemestral.Repositorio.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,16 @@ public class PacienteServicio {
     @Autowired private RespuestaRepositorio respuestaRepositorio;
     @Autowired private RegistroServicio registroServicio;
     @Autowired private UsuarioRepositorio usuarioRepositorio;
+
+    // Método auxiliar para obtener el usuario conectado actualmente
+    private Usuario obtenerUsuarioActual() {
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            return null; // Retorna null si no hay sesión (útil para lógica interna si fuera necesaria)
+        }
+        String rut = SecurityContextHolder.getContext().getAuthentication().getName();
+        return usuarioRepositorio.findByRut(rut)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado en sesión: " + rut));
+    }
 
     private List<RespuestaResponseDto> guardarOActualizarRespuestas(Paciente paciente, List<RespuestaDto> respuestasDto, Usuario usuario){
         List<RespuestaResponseDto> dtosDeRespuesta = new ArrayList<>();
@@ -92,12 +103,17 @@ public class PacienteServicio {
         registroServicio.registrarAccion(reclutador, "CREAR_PACIENTE",
                 "Paciente creado con codigo: " + pacienteGuardado.getParticipanteCod());
 
+        // Construimos el DTO manualmente para no depender de la sesión de seguridad (importante para InicializadorAdmin)
         PacienteResponseDto responseDto = new PacienteResponseDto();
         responseDto.setParticipante_id(pacienteGuardado.getParticipante_id());
         responseDto.setParticipanteCod(pacienteGuardado.getParticipanteCod());
         responseDto.setEsCaso(pacienteGuardado.getEsCaso());
         responseDto.setFechaIncl(pacienteGuardado.getFechaIncl());
         responseDto.setRespuestas(respuestasGuardadasDtos);
+
+        if (pacienteGuardado.getReclutador() != null) {
+            responseDto.setUsuarioCreadorId(pacienteGuardado.getReclutador().getIdUsuario());
+        }
 
         return responseDto;
     }
@@ -111,15 +127,22 @@ public class PacienteServicio {
         boolean esMedico = usuario.tieneRol("ROLE_MEDICO");
         boolean esEstudiante = usuario.tieneRol("ROLE_ESTUDIANTE");
 
-        if (paciente.getEsCaso()) {
+        // --- LÓGICA DE PERMISOS CORREGIDA ---
+
+        // 1. Si es estudiante, SOLO puede editar lo que él creó (sea caso o control).
+        if (esEstudiante) {
+            if (!paciente.getReclutador().getIdUsuario().equals(usuario.getIdUsuario())) {
+                throw new AccessDeniedException("Acceso denegado: Los estudiantes solo pueden editar los participantes que ellos mismos ingresaron.");
+            }
+        }
+        // 2. Si es un CASO y NO es propio del estudiante, solo Médicos o Admins pueden tocarlo.
+        else if (paciente.getEsCaso()) {
             if (!esMedico && !esAdminOInvestigador) {
                 throw new AccessDeniedException("Acceso denegado: Solo los Médicos pueden editar 'Casos'.");
             }
-        } else {
-            if (esEstudiante && !paciente.getReclutador().equals(usuario)) {
-                throw new AccessDeniedException("Acceso denegado: Los estudiantes solo pueden editar los controles que ellos mismos ingresaron.");
-            }
         }
+
+        // 3. (Implícito) Si es CONTROL y no es estudiante, asumimos que pueden editarlo según roles generales.
 
         guardarOActualizarRespuestas(paciente, respuestasDto, usuario);
         return paciente;
@@ -129,30 +152,61 @@ public class PacienteServicio {
     public PacienteResponseDto getPacienteById(Long pacienteId){
         Paciente paciente = pacienteRepositorio.findById(pacienteId)
                 .orElseThrow(() -> new EntityNotFoundException("Paciente no encontrado: " + pacienteId));
-        return convertirA_PacienteResponseDto(paciente);
+
+        // Aquí necesitamos saber quién pide la info para ocultar datos
+        Usuario usuarioActual = obtenerUsuarioActual();
+        return convertirA_PacienteResponseDto(paciente, usuarioActual);
     }
 
     @Transactional(readOnly = true)
     public List<PacienteResponseDto> getAllPacientes(){
-        // CAMBIO: Usamos findByActivoTrue() en lugar de findAll()
+        Usuario usuarioActual = obtenerUsuarioActual();
         return pacienteRepositorio.findByActivoTrue()
                 .stream()
-                .map(this::convertirA_PacienteResponseDto)
+                .map(p -> convertirA_PacienteResponseDto(p, usuarioActual))
                 .collect(Collectors.toList());
     }
 
-    private PacienteResponseDto convertirA_PacienteResponseDto(Paciente paciente){
+    // Método privado para convertir entidad a DTO aplicando filtros de seguridad
+    private PacienteResponseDto convertirA_PacienteResponseDto(Paciente paciente, Usuario usuarioViendo){
         PacienteResponseDto dto = new PacienteResponseDto();
         dto.setParticipante_id(paciente.getParticipante_id());
         dto.setParticipanteCod(paciente.getParticipanteCod());
         dto.setEsCaso(paciente.getEsCaso());
         dto.setFechaIncl(paciente.getFechaIncl());
 
+        if (paciente.getReclutador() != null) {
+            dto.setUsuarioCreadorId(paciente.getReclutador().getIdUsuario());
+        }
+
+        // Lógica de Ocultamiento de Datos Sensibles
+        boolean ocultarSensible = false;
+
+        // Si hay un usuario viendo (no es null) y es Estudiante
+        if (usuarioViendo != null && usuarioViendo.tieneRol("ROLE_ESTUDIANTE")) {
+            boolean esPropio = paciente.getReclutador() != null &&
+                    paciente.getReclutador().getIdUsuario().equals(usuarioViendo.getIdUsuario());
+
+            // Si NO es propio, activamos el modo oculto
+            if (!esPropio) {
+                ocultarSensible = true;
+            }
+        }
+
+        final boolean mascaraActiva = ocultarSensible; // Variable final efectiva para el lambda
+
         List<RespuestaResponseDto> respuestasDto = paciente.getRespuestas().stream()
                 .map(respuesta -> {
                     RespuestaResponseDto rDto = new RespuestaResponseDto();
                     rDto.setRespuesta_id(respuesta.getRespuesta_id());
-                    rDto.setValor(respuesta.getValor());
+
+                    // APLICAR MÁSCARA [CONFIDENCIAL]
+                    if (mascaraActiva && respuesta.getPregunta() != null && respuesta.getPregunta().isDato_sensible()) {
+                        rDto.setValor("[CONFIDENCIAL]");
+                    } else {
+                        rDto.setValor(respuesta.getValor());
+                    }
+
                     if (respuesta.getPregunta() != null) {
                         rDto.setPregunta_id(respuesta.getPregunta().getPregunta_id());
                     }

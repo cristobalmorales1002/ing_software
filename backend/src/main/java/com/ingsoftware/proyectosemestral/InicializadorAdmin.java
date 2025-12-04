@@ -386,8 +386,8 @@ public class InicializadorAdmin implements CommandLineRunner {
         crearRol("ROLE_ADMIN", Set.of(pCrearCaso, pCrearControl, pEditarCaso, pEditarControl, pVerPaciente, pVerListado, pEliminar));
         crearRol("ROLE_MEDICO", Set.of(pCrearCaso, pCrearControl, pEditarCaso, pEditarControl, pVerPaciente, pVerListado));
         crearRol("ROLE_INVESTIGADOR", Set.of(pVerListado, pVerPaciente));
-        crearRol("ROLE_ESTUDIANTE", Set.of(pCrearControl, pEditarControl, pVerPaciente));
-        crearRol("VISUALIZADOR", Set.of(pVerListado));
+        crearRol("ROLE_ESTUDIANTE", Set.of(pCrearControl, pEditarControl, pVerPaciente, pVerListado));
+        crearRol("ROLE_VISUALIZADOR", Set.of(pVerListado));
     }
 
     private Usuario crearUsuariosDePrueba() {

@@ -3,16 +3,7 @@ import { Container, Row, Col, Card, Form, Button, Alert, Spinner, InputGroup, Mo
 import { PersonCircle, Envelope, Phone, Save, PersonVcard, Eye, EyeSlash, CameraFill, PencilSquare, CheckCircle } from 'react-bootstrap-icons';
 import api from '../api/axios';
 
-const COUNTRY_CODES = [
-    { code: '+56', label: 'CL (+56)', placeholder: '912345678' },
-    { code: '+54', label: 'AR (+54)', placeholder: '9 11 1234 5678' },
-    { code: '+51', label: 'PE (+51)', placeholder: '912 345 678' },
-    { code: '+591', label: 'BO (+591)', placeholder: '7123 4567' },
-    { code: '+55', label: 'BR (+55)', placeholder: '11 91234 5678' },
-    { code: '+57', label: 'CO (+57)', placeholder: '300 123 4567' },
-    { code: '+1', label: 'US (+1)', placeholder: '555 123 4567' },
-    { code: '+34', label: 'ES (+34)', placeholder: '612 345 678' },
-];
+import { COUNTRY_PHONE_DATA, getPhoneConfig } from '../utils/phoneUtils';
 
 const UserProfile = () => {
     const [currentUser, setCurrentUser] = useState({
@@ -48,8 +39,8 @@ const UserProfile = () => {
     const fileInputRef = useRef(null);
 
     const getCurrentPlaceholder = () => {
-        const country = COUNTRY_CODES.find(c => c.code === phoneData.code);
-        return country ? country.placeholder : 'Número de teléfono';
+        const config = getPhoneConfig(phoneData.code);
+        return config.placeholder || 'Número';
     };
 
     const fetchProfile = async () => {
@@ -67,7 +58,7 @@ const UserProfile = () => {
             });
 
             if (user.telefono) {
-                const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+                const sortedCodes = [...COUNTRY_PHONE_DATA].sort((a, b) => b.code.length - a.code.length);
                 const foundCode = sortedCodes.find(c => user.telefono.startsWith(c.code));
 
                 if (foundCode) {
@@ -95,23 +86,17 @@ const UserProfile = () => {
     const handlePhotoUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         if (file.size > 5 * 1024 * 1024) {
             setMessage({ type: 'danger', text: 'La imagen es muy pesada (Max 5MB).' });
             return;
         }
-
         const formData = new FormData();
         formData.append('archivo', file);
-
         try {
-            await api.post('/api/usuarios/me/foto', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            await api.post('/api/usuarios/me/foto', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             await fetchProfile();
             setMessage({ type: 'success', text: 'Foto de perfil actualizada.' });
         } catch (err) {
-            console.error(err);
             setMessage({ type: 'danger', text: 'Error al subir la imagen.' });
         }
     };
@@ -122,9 +107,25 @@ const UserProfile = () => {
 
     const handlePhoneChange = (e) => {
         const val = e.target.value;
+        const config = getPhoneConfig(phoneData.code);
+
         if (/^\d*$/.test(val)) {
-            setPhoneData({ ...phoneData, number: val });
+            if (val.length <= config.maxLength) {
+                setPhoneData({ ...phoneData, number: val });
+            }
         }
+    };
+
+    const handleCountryChange = (e) => {
+        const newCode = e.target.value;
+        const config = getPhoneConfig(newCode);
+
+        let currentNumber = phoneData.number;
+        if (currentNumber.length > config.maxLength) {
+            currentNumber = currentNumber.slice(0, config.maxLength);
+        }
+
+        setPhoneData({ code: newCode, number: currentNumber });
     };
 
     const handleSubmit = async (e) => {
@@ -144,8 +145,9 @@ const UserProfile = () => {
 
         let finalPhone = '';
         if (phoneData.number) {
-            if (phoneData.number.length < 7 || phoneData.number.length > 15) {
-                setMessage({ type: 'danger', text: 'El número de teléfono parece inválido.' });
+            const config = getPhoneConfig(phoneData.code);
+            if (phoneData.number.length !== config.maxLength) {
+                setMessage({ type: 'danger', text: `El número para ${phoneData.code} debe tener ${config.maxLength} dígitos.` });
                 return;
             }
             finalPhone = phoneData.code + phoneData.number;
@@ -164,7 +166,6 @@ const UserProfile = () => {
             await fetchProfile();
 
         } catch (err) {
-            console.error(err);
             setMessage({ type: 'danger', text: err.response?.data?.message || 'Error al actualizar.' });
         } finally {
             setIsLoading(false);
@@ -177,7 +178,6 @@ const UserProfile = () => {
         setEmailMsg({ type: '', text: '' });
         setShowEmailModal(true);
     };
-
     const handleEmailRequest = async () => {
         if(!newEmailData.newEmail || !newEmailData.currentPassword) {
             setEmailMsg({ type: 'danger', text: 'Complete todos los campos.' });
@@ -185,7 +185,6 @@ const UserProfile = () => {
         }
         setEmailLoading(true);
         setEmailMsg({ type: '', text: '' });
-
         try {
             await api.post('/api/usuarios/me/email/solicitar', {
                 nuevoEmail: newEmailData.newEmail,
@@ -200,7 +199,6 @@ const UserProfile = () => {
             setEmailLoading(false);
         }
     };
-
     const handleEmailConfirm = async () => {
         if(!newEmailData.token) {
             setEmailMsg({ type: 'danger', text: 'Ingrese el código de verificación.' });
@@ -221,7 +219,6 @@ const UserProfile = () => {
             setEmailLoading(false);
         }
     };
-
     const getRoleLabel = (rol) => {
         switch (rol) {
             case 'ROLE_ADMIN': return 'Administrador';
@@ -239,46 +236,24 @@ const UserProfile = () => {
     return (
         <Container fluid className="p-0">
             <h2 className="mb-4">MI PERFIL</h2>
-
             {message.text && <Alert variant={message.type} onClose={() => setMessage({ type: '', text: '' })} dismissible>{message.text}</Alert>}
-
             <Row>
                 <Col md={4} className="mb-4">
                     <Card className="h-100 shadow-sm border-0">
                         <Card.Body className="text-center py-5">
                             <div className="position-relative d-inline-block mb-4">
-                                <div
-                                    className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-light"
-                                    style={{ width: '120px', height: '120px', border: '4px solid var(--bg-main)' }}
-                                >
+                                <div className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-light" style={{ width: '120px', height: '120px', border: '4px solid var(--bg-main)' }}>
                                     {currentUser.fotoBase64 ? (
-                                        <img
-                                            src={`data:image/jpeg;base64,${currentUser.fotoBase64}`}
-                                            alt="Perfil"
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
+                                        <img src={`data:image/jpeg;base64,${currentUser.fotoBase64}`} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
                                         <PersonCircle size={120} className="text-secondary opacity-50" />
                                     )}
                                 </div>
-
-                                <div
-                                    className="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 shadow-sm"
-                                    style={{ cursor: 'pointer', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                    onClick={() => fileInputRef.current.click()}
-                                    title="Cambiar foto"
-                                >
+                                <div className="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 shadow-sm" style={{ cursor: 'pointer', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => fileInputRef.current.click()} title="Cambiar foto">
                                     <CameraFill size={16} />
                                 </div>
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    style={{ display: 'none' }}
-                                    accept="image/*"
-                                    onChange={handlePhotoUpload}
-                                />
+                                <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handlePhotoUpload} />
                             </div>
-
                             <h4 className="fw-bold mb-1">{currentUser.nombres} {currentUser.apellidos}</h4>
                             <p className="mb-3" style={{ color: 'var(--text-muted)' }}>{getRoleLabel(currentUser.rol)}</p>
                             <hr className="my-4 opacity-25"/>
@@ -291,7 +266,6 @@ const UserProfile = () => {
                         </Card.Body>
                     </Card>
                 </Col>
-
                 <Col md={8}>
                     <Card className="shadow-sm border-0 h-100">
                         <Card.Header className="bg-transparent py-3"><h5 className="mb-0">Editar Información</h5></Card.Header>
@@ -302,42 +276,33 @@ const UserProfile = () => {
                                         <Form.Group className="mb-3">
                                             <Form.Label className="fw-bold"><Envelope className="me-2"/>Correo Electrónico</Form.Label>
                                             <InputGroup>
-                                                <Form.Control
-                                                    type="email"
-                                                    value={currentUser.email}
-                                                    disabled
-                                                    style={{backgroundColor: 'var(--hover-bg)'}}
-                                                />
-                                                <Button variant="outline-primary" onClick={openEmailModal}>
-                                                    <PencilSquare /> Cambiar
-                                                </Button>
+                                                <Form.Control type="email" value={currentUser.email} disabled style={{backgroundColor: 'var(--hover-bg)'}} />
+                                                <Button variant="outline-primary" onClick={openEmailModal}><PencilSquare /> Cambiar</Button>
                                             </InputGroup>
                                             <Form.Text className="text-muted">Para cambiarlo se requiere verificación.</Form.Text>
                                         </Form.Group>
                                     </Col>
-
                                     <Col md={6}>
                                         <Form.Group className="mb-3">
                                             <Form.Label className="fw-bold"><Phone className="me-2"/>Teléfono</Form.Label>
                                             <InputGroup>
                                                 <Form.Select
                                                     value={phoneData.code}
-                                                    onChange={(e) => setPhoneData({ ...phoneData, code: e.target.value })}
+                                                    onChange={handleCountryChange} // Usamos el nuevo handler
                                                     style={{ maxWidth: '140px', borderRight: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-main)' }}
                                                 >
-                                                    {COUNTRY_CODES.map((country) => (
+                                                    {COUNTRY_PHONE_DATA.map((country) => (
                                                         <option key={country.code} value={country.code}>
                                                             {country.label}
                                                         </option>
                                                     ))}
                                                 </Form.Select>
-                                                {/* INPUT CON PLACEHOLDER DINÁMICO */}
                                                 <Form.Control
                                                     type="text"
                                                     placeholder={getCurrentPlaceholder()}
                                                     value={phoneData.number}
                                                     onChange={handlePhoneChange}
-                                                    maxLength={15}
+                                                    maxLength={15} // Seguridad extra
                                                     style={{ borderLeft: '1px solid var(--border-color)' }}
                                                 />
                                             </InputGroup>
@@ -345,7 +310,6 @@ const UserProfile = () => {
                                         </Form.Group>
                                     </Col>
                                 </Row>
-
                                 <hr className="my-4 opacity-25"/>
                                 <h6 className="text-primary mb-3 fw-bold">Seguridad (Cambiar Contraseña)</h6>
                                 <Row>
@@ -372,32 +336,20 @@ const UserProfile = () => {
                     </Card>
                 </Col>
             </Row>
-
             <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)} backdrop="static" centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>Cambiar Correo Electrónico</Modal.Title>
-                </Modal.Header>
+                <Modal.Header closeButton><Modal.Title>Cambiar Correo Electrónico</Modal.Title></Modal.Header>
                 <Modal.Body>
                     {emailMsg.text && <Alert variant={emailMsg.type} className="mb-3 small">{emailMsg.text}</Alert>}
                     {emailStep === 1 ? (
                         <>
                             <p className="small text-muted">Ingrese su nuevo correo y su contraseña actual para verificar su identidad.</p>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Nuevo Correo</Form.Label>
-                                <Form.Control type="email" placeholder="nuevo@ejemplo.com" value={newEmailData.newEmail} onChange={e => setNewEmailData({...newEmailData, newEmail: e.target.value})} />
-                            </Form.Group>
-                            <Form.Group className="mb-3">
-                                <Form.Label>Contraseña Actual</Form.Label>
-                                <Form.Control type="password" placeholder="********" value={newEmailData.currentPassword} onChange={e => setNewEmailData({...newEmailData, currentPassword: e.target.value})} />
-                            </Form.Group>
+                            <Form.Group className="mb-3"><Form.Label>Nuevo Correo</Form.Label><Form.Control type="email" placeholder="nuevo@ejemplo.com" value={newEmailData.newEmail} onChange={e => setNewEmailData({...newEmailData, newEmail: e.target.value})} /></Form.Group>
+                            <Form.Group className="mb-3"><Form.Label>Contraseña Actual</Form.Label><Form.Control type="password" placeholder="********" value={newEmailData.currentPassword} onChange={e => setNewEmailData({...newEmailData, currentPassword: e.target.value})} /></Form.Group>
                         </>
                     ) : (
                         <>
                             <div className="text-center mb-4"><CheckCircle size={40} className="text-success mb-2"/><p className="small text-muted">Hemos enviado un código de 6 dígitos a <strong>{newEmailData.newEmail}</strong>.</p></div>
-                            <Form.Group className="mb-3">
-                                <Form.Label className="fw-bold text-center w-100">Código de Verificación</Form.Label>
-                                <Form.Control type="text" className="text-center fs-4 letter-spacing-2" maxLength={6} placeholder="000000" value={newEmailData.token} onChange={e => setNewEmailData({...newEmailData, token: e.target.value.replace(/\D/g,'')})} />
-                            </Form.Group>
+                            <Form.Group className="mb-3"><Form.Label className="fw-bold text-center w-100">Código de Verificación</Form.Label><Form.Control type="text" className="text-center fs-4 letter-spacing-2" maxLength={6} placeholder="000000" value={newEmailData.token} onChange={e => setNewEmailData({...newEmailData, token: e.target.value.replace(/\D/g,'')})} /></Form.Group>
                         </>
                     )}
                 </Modal.Body>

@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner, InputGroup, Modal } from 'react-bootstrap';
-import { PersonCircle, Envelope, Phone, Save, PersonVcard, ShieldLock, Eye, EyeSlash, CameraFill, PencilSquare, CheckCircle } from 'react-bootstrap-icons';
+import { PersonCircle, Envelope, Phone, Save, PersonVcard, Eye, EyeSlash, CameraFill, PencilSquare, CheckCircle } from 'react-bootstrap-icons';
 import api from '../api/axios';
 
-// Lista de códigos de países comunes
 const COUNTRY_CODES = [
-    { code: '+56', label: '🇨🇱 Chile (+56)' },
-    { code: '+54', label: '🇦🇷 Arg (+54)' },
-    { code: '+51', label: '🇵🇪 Perú (+51)' },
-    { code: '+591', label: '🇧🇴 Bol (+591)' },
-    { code: '+55', label: '🇧🇷 Bra (+55)' },
-    { code: '+57', label: '🇨🇴 Col (+57)' },
-    { code: '+1', label: '🇺🇸 USA (+1)' },
-    { code: '+34', label: '🇪🇸 Esp (+34)' },
+    { code: '+56', label: 'CL (+56)', placeholder: '912345678' },
+    { code: '+54', label: 'AR (+54)', placeholder: '9 11 1234 5678' },
+    { code: '+51', label: 'PE (+51)', placeholder: '912 345 678' },
+    { code: '+591', label: 'BO (+591)', placeholder: '7123 4567' },
+    { code: '+55', label: 'BR (+55)', placeholder: '11 91234 5678' },
+    { code: '+57', label: 'CO (+57)', placeholder: '300 123 4567' },
+    { code: '+1', label: 'US (+1)', placeholder: '555 123 4567' },
+    { code: '+34', label: 'ES (+34)', placeholder: '612 345 678' },
 ];
 
 const UserProfile = () => {
@@ -25,36 +24,33 @@ const UserProfile = () => {
         email: ''
     });
 
-    // Estado separado para el teléfono (Visualmente separado)
     const [phoneData, setPhoneData] = useState({
-        code: '+56', // Por defecto Chile
+        code: '+56',
         number: ''
     });
 
-    // Formulario de contraseñas
     const [formData, setFormData] = useState({
         password: '',
         confirmPassword: ''
     });
 
-    // --- ESTADOS PARA CAMBIO DE EMAIL ---
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [emailStep, setEmailStep] = useState(1);
-    const [newEmailData, setNewEmailData] = useState({
-        newEmail: '',
-        currentPassword: '',
-        token: ''
-    });
+    const [newEmailData, setNewEmailData] = useState({ newEmail: '', currentPassword: '', token: '' });
     const [emailLoading, setEmailLoading] = useState(false);
     const [emailMsg, setEmailMsg] = useState({ type: '', text: '' });
 
-    // Estados Generales UI
     const [showNewPass, setShowNewPass] = useState(false);
     const [showConfirmPass, setShowConfirmPass] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
 
     const fileInputRef = useRef(null);
+
+    const getCurrentPlaceholder = () => {
+        const country = COUNTRY_CODES.find(c => c.code === phoneData.code);
+        return country ? country.placeholder : 'Número de teléfono';
+    };
 
     const fetchProfile = async () => {
         try {
@@ -70,21 +66,19 @@ const UserProfile = () => {
                 email: user.email || ''
             });
 
-            // LÓGICA PARA DETECTAR CÓDIGO DE PAÍS
             if (user.telefono) {
-                // Buscamos si el teléfono guardado empieza con alguno de nuestros códigos
-                const foundCode = COUNTRY_CODES.find(c => user.telefono.startsWith(c.code));
+                const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+                const foundCode = sortedCodes.find(c => user.telefono.startsWith(c.code));
+
                 if (foundCode) {
                     setPhoneData({
                         code: foundCode.code,
-                        number: user.telefono.replace(foundCode.code, '') // Quitamos el código para dejar solo el número
+                        number: user.telefono.replace(foundCode.code, '')
                     });
                 } else {
-                    // Si no coincide con ninguno conocido, lo dejamos todo en el número (o default)
                     setPhoneData({ code: '+56', number: user.telefono });
                 }
             } else {
-                // Si no tiene teléfono, limpieza
                 setPhoneData({ code: '+56', number: '' });
             }
 
@@ -126,10 +120,8 @@ const UserProfile = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Handler específico para el número (solo permitir dígitos)
     const handlePhoneChange = (e) => {
         const val = e.target.value;
-        // Solo permitir números
         if (/^\d*$/.test(val)) {
             setPhoneData({ ...phoneData, number: val });
         }
@@ -139,7 +131,6 @@ const UserProfile = () => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
 
-        // 1. VALIDACIÓN DE CONTRASEÑAS
         if (formData.password || formData.confirmPassword) {
             if (formData.password !== formData.confirmPassword) {
                 setMessage({ type: 'danger', text: 'Las contraseñas no coinciden.' });
@@ -151,28 +142,25 @@ const UserProfile = () => {
             }
         }
 
-        // 2. VALIDACIÓN DE TELÉFONO
         let finalPhone = '';
         if (phoneData.number) {
-            if (phoneData.number.length < 8 || phoneData.number.length > 15) {
-                setMessage({ type: 'danger', text: 'El número de teléfono parece inválido (largo incorrecto).' });
+            if (phoneData.number.length < 7 || phoneData.number.length > 15) {
+                setMessage({ type: 'danger', text: 'El número de teléfono parece inválido.' });
                 return;
             }
-            // Concatenamos Código + Número para enviar al backend
             finalPhone = phoneData.code + phoneData.number;
         }
 
         setIsLoading(true);
 
         try {
-            const payload = { telefono: finalPhone }; // Enviamos el teléfono unido
+            const payload = { telefono: finalPhone };
             if (formData.password) payload.password = formData.password;
 
             await api.put('/api/usuarios/me', payload);
 
             setMessage({ type: 'success', text: 'Perfil actualizado correctamente.' });
             setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
-
             await fetchProfile();
 
         } catch (err) {
@@ -183,7 +171,6 @@ const UserProfile = () => {
         }
     };
 
-    // ... (Resto de lógica Modal Email se mantiene igual) ...
     const openEmailModal = () => {
         setEmailStep(1);
         setNewEmailData({ newEmail: '', currentPassword: '', token: '' });
@@ -256,7 +243,6 @@ const UserProfile = () => {
             {message.text && <Alert variant={message.type} onClose={() => setMessage({ type: '', text: '' })} dismissible>{message.text}</Alert>}
 
             <Row>
-                {/* TARJETA INFO USUARIO */}
                 <Col md={4} className="mb-4">
                     <Card className="h-100 shadow-sm border-0">
                         <Card.Body className="text-center py-5">
@@ -306,14 +292,12 @@ const UserProfile = () => {
                     </Card>
                 </Col>
 
-                {/* FORMULARIO DE EDICIÓN */}
                 <Col md={8}>
                     <Card className="shadow-sm border-0 h-100">
                         <Card.Header className="bg-transparent py-3"><h5 className="mb-0">Editar Información</h5></Card.Header>
                         <Card.Body className="p-4">
                             <Form onSubmit={handleSubmit}>
                                 <Row>
-                                    {/* CORREO ELECTRÓNICO */}
                                     <Col md={6}>
                                         <Form.Group className="mb-3">
                                             <Form.Label className="fw-bold"><Envelope className="me-2"/>Correo Electrónico</Form.Label>
@@ -332,16 +316,14 @@ const UserProfile = () => {
                                         </Form.Group>
                                     </Col>
 
-                                    {/* --- TELÉFONO MEJORADO (SELECTOR DE PAÍS) --- */}
                                     <Col md={6}>
                                         <Form.Group className="mb-3">
                                             <Form.Label className="fw-bold"><Phone className="me-2"/>Teléfono</Form.Label>
                                             <InputGroup>
-                                                {/* SELECTOR DE CÓDIGO */}
                                                 <Form.Select
                                                     value={phoneData.code}
                                                     onChange={(e) => setPhoneData({ ...phoneData, code: e.target.value })}
-                                                    style={{ maxWidth: '130px', borderRight: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-main)' }}
+                                                    style={{ maxWidth: '140px', borderRight: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-main)' }}
                                                 >
                                                     {COUNTRY_CODES.map((country) => (
                                                         <option key={country.code} value={country.code}>
@@ -349,11 +331,10 @@ const UserProfile = () => {
                                                         </option>
                                                     ))}
                                                 </Form.Select>
-
-                                                {/* INPUT DE NÚMERO */}
+                                                {/* INPUT CON PLACEHOLDER DINÁMICO */}
                                                 <Form.Control
                                                     type="text"
-                                                    placeholder="912345678"
+                                                    placeholder={getCurrentPlaceholder()}
                                                     value={phoneData.number}
                                                     onChange={handlePhoneChange}
                                                     maxLength={15}
@@ -392,67 +373,37 @@ const UserProfile = () => {
                 </Col>
             </Row>
 
-            {/* --- MODAL DE CAMBIO DE EMAIL (Sin cambios) --- */}
             <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)} backdrop="static" centered>
                 <Modal.Header closeButton>
                     <Modal.Title>Cambiar Correo Electrónico</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     {emailMsg.text && <Alert variant={emailMsg.type} className="mb-3 small">{emailMsg.text}</Alert>}
-
                     {emailStep === 1 ? (
                         <>
                             <p className="small text-muted">Ingrese su nuevo correo y su contraseña actual para verificar su identidad.</p>
                             <Form.Group className="mb-3">
                                 <Form.Label>Nuevo Correo</Form.Label>
-                                <Form.Control
-                                    type="email"
-                                    placeholder="nuevo@ejemplo.com"
-                                    value={newEmailData.newEmail}
-                                    onChange={e => setNewEmailData({...newEmailData, newEmail: e.target.value})}
-                                />
+                                <Form.Control type="email" placeholder="nuevo@ejemplo.com" value={newEmailData.newEmail} onChange={e => setNewEmailData({...newEmailData, newEmail: e.target.value})} />
                             </Form.Group>
                             <Form.Group className="mb-3">
                                 <Form.Label>Contraseña Actual</Form.Label>
-                                <Form.Control
-                                    type="password"
-                                    placeholder="********"
-                                    value={newEmailData.currentPassword}
-                                    onChange={e => setNewEmailData({...newEmailData, currentPassword: e.target.value})}
-                                />
+                                <Form.Control type="password" placeholder="********" value={newEmailData.currentPassword} onChange={e => setNewEmailData({...newEmailData, currentPassword: e.target.value})} />
                             </Form.Group>
                         </>
                     ) : (
                         <>
-                            <div className="text-center mb-4">
-                                <CheckCircle size={40} className="text-success mb-2"/>
-                                <p className="small text-muted">Hemos enviado un código de 6 dígitos a <strong>{newEmailData.newEmail}</strong>.</p>
-                            </div>
+                            <div className="text-center mb-4"><CheckCircle size={40} className="text-success mb-2"/><p className="small text-muted">Hemos enviado un código de 6 dígitos a <strong>{newEmailData.newEmail}</strong>.</p></div>
                             <Form.Group className="mb-3">
                                 <Form.Label className="fw-bold text-center w-100">Código de Verificación</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    className="text-center fs-4 letter-spacing-2"
-                                    maxLength={6}
-                                    placeholder="000000"
-                                    value={newEmailData.token}
-                                    onChange={e => setNewEmailData({...newEmailData, token: e.target.value.replace(/\D/g,'')})}
-                                />
+                                <Form.Control type="text" className="text-center fs-4 letter-spacing-2" maxLength={6} placeholder="000000" value={newEmailData.token} onChange={e => setNewEmailData({...newEmailData, token: e.target.value.replace(/\D/g,'')})} />
                             </Form.Group>
                         </>
                     )}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowEmailModal(false)}>Cancelar</Button>
-                    {emailStep === 1 ? (
-                        <Button variant="primary" onClick={handleEmailRequest} disabled={emailLoading}>
-                            {emailLoading ? <Spinner size="sm" animation="border"/> : 'Enviar Código'}
-                        </Button>
-                    ) : (
-                        <Button variant="success" onClick={handleEmailConfirm} disabled={emailLoading}>
-                            {emailLoading ? <Spinner size="sm" animation="border"/> : 'Confirmar Cambio'}
-                        </Button>
-                    )}
+                    {emailStep === 1 ? <Button variant="primary" onClick={handleEmailRequest} disabled={emailLoading}>{emailLoading ? <Spinner size="sm" animation="border"/> : 'Enviar Código'}</Button> : <Button variant="success" onClick={handleEmailConfirm} disabled={emailLoading}>{emailLoading ? <Spinner size="sm" animation="border"/> : 'Confirmar Cambio'}</Button>}
                 </Modal.Footer>
             </Modal>
         </Container>

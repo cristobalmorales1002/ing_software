@@ -383,9 +383,9 @@ public class InicializadorAdmin implements CommandLineRunner {
         Permiso pVerListado = crearPermiso("VER_LISTADO_PACIENTES", "Permite ver tabla resumen y exportar");
         Permiso pEliminar = crearPermiso("ELIMINAR_PACIENTE", "Permite archivar/eliminar");
 
-        crearRol("ROLE_ADMIN", Set.of(pCrearCaso, pCrearControl, pEditarCaso, pEditarControl, pVerPaciente, pVerListado, pEliminar));
+        crearRol("ROLE_ADMIN", Set.of(pCrearControl, pEditarCaso, pEditarControl, pVerPaciente, pVerListado, pEliminar));
         crearRol("ROLE_MEDICO", Set.of(pCrearCaso, pCrearControl, pEditarCaso, pEditarControl, pVerPaciente, pVerListado));
-        crearRol("ROLE_INVESTIGADOR", Set.of(pVerListado, pVerPaciente));
+        crearRol("ROLE_INVESTIGADOR", Set.of(pCrearControl, pEditarCaso, pEditarControl, pVerPaciente, pVerListado, pEliminar));
         crearRol("ROLE_ESTUDIANTE", Set.of(pCrearControl, pEditarControl, pVerPaciente, pVerListado));
         crearRol("ROLE_VISUALIZADOR", Set.of(pVerListado));
     }

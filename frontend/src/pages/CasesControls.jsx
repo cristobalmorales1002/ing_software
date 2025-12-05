@@ -143,6 +143,7 @@ const CasesControls = () => {
     const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
 
+    // --- CORRECCIÓN AQUÍ EN canEdit ---
     const canEdit = (item) => {
         if (!currentUser || !item) return false;
 
@@ -155,9 +156,11 @@ const CasesControls = () => {
         }
 
         if (item.tipo === 'CONTROL') {
-            if (userRole === 'ROLE_ESTUDIANTE') {
+            // AHORA: Si es Estudiante O Médico, puede editar si es el creador
+            if (userRole === 'ROLE_ESTUDIANTE' || userRole === 'ROLE_MEDICO') {
                 return isCreator;
             }
+            // Admin e Investigador pueden editar cualquier control
             if (['ROLE_ADMIN', 'ROLE_INVESTIGADOR'].includes(userRole)) {
                 return true;
             }
@@ -169,8 +172,6 @@ const CasesControls = () => {
         return userRole === 'ROLE_ADMIN';
     };
 
-    // --- NUEVO: Permiso para ver checkboxes y descargar ---
-    // Según tu backend, solo Admin e Investigador pueden descargar ZIPs
     const canDownload = hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR']);
 
     const filteredItems = useMemo(() => {

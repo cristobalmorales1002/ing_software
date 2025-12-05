@@ -13,13 +13,14 @@ import ProtectedRoute from './components/ProtectedRoute';
 // Páginas del Sistema (Aquí importamos las reales)
 import DashboardHome from './pages/DashboardHome';     // <--- NUEVO
 import AuditLog from './pages/AuditLog';
-import UserProfile from './pages/UserProfile';// <--- NUEVO
 import UserManagement from './pages/UserManagement';
 import CasesControls from './pages/CasesControls';
 import SurveyBuilder from './pages/SurveyBuilder';
 import Reports from './pages/Reports';
 
 import Messages from './pages/Messages';
+import UserProfile from './pages/UserProfile'; // Tu perfil editable
+import UserDetails from './pages/UserDetails'; // El perfil de visualización (NUEVO)
 
 function App() {
     return (
@@ -32,9 +33,11 @@ function App() {
                     <Route path="/verificar-codigo" element={<VerifyCode />} />
                     <Route path="/cambiar-password" element={<NewPassword />} />
 
+
                     {/* Rutas Protegidas (Requieren Login) */}
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<DashboardLayout />}>
+                            <Route path="usuarios/:id" element={<UserDetails />} />
 
                             {/* 1. Dashboard Principal (Estadísticas) */}
                             <Route index element={<DashboardHome />} />

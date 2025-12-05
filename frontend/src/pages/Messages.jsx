@@ -1,16 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, ListGroup, Badge, Button, Form, Modal, InputGroup, Spinner } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import {
-    Send,
-    Inbox,
-    Search,
-    PlusLg,
-    PersonCircle,
-    Trash,
-    Reply,
-    X,
-    Calendar3,
-    ArrowCounterclockwise
+    Send, Inbox, Search, PlusLg, PersonCircle, Trash, Reply, X, Calendar3, ArrowCounterclockwise
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
 
@@ -64,7 +56,6 @@ const Messages = () => {
     useEffect(() => {
         fetchMessages();
         fetchUnreadCount();
-        // Al cambiar de pestaña, limpiamos filtros para evitar confusión visual
         clearFilters();
     }, [activeTab]);
 
@@ -119,9 +110,8 @@ const Messages = () => {
         setSearchTerm('');
     };
 
-    // --- FILTRADO COMBINADO (TEXTO + FECHA) ---
+    // --- FILTRADO COMBINADO ---
     const filteredMessages = messages.filter(msg => {
-        // 1. Filtro de Texto
         const searchLower = searchTerm.toLowerCase();
         const sender = msg.nombreEmisor || '';
         const receiver = msg.destinatariosResumen || msg.nombreDestinatario || '';
@@ -131,25 +121,20 @@ const Messages = () => {
             sender.toLowerCase().includes(searchLower) ||
             receiver.toLowerCase().includes(searchLower);
 
-        // 2. Filtro de Fecha (Local)
         let matchesDate = true;
         if (dateFilters.inicio || dateFilters.fin) {
             const msgDate = new Date(msg.fechaEnvio);
-            // Quitamos la hora para comparar solo fechas (00:00:00)
             msgDate.setHours(0, 0, 0, 0);
 
             if (dateFilters.inicio) {
-                // Ajuste de zona horaria simple creando fecha con T00:00:00
                 const startDate = new Date(dateFilters.inicio + 'T00:00:00');
                 if (msgDate < startDate) matchesDate = false;
             }
-
             if (matchesDate && dateFilters.fin) {
                 const endDate = new Date(dateFilters.fin + 'T00:00:00');
                 if (msgDate > endDate) matchesDate = false;
             }
         }
-
         return matchesText && matchesDate;
     });
 
@@ -299,6 +284,7 @@ const Messages = () => {
         return <PersonCircle size={32} />;
     };
 
+    // En la lista lateral mantenemos el texto simple para no sobrecargar el renderizado
     const renderListHeader = (msg) => {
         if (activeTab === 'inbox') {
             return msg.nombreEmisor || "Desconocido";
@@ -307,10 +293,28 @@ const Messages = () => {
         }
     };
 
+    // --- RENDER DE DESTINATARIOS EN MODAL (NUEVA FUNCIÓN) ---
+    const renderModalRecipients = (msg) => {
+        // Si no hay detalle (ej: versiones viejas) o es vacío, mostrar resumen texto
+        if (!msg.destinatariosDetalle || msg.destinatariosDetalle.length === 0) {
+            return msg.destinatariosResumen || "Varios destinatarios";
+        }
+
+        // Si hay detalle, mapear a Links
+        return msg.destinatariosDetalle.map((d, index) => (
+            <span key={d.id || index}>
+                {/* Corrección: Ruta absoluta a /dashboard/usuarios/ID */}
+                <Link to={`/dashboard/usuarios/${d.id}`} className="text-decoration-none fw-bold text-dark hover-link">
+                    {d.nombre}
+                </Link>
+                {index < msg.destinatariosDetalle.length - 1 && ", "}
+            </span>
+        ));
+    };
+
     return (
         <Container fluid className="p-0 h-100">
             <Row className="g-0 h-100">
-
                 {/* SIDEBAR */}
                 <Col md={3} lg={2} className="bg-light border-end p-3 d-flex flex-column" style={{ minHeight: '80vh' }}>
                     <Button
@@ -454,7 +458,7 @@ const Messages = () => {
                 </Col>
             </Row>
 
-            {/* MODAL LEER */}
+            {/* MODAL LEER (CON LINKS DE PERFIL ACTUALIZADOS) */}
             <Modal show={showRead} onHide={() => setShowRead(false)} size="lg" centered>
                 {selectedMessage && (
                     <>
@@ -470,10 +474,18 @@ const Messages = () => {
                                         <div>
                                             <span className="text-muted small text-uppercase fw-bold">De:</span>
                                             <div className="fw-bold fs-6">
-                                                {activeTab === 'inbox'
-                                                    ? (selectedMessage.nombreEmisor)
-                                                    : (currentUser ? `${currentUser.nombres || currentUser.nombre} (Mí)` : "Mí")
-                                                }
+                                                {activeTab === 'inbox' ? (
+                                                    // Bandeja Entrada: Link al Emisor (/dashboard/usuarios/ID)
+                                                    <Link to={`/dashboard/usuarios/${selectedMessage.idEmisor}`} className="text-decoration-none text-dark hover-link">
+                                                        {selectedMessage.nombreEmisor}
+                                                    </Link>
+                                                ) : (
+                                                    // Enviados: "Mí" (Link al propio perfil: /dashboard/perfil)
+                                                    <Link to="/dashboard/perfil" className="text-decoration-none text-dark hover-link">
+                                                        {currentUser ? `${currentUser.nombres || currentUser.nombre} (Mí)` : "Mí"}
+                                                    </Link>
+                                                )}
+
                                                 {activeTab === 'inbox' && selectedMessage.emailEmisor &&
                                                     <span className="text-muted fw-normal small ms-1">&lt;{selectedMessage.emailEmisor}&gt;</span>
                                                 }
@@ -486,10 +498,12 @@ const Messages = () => {
                                     <div className="mt-2">
                                         <span className="text-muted small text-uppercase fw-bold">Para:</span>
                                         <div className="text-dark">
-                                            {activeTab === 'inbox'
-                                                ? "Mí"
-                                                : (selectedMessage.destinatariosResumen || "Varios destinatarios")
-                                            }
+                                            {activeTab === 'inbox' ? (
+                                                // Bandeja Entrada: Para Mí (/dashboard/perfil)
+                                                <Link to="/dashboard/perfil" className="text-decoration-none text-dark hover-link">Mí</Link>
+                                            ) : (
+                                                renderModalRecipients(selectedMessage)
+                                            )}
                                         </div>
                                     </div>
                                 </div>

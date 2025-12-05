@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Spinner, Alert, Button, Offcanvas, Form, InputGroup, ProgressBar } from 'react-bootstrap';
 
-import { People, GraphUp, PieChart as IconPieChart, GenderAmbiguous, FunnelFill, BarChartFill, PieChartFill, GearFill, ListUl, Search, Floppy } from 'react-bootstrap-icons';
+import { People, GraphUp, PieChart as IconPieChart, GenderAmbiguous, FunnelFill, BarChartFill, PieChartFill, GearFill, ListUl, Search, Floppy, Calculator, Filter } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const DashboardHome = () => {
 
     const [dashboardStats, setDashboardStats] = useState([]);
-
+    const [allPatients, setAllPatients] = useState([]);
     const [availableOptions, setAvailableOptions] = useState([]);
 
     const [kpis, setKpis] = useState({ total: 0, casos: 0, controles: 0 });
@@ -19,10 +19,15 @@ const DashboardHome = () => {
 
     const [showFilter, setShowFilter] = useState(false);
     const [chartTypes, setChartTypes] = useState({});
+    const [grouping, setGrouping] = useState({});
     const [filterSearch, setFilterSearch] = useState('');
 
-    const PIE_COLORS = ['#0d6efd', '#0dcaf0', '#20c997', '#ffc107', '#dc3545', '#6610f2'];
+    const [patientFilter, setPatientFilter] = useState({
+        showCasos: true,
+        showControles: true
+    });
 
+    const PIE_COLORS = ['#0d6efd', '#0dcaf0', '#20c997', '#ffc107', '#dc3545', '#6610f2'];
 
     useEffect(() => {
         fetchInitialData();
@@ -31,15 +36,21 @@ const DashboardHome = () => {
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-
+            // 1. Obtener Pacientes (Datos Crudos)
             const resPacientes = await api.get('/api/pacientes');
-            const total = resPacientes.data.length;
-            const casos = resPacientes.data.filter(p => p.esCaso).length;
+            const pacientes = resPacientes.data || [];
+            setAllPatients(pacientes);
+
+            // KPIs
+            const total = pacientes.length;
+            const casos = pacientes.filter(p => p.esCaso).length;
             setKpis({ total, casos, controles: total - casos });
 
+            // 2. Opciones Disponibles
             const resOptions = await api.get('/api/estadisticas/opciones');
             setAvailableOptions(resOptions.data || []);
 
+            // 3. Configuración del Dashboard
             await refreshDashboardStats();
 
         } catch (err) {
@@ -58,6 +69,8 @@ const DashboardHome = () => {
 
             setChartTypes(prev => {
                 const newTypes = { ...prev };
+                const newGrouping = { ...grouping };
+
                 data.forEach(stat => {
                     if (!newTypes[stat.preguntaId]) {
                         const titulo = stat.tituloPregunta.toLowerCase();
@@ -65,7 +78,12 @@ const DashboardHome = () => {
                         else if (titulo.includes('casos')) newTypes[stat.preguntaId] = 'progress';
                         else newTypes[stat.preguntaId] = 'bar';
                     }
+                    if (isNumericStat(stat) && !newGrouping[stat.preguntaId]) {
+                        newGrouping[stat.preguntaId] = 10;
+                    }
                 });
+
+                setGrouping(newGrouping);
                 return newTypes;
             });
         } catch (err) {
@@ -73,17 +91,103 @@ const DashboardHome = () => {
         }
     };
 
+    // --- PROCESAMIENTO DE DATOS (CORREGIDO) ---
+    const processedStats = useMemo(() => {
+        return dashboardStats.map(stat => {
+            // 1. Filtrar pacientes según checkboxes
+            const filteredPatients = allPatients.filter(p => {
+                if (p.esCaso && !patientFilter.showCasos) return false;
+                if (!p.esCaso && !patientFilter.showControles) return false;
+                return true;
+            });
+
+            // 2. Calcular frecuencias para esta pregunta
+            const counts = {};
+            filteredPatients.forEach(p => {
+                // FIX: Buscar respuesta comprobando ambas variantes de nombre (preguntaId y pregunta_id)
+                // Además validamos que respuestas exista y sea un array
+                if (!p.respuestas || !Array.isArray(p.respuestas)) return;
+
+                const respuesta = p.respuestas.find(r =>
+                    (r.preguntaId === stat.preguntaId) ||
+                    (r.pregunta_id === stat.preguntaId)
+                );
+
+                if (respuesta && respuesta.valor !== null && respuesta.valor !== undefined && respuesta.valor !== '') {
+                    const val = respuesta.valor;
+                    counts[val] = (counts[val] || 0) + 1;
+                }
+            });
+
+            // 3. Formatear como espera Recharts [{etiqueta: "X", valor: 10}]
+            const dynamicData = Object.entries(counts).map(([k, v]) => ({
+                etiqueta: k,
+                valor: v
+            }));
+
+            // Retornar copia del stat con los datos recalculados
+            return { ...stat, datos: dynamicData };
+        });
+    }, [dashboardStats, allPatients, patientFilter]);
+
+
+    const isNumericStat = (stat) => {
+        if (stat.tipoDato === 'NUMERO' || stat.tipoDato === 'DECIMAL') return true;
+        // Revisar si los datos dinámicos parecen números (si existen)
+        if (!stat.datos || stat.datos.length === 0) return false;
+        // Usamos una muestra para no iterar todo si es muy grande
+        return !isNaN(parseFloat(stat.datos[0].etiqueta));
+    };
+
+    const calculateGroupedData = (rawData, bins) => {
+        if (!bins || bins < 2 || !rawData || rawData.length === 0) return rawData;
+
+        let numericValues = [];
+        rawData.forEach(item => {
+            const val = parseFloat(item.etiqueta);
+            if (!isNaN(val)) numericValues.push({ val, count: item.valor });
+        });
+
+        if (numericValues.length === 0) return rawData;
+
+        const min = Math.min(...numericValues.map(v => v.val));
+        const max = Math.max(...numericValues.map(v => v.val));
+
+        if (min === max) return rawData;
+
+        const step = (max - min) / bins;
+        const groups = [];
+
+        for (let i = 0; i < bins; i++) {
+            const start = min + (i * step);
+            const end = min + ((i + 1) * step);
+            // Formateo para evitar decimales infinitos
+            const labelStart = Number.isInteger(start) ? start : start.toFixed(1);
+            const labelEnd = Number.isInteger(end) ? end : end.toFixed(1);
+            const label = `${labelStart} - ${labelEnd}`;
+
+            groups.push({ etiqueta: label, valor: 0 });
+        }
+
+        numericValues.forEach(item => {
+            let binIndex = Math.floor((item.val - min) / step);
+            if (binIndex >= bins) binIndex = bins - 1;
+            groups[binIndex].valor += item.count;
+        });
+
+        return groups;
+    };
+
+    // --- HANDLERS ---
+    const handleFilterChange = (e) => {
+        setPatientFilter({ ...patientFilter, [e.target.name]: e.target.checked });
+    };
+
     const handleForceSave = async () => {
         setSavingManual(true);
         try {
-            const currentIds = dashboardStats
-                .map(s => s.preguntaId)
-                .filter(id => id !== 0);
-
-            console.log("Forzando guardado de IDs:", currentIds);
-
+            const currentIds = dashboardStats.map(s => s.preguntaId).filter(id => id !== 0);
             await api.post('/api/estadisticas/preferencias', { preguntasIds: currentIds });
-
             alert("¡Preferencias guardadas exitosamente!");
         } catch (err) {
             console.error(err);
@@ -98,18 +202,10 @@ const DashboardHome = () => {
         try {
             const currentIds = dashboardStats.map(s => s.preguntaId).filter(id => id !== 0);
             const isCurrentlyVisible = currentIds.includes(preguntaId);
-
-            let newIds;
-            if (isCurrentlyVisible) {
-                newIds = currentIds.filter(id => id !== preguntaId);
-            } else {
-                newIds = [...currentIds, preguntaId];
-            }
+            let newIds = isCurrentlyVisible ? currentIds.filter(id => id !== preguntaId) : [...currentIds, preguntaId];
 
             await api.post('/api/estadisticas/preferencias', { preguntasIds: newIds });
-
             await refreshDashboardStats();
-
         } catch (err) {
             console.error(err);
         } finally {
@@ -117,13 +213,8 @@ const DashboardHome = () => {
         }
     };
 
-    const handleTypeChange = (id, type) => {
-        setChartTypes(prev => ({ ...prev, [id]: type }));
-    };
-
-    const filteredOptions = availableOptions.filter(opt =>
-        opt.tituloPregunta.toLowerCase().includes(filterSearch.toLowerCase())
-    );
+    const handleTypeChange = (id, type) => setChartTypes(prev => ({ ...prev, [id]: type }));
+    const handleGroupingChange = (id, groups) => setGrouping(prev => ({ ...prev, [id]: groups }));
 
     const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -131,6 +222,10 @@ const DashboardHome = () => {
         const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
         return <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="12px" fontWeight="bold">{`${(percent * 100).toFixed(0)}%`}</text>;
     };
+
+    const filteredOptions = availableOptions.filter(opt =>
+        opt.tituloPregunta.toLowerCase().includes(filterSearch.toLowerCase())
+    );
 
     const StatCard = ({ title, value, icon, color }) => (
         <Card className="h-100 shadow-sm border-0">
@@ -161,113 +256,169 @@ const DashboardHome = () => {
                 <Col md={4}><StatCard title="Controles (Sanos)" value={kpis.controles} icon={<IconPieChart size={24}/>} color="success" /></Col>
             </Row>
 
-            <Card className="mb-4 border-0 shadow-sm bg-primary bg-opacity-10">
-                <Card.Body className="d-flex justify-content-between align-items-center py-2">
-                    <div className="d-flex align-items-center gap-2 text-primary">
-                        <BarChartFill />
-                        <span className="fw-bold">Gráficos Activos: {dashboardStats.length}</span>
+            {/* BARRA DE HERRAMIENTAS (Filtros y Configuración) */}
+            <Card className="mb-4 border-0 shadow-sm bg-light">
+                <Card.Body className="d-flex flex-wrap justify-content-between align-items-center py-2 gap-3">
+
+                    {/* ZONA 1: Filtros de Datos (Casos vs Controles) */}
+                    <div className="d-flex align-items-center gap-3 border-end pe-3">
+                        <div className="d-flex align-items-center text-secondary fw-bold small">
+                            <Filter className="me-2"/> Datos:
+                        </div>
+                        <Form.Check
+                            type="checkbox"
+                            id="chk-casos"
+                            name="showCasos"
+                            label="Casos"
+                            checked={patientFilter.showCasos}
+                            onChange={handleFilterChange}
+                            className="mb-0 fw-medium"
+                        />
+                        <Form.Check
+                            type="checkbox"
+                            id="chk-controles"
+                            name="showControles"
+                            label="Controles"
+                            checked={patientFilter.showControles}
+                            onChange={handleFilterChange}
+                            className="mb-0 fw-medium"
+                        />
                     </div>
 
-                    {}
-                    <div className="d-flex gap-2">
-                        {}
-                        <Button
-                            variant="success"
-                            size="sm"
-                            onClick={handleForceSave}
-                            disabled={savingManual}
-                        >
-                            {savingManual ? (
-                                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
-                            ) : (
-                                <>
-                                    <Floppy className="me-2"/> Guardar preferencias de gráficos
-                                </>
-                            )}
-                        </Button>
+                    {/* ZONA 2: Información y Botones de Acción */}
+                    <div className="d-flex align-items-center gap-3">
+                        <div className="d-flex align-items-center gap-2 text-primary me-2 d-none d-md-flex">
+                            <BarChartFill />
+                            <span className="fw-bold small">Activos: {processedStats.length}</span>
+                        </div>
 
-                        {}
+                        <Button variant="success" size="sm" onClick={handleForceSave} disabled={savingManual}>
+                            {savingManual ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : <><Floppy className="me-2"/> Guardar Vista</>}
+                        </Button>
                         <Button variant="primary" size="sm" onClick={() => setShowFilter(true)}>
-                            <FunnelFill className="me-2"/> Filtrar y personalizar
+                            <FunnelFill className="me-2"/> Configurar
                         </Button>
                     </div>
                 </Card.Body>
             </Card>
 
             <Row>
-                {dashboardStats.length === 0 && (
+                {processedStats.length === 0 && (
                     <Col><Alert variant="info" className="text-center">No hay gráficos configurados.</Alert></Col>
                 )}
 
-                {dashboardStats.map((stat) => {
+                {/* Usamos processedStats que tiene los datos filtrados en tiempo real */}
+                {processedStats.map((stat) => {
                     const type = chartTypes[stat.preguntaId] || 'bar';
+                    const isNum = isNumericStat(stat);
+                    const currentGroups = grouping[stat.preguntaId];
+                    const chartData = isNum ? calculateGroupedData(stat.datos, currentGroups) : stat.datos;
 
                     return (
                         <Col lg={6} key={stat.preguntaId} className="mb-4">
                             <Card className="h-100 border-0 shadow-sm" style={{minHeight:'400px'}}>
-                                <Card.Header className="bg-transparent border-0 pt-4 px-4 d-flex justify-content-between">
-                                    <h5 className="mb-0 text-primary d-flex align-items-center gap-2 text-truncate">
+                                <Card.Header className="bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-start">
+                                    <h5 className="mb-0 text-primary d-flex align-items-center gap-2 text-truncate" style={{maxWidth: '50%'}}>
                                         <GenderAmbiguous /> {stat.tituloPregunta}
                                     </h5>
 
-                                    <div className="d-flex gap-1 bg-secondary bg-opacity-10 p-1 rounded ms-2">
-                                        <Button variant={type === 'bar' ? 'white' : 'transparent'} size="sm" className="border-0"
-                                                style={{ color: type === 'bar' ? 'var(--accent-color)' : 'var(--text-main)', opacity: type === 'bar' ? 1 : 0.5 }}
-                                                onClick={() => handleTypeChange(stat.preguntaId, 'bar')} title="Barras">
-                                            <BarChartFill />
-                                        </Button>
-                                        <Button variant={type === 'pie' ? 'white' : 'transparent'} size="sm" className="border-0"
-                                                style={{ color: type === 'pie' ? 'var(--accent-color)' : 'var(--text-main)', opacity: type === 'pie' ? 1 : 0.5 }}
-                                                onClick={() => handleTypeChange(stat.preguntaId, 'pie')} title="Circular">
-                                            <PieChartFill />
-                                        </Button>
-                                        <Button variant={type === 'progress' ? 'white' : 'transparent'} size="sm" className="border-0"
-                                                style={{ color: type === 'progress' ? 'var(--accent-color)' : 'var(--text-main)', opacity: type === 'progress' ? 1 : 0.5 }}
-                                                onClick={() => handleTypeChange(stat.preguntaId, 'progress')} title="Lista">
-                                            <ListUl />
-                                        </Button>
+                                    <div className="d-flex align-items-center gap-2">
+
+                                        {/* Botones de Agrupación Dinámica */}
+                                        {isNum && (
+                                            <div className="d-flex gap-1 bg-warning bg-opacity-10 p-1 rounded me-2">
+                                                <span className="d-flex align-items-center px-2 text-muted small" title="Agrupar intervalos"><Calculator size={14}/></span>
+                                                {[5, 10, 15, 20].map(num => (
+                                                    <Button
+                                                        key={num}
+                                                        variant={currentGroups === num ? 'warning' : 'transparent'}
+                                                        size="sm"
+                                                        className="border-0 px-2 py-0"
+                                                        style={{
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: 'bold',
+                                                            color: currentGroups === num ? '#fff' : 'var(--text-muted)'
+                                                        }}
+                                                        onClick={() => handleGroupingChange(stat.preguntaId, num)}
+                                                        title={`Dividir en ${num} grupos`}
+                                                    >
+                                                        {num}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Selector de Tipo de Gráfico */}
+                                        <div className="d-flex gap-1 bg-secondary bg-opacity-10 p-1 rounded">
+                                            <Button variant={type === 'bar' ? 'white' : 'transparent'} size="sm" className="border-0"
+                                                    style={{ color: type === 'bar' ? 'var(--accent-color)' : 'var(--text-main)', opacity: type === 'bar' ? 1 : 0.5 }}
+                                                    onClick={() => handleTypeChange(stat.preguntaId, 'bar')} title="Barras">
+                                                <BarChartFill />
+                                            </Button>
+                                            <Button variant={type === 'pie' ? 'white' : 'transparent'} size="sm" className="border-0"
+                                                    style={{ color: type === 'pie' ? 'var(--accent-color)' : 'var(--text-main)', opacity: type === 'pie' ? 1 : 0.5 }}
+                                                    onClick={() => handleTypeChange(stat.preguntaId, 'pie')} title="Circular">
+                                                <PieChartFill />
+                                            </Button>
+                                            <Button variant={type === 'progress' ? 'white' : 'transparent'} size="sm" className="border-0"
+                                                    style={{ color: type === 'progress' ? 'var(--accent-color)' : 'var(--text-main)', opacity: type === 'progress' ? 1 : 0.5 }}
+                                                    onClick={() => handleTypeChange(stat.preguntaId, 'progress')} title="Lista">
+                                                <ListUl />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </Card.Header>
                                 <Card.Body className="d-flex align-items-center justify-content-center p-4">
-                                    {type === 'bar' && (
-                                        <ResponsiveContainer width="100%" height={300}>
-                                            <BarChart data={stat.datos || []} margin={{top:20, right:30, left:0, bottom:5}}>
-                                                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                                                <XAxis dataKey="etiqueta" tick={{fill:'var(--text-muted)', fontSize:12}} axisLine={false} tickLine={false}/>
-                                                <YAxis tick={{fill:'var(--text-muted)', fontSize:12}} axisLine={false} tickLine={false}/>
-                                                <Tooltip contentStyle={{backgroundColor:'var(--bg-card)', borderColor:'var(--border-color)', color:'var(--text-main)'}} cursor={{fill: 'var(--hover-bg)'}} />
-                                                <Bar dataKey="valor" fill="var(--accent-color)" radius={[4,4,0,0]} name="Cantidad" />
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    )}
+                                    {(!chartData || chartData.length === 0) ? (
+                                        <div className="text-muted fst-italic">Sin datos para mostrar con los filtros actuales.</div>
+                                    ) : (
+                                        <>
+                                            {type === 'bar' && (
+                                                <ResponsiveContainer width="100%" height={300}>
+                                                    <BarChart data={chartData} margin={{top:20, right:30, left:0, bottom:5}}>
+                                                        <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                                                        <XAxis dataKey="etiqueta" tick={{fill:'var(--text-muted)', fontSize:12}} axisLine={false} tickLine={false}/>
+                                                        <YAxis tick={{fill:'var(--text-muted)', fontSize:12}} axisLine={false} tickLine={false}/>
+                                                        <Tooltip contentStyle={{backgroundColor:'var(--bg-card)', borderColor:'var(--border-color)', color:'var(--text-main)'}} cursor={{fill: 'var(--hover-bg)'}} />
+                                                        <Bar dataKey="valor" fill="var(--accent-color)" radius={[4,4,0,0]} name="Cantidad" />
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            )}
 
-                                    {type === 'pie' && (
-                                        <ResponsiveContainer width="100%" height={300}>
-                                            <PieChart>
-                                                <Pie data={stat.datos || []} cx="50%" cy="50%" labelLine={false} label={renderCustomizedLabel} outerRadius={100} fill="#8884d8" dataKey="valor" nameKey="etiqueta">
-                                                    {(stat.datos || []).map((entry, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
-                                                </Pie>
-                                                <Tooltip contentStyle={{backgroundColor:'var(--bg-card)', borderColor:'var(--border-color)', color:'var(--text-main)'}} itemStyle={{color: 'var(--text-main)'}} />
-                                                <Legend wrapperStyle={{color: 'var(--text-main)'}} />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    )}
+                                            {type === 'pie' && (
+                                                <ResponsiveContainer width="100%" height={300}>
+                                                    <PieChart>
+                                                        <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={renderCustomizedLabel} outerRadius={100} fill="#8884d8" dataKey="valor" nameKey="etiqueta">
+                                                            {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
+                                                        </Pie>
+                                                        <Tooltip contentStyle={{backgroundColor:'var(--bg-card)', borderColor:'var(--border-color)', color:'var(--text-main)'}} itemStyle={{color: 'var(--text-main)'}} />
+                                                        <Legend wrapperStyle={{color: 'var(--text-main)'}} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            )}
 
-                                    {type === 'progress' && (
-                                        <div className="w-100 px-2">
-                                            {(stat.datos || []).map((dato, dIdx) => (
-                                                <div key={dIdx} className="mb-4">
-                                                    <div className="d-flex justify-content-between mb-2">
-                                                        <span className="fw-bold" style={{color: 'var(--text-main)'}}>{dato.etiqueta}</span>
-                                                        <span className="fw-bold" style={{color: 'var(--text-main)'}}>
-                                                            {dato.valor}
-                                                            <span className="fw-normal ms-2" style={{color: 'var(--text-muted)'}}>({dato.porcentaje}%)</span>
-                                                        </span>
-                                                    </div>
-                                                    <ProgressBar now={dato.porcentaje} variant={dIdx % 2 === 0 ? "info" : "primary"} style={{height: '10px', borderRadius: '5px', backgroundColor: 'var(--border-color)'}} />
+                                            {type === 'progress' && (
+                                                <div className="w-100 px-2" style={{maxHeight: '300px', overflowY: 'auto'}}>
+                                                    {chartData.map((dato, dIdx) => {
+                                                        const totalVal = chartData.reduce((acc, curr) => acc + curr.valor, 0);
+                                                        const porcentaje = totalVal > 0 ? Math.round((dato.valor / totalVal) * 100) : 0;
+
+                                                        return (
+                                                            <div key={dIdx} className="mb-4">
+                                                                <div className="d-flex justify-content-between mb-2">
+                                                                    <span className="fw-bold" style={{color: 'var(--text-main)'}}>{dato.etiqueta}</span>
+                                                                    <span className="fw-bold" style={{color: 'var(--text-main)'}}>
+                                                                        {dato.valor}
+                                                                        <span className="fw-normal ms-2" style={{color: 'var(--text-muted)'}}>({porcentaje}%)</span>
+                                                                    </span>
+                                                                </div>
+                                                                <ProgressBar now={porcentaje} variant={dIdx % 2 === 0 ? "info" : "primary"} style={{height: '10px', borderRadius: '5px', backgroundColor: 'var(--border-color)'}} />
+                                                            </div>
+                                                        )
+                                                    })}
                                                 </div>
-                                            ))}
-                                        </div>
+                                            )}
+                                        </>
                                     )}
                                 </Card.Body>
                             </Card>

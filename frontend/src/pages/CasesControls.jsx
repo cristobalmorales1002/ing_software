@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Form, InputGroup, Button, Card, ListGroup, Badge, Spinner, Modal, ProgressBar, Table, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import { Link } from 'react-router-dom'; // <--- IMPORTADO
 import {
     Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft,
     Save, FileEarmarkPdf, Download,
     ExclamationTriangle, QuestionCircle, Pencil, Trash
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
-import { formatRut } from '../utils/rutUtils'; //
-import { getPhoneConfig, COUNTRY_PHONE_DATA } from '../utils/phoneUtils'; //
+import { formatRut } from '../utils/rutUtils';
+import { getPhoneConfig, COUNTRY_PHONE_DATA } from '../utils/phoneUtils';
 
 const CasesControls = () => {
     // --- ESTADOS ---
@@ -40,8 +41,6 @@ const CasesControls = () => {
     const fetchUserRole = async () => {
         try {
             const res = await api.get('/api/usuarios/me');
-            // DEBUG: Ver qué propiedades trae el usuario (id, idUsuario, usuarioId?)
-            console.log("Usuario Actual:", res.data);
             setCurrentUser(res.data);
         } catch (error) {
             console.error("Error al obtener usuario:", error);
@@ -70,7 +69,7 @@ const CasesControls = () => {
     const fetchPacientes = async () => {
         setIsLoading(true);
         try {
-            const res = await api.get('/api/pacientes'); //
+            const res = await api.get('/api/pacientes');
             if (!Array.isArray(res.data)) {
                 setItems([]);
                 return;
@@ -83,7 +82,7 @@ const CasesControls = () => {
                 fechaIngreso: p.fechaIncl,
                 estado: 'Activo',
 
-                // Mapeamos el ID del backend (asegúrate de que este campo exista en el JSON)
+                // Mapeamos el ID del backend
                 creadorId: p.usuarioCreadorId,
 
                 respuestas: p.respuestas || []
@@ -112,7 +111,7 @@ const CasesControls = () => {
     const fetchSurveyStructure = async () => {
         setLoadingSurvey(true);
         try {
-            const res = await api.get('/api/encuesta/completa'); //
+            const res = await api.get('/api/encuesta/completa');
             const structure = Array.isArray(res.data) ? res.data : [];
             const structureClean = structure.map(cat => ({
                 ...cat,
@@ -150,32 +149,22 @@ const CasesControls = () => {
     const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
 
-    // --- REGLAS DE PERMISOS (CORREGIDO) ---
+    // --- REGLAS DE PERMISOS ---
     const canEdit = (item) => {
         if (!currentUser || !item) return false;
 
-        // 1. Obtener ID del Usuario Actual de forma segura
-        // Buscamos todas las posibles variantes de nombre de la propiedad ID
         const currentUserId = currentUser.idUsuario || currentUser.id || currentUser.usuarioId;
-
-        // 2. Obtener ID del creador del item
         const itemCreatorId = item.creadorId;
-
-        // 3. Comparación Flexible (==) para evitar fallos por String vs Number ("5" == 5)
         const isCreator = itemCreatorId == currentUserId;
 
-        // REGLA 1: CASOS -> SOLO el médico creador
         if (item.tipo === 'CASO') {
             return userRole === 'ROLE_MEDICO' && isCreator;
         }
 
-        // REGLA 2: CONTROLES
         if (item.tipo === 'CONTROL') {
-            // Estudiantes: Solo sus propios controles
             if (userRole === 'ROLE_ESTUDIANTE') {
                 return isCreator;
             }
-            // Admin e Investigador: Gestión general (pueden editar todos los controles)
             if (['ROLE_ADMIN', 'ROLE_INVESTIGADOR'].includes(userRole)) {
                 return true;
             }
@@ -488,11 +477,18 @@ const CasesControls = () => {
                                         <PersonVcard />
                                         {selectedItem.id}
                                     </h4>
-                                    {/* --- MOSTRAR NOMBRE DEL RECLUTADOR (CRUCE DE DATOS) --- */}
+                                    {/* --- AQUÍ SE COLOCÓ EL LINK AL PERFIL DEL RECLUTADOR --- */}
                                     <div className="text-muted small">
                                         <span>Ingreso: {selectedItem.fechaIngreso ? new Date(selectedItem.fechaIngreso).toLocaleDateString() : '-'}</span>
                                         <span className="mx-2">•</span>
-                                        <span>Reclutado por: <strong>{usersMap[selectedItem.creadorId] || 'Desconocido/Cargando...'}</strong></span>
+                                        <span>Reclutado por: </span>
+                                        {selectedItem.creadorId && usersMap[selectedItem.creadorId] ? (
+                                            <Link to={`/dashboard/usuarios/${selectedItem.creadorId}`} className="fw-bold text-decoration-none text-dark hover-link">
+                                                {usersMap[selectedItem.creadorId]}
+                                            </Link>
+                                        ) : (
+                                            <strong>{usersMap[selectedItem.creadorId] || 'Desconocido/Cargando...'}</strong>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="d-flex gap-2 align-items-center">

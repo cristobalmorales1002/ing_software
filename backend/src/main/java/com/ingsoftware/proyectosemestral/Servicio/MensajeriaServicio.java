@@ -1,5 +1,6 @@
 package com.ingsoftware.proyectosemestral.Servicio;
 
+import com.ingsoftware.proyectosemestral.DTO.DestinatarioSimpleDto;
 import com.ingsoftware.proyectosemestral.DTO.MensajeBandejaDto;
 import com.ingsoftware.proyectosemestral.DTO.MensajeEnviadoDto;
 import com.ingsoftware.proyectosemestral.DTO.MensajeEnvioDto;
@@ -167,6 +168,12 @@ public class MensajeriaServicio {
                                                 .map(dm -> dm.getDestinatario().getNombres()) // Obtenemos el nombre
                                                 .collect(Collectors.joining(", ")) // Los unimos con comas
                         )
+                        .destinatariosDetalle(m.getDestinatarios().stream()
+                                .map(dm -> DestinatarioSimpleDto.builder()
+                                        .id(dm.getDestinatario().getIdUsuario())
+                                        .nombre(dm.getDestinatario().getNombres() + " " + dm.getDestinatario().getApellidos())
+                                        .build())
+                                .collect(Collectors.toList()))
                         .build())
                 .collect(Collectors.toList());
     }

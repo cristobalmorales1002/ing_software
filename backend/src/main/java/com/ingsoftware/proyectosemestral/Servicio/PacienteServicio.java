@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -28,7 +29,6 @@ public class PacienteServicio {
     @Autowired private RegistroServicio registroServicio;
     @Autowired private UsuarioRepositorio usuarioRepositorio;
 
-    // Método auxiliar para obtener el usuario conectado actualmente
     private Usuario obtenerUsuarioActual() {
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             return null;
@@ -51,11 +51,16 @@ public class PacienteServicio {
             if(optRespuesta.isPresent()){
                 Respuesta respuestaExistente = optRespuesta.get();
                 String valorAnterior = respuestaExistente.getValor();
-                if(!valorAnterior.equals(dto.getValor())){
+
+                if(!Objects.equals(valorAnterior, dto.getValor())){
                     respuestaExistente.setValor(dto.getValor());
                     respuestaGuardada = respuestaRepositorio.save(respuestaExistente);
+
+                    String etiqueta = pregunta.getEtiqueta() != null ? pregunta.getEtiqueta() : "Pregunta " + pregunta.getPregunta_id();
+                    String detalle = "Pregunta: " + etiqueta + " | Anterior: '" + valorAnterior + "' -> Nuevo: '" + dto.getValor() + "'";
+
                     registroServicio.registrarAccion(usuario, "ACTUALIZAR_RESPUESTA",
-                            "Valor anterior: '" + valorAnterior + "', Nuevo valor: '" + dto.getValor() +"'",
+                            detalle,
                             respuestaGuardada);
                 } else {
                     respuestaGuardada = respuestaExistente;
@@ -66,9 +71,6 @@ public class PacienteServicio {
                 nuevaRespuesta.setPregunta(pregunta);
                 nuevaRespuesta.setValor(dto.getValor());
                 respuestaGuardada = respuestaRepositorio.save(nuevaRespuesta);
-                registroServicio.registrarAccion(usuario, "CREAR_RESPUESTA",
-                        "Valor: '" + dto.getValor() + "'",
-                        respuestaGuardada);
             }
 
             RespuestaResponseDto rDto = new RespuestaResponseDto();
@@ -126,9 +128,6 @@ public class PacienteServicio {
         boolean esMedico = usuario.tieneRol("ROLE_MEDICO");
         boolean esEstudiante = usuario.tieneRol("ROLE_ESTUDIANTE");
 
-        // Reglas de edición (Visualizador no edita, por lo que no necesita lógica aquí,
-        // su bloqueo debe estar a nivel de Controlador/Permisos)
-
         if (esEstudiante) {
             if (!paciente.getReclutador().getIdUsuario().equals(usuario.getIdUsuario())) {
                 throw new AccessDeniedException("Acceso denegado: Los estudiantes solo pueden editar los participantes que ellos mismos ingresaron.");
@@ -161,7 +160,6 @@ public class PacienteServicio {
                 .collect(Collectors.toList());
     }
 
-    // Método privado para convertir entidad a DTO aplicando filtros de seguridad
     private PacienteResponseDto convertirA_PacienteResponseDto(Paciente paciente, Usuario usuarioViendo){
         PacienteResponseDto dto = new PacienteResponseDto();
         dto.setParticipante_id(paciente.getParticipante_id());
@@ -173,21 +171,17 @@ public class PacienteServicio {
             dto.setUsuarioCreadorId(paciente.getReclutador().getIdUsuario());
         }
 
-        // --- LÓGICA DE OCULTAMIENTO DE DATOS SENSIBLES ---
         boolean ocultarSensible = false;
 
         if (usuarioViendo != null) {
             boolean esEstudiante = usuarioViendo.tieneRol("ROLE_ESTUDIANTE");
-            // Agregamos VISUALIZADOR a la lógica de restricción
             boolean esVisualizador = usuarioViendo.tieneRol("ROLE_VISUALIZADOR");
-
             boolean esMedico = usuarioViendo.tieneRol("ROLE_MEDICO");
 
             if (esEstudiante || esVisualizador || esMedico) {
                 boolean esPropio = paciente.getReclutador() != null &&
                         paciente.getReclutador().getIdUsuario().equals(usuarioViendo.getIdUsuario());
 
-                // Si NO es propio, activamos el modo oculto
                 if (!esPropio) {
                     ocultarSensible = true;
                 }
@@ -201,7 +195,6 @@ public class PacienteServicio {
                     RespuestaResponseDto rDto = new RespuestaResponseDto();
                     rDto.setRespuesta_id(respuesta.getRespuesta_id());
 
-                    // APLICAR MÁSCARA [CONFIDENCIAL]
                     if (mascaraActiva && respuesta.getPregunta() != null && respuesta.getPregunta().isDato_sensible()) {
                         rDto.setValor("[CONFIDENCIAL]");
                     } else {
@@ -221,7 +214,6 @@ public class PacienteServicio {
 
     @Transactional
     public void archivarPaciente(Long pacienteId, Usuario usuario){
-        // Bloqueamos también al Visualizador de archivar, por seguridad extra
         if (usuario.tieneRol("ROLE_ESTUDIANTE") || usuario.tieneRol("VISUALIZADOR")) {
             throw new AccessDeniedException("Acceso denegado: No tienes permiso para archivar participantes.");
         }

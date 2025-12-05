@@ -3,13 +3,16 @@ package com.ingsoftware.proyectosemestral.Servicio;
 import com.ingsoftware.proyectosemestral.DTO.EstadisticaDto;
 import com.ingsoftware.proyectosemestral.Modelo.Paciente;
 import com.ingsoftware.proyectosemestral.Modelo.Pregunta;
+import com.ingsoftware.proyectosemestral.Modelo.Usuario;
 import com.ingsoftware.proyectosemestral.Repositorio.PacienteRepositorio;
 import com.ingsoftware.proyectosemestral.Repositorio.PreguntaRepositorio;
+import com.ingsoftware.proyectosemestral.Repositorio.UsuarioRepositorio;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,17 +27,45 @@ public class EstadisticaServicio {
     @Autowired
     private PacienteRepositorio pacienteRepositorio;
 
+    @Autowired
+    private UsuarioRepositorio usuarioRepositorio;
+
     @Transactional(readOnly = true)
-    public List<EstadisticaDto> calcularEstadisticasDashboard() {
-        // Obtener preguntas configuradas para estadísticas (Solo las activas y de tipo ENUM)
-        List<Pregunta> preguntasParaEstadistica = preguntaRepositorio.findAll().stream()
-                .filter(p -> p.isActivo() && p.isGenerarEstadistica())
-                .collect(Collectors.toList());
+    public List<EstadisticaDto> calcularEstadisticasDashboard(String rutUsuario) {
 
-        // Obtener todos los pacientes activos para contar sus respuestas
+        Usuario usuario = usuarioRepositorio.findByRut(rutUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        String prefs = usuario.getPreferenciasEstadisticas();
+        System.out.println(">>> LEYENDO PREFERENCIAS de " + rutUsuario + ": [" + prefs + "]");
+
+        List<Pregunta> preguntasParaEstadistica;
+
+        if (prefs == null) {
+            System.out.println(">>> Preferencias NULL. Usando DEFAULTS.");
+            preguntasParaEstadistica = obtenerPreguntasPorDefecto();
+        }
+        else if (prefs.trim().isEmpty()) {
+            System.out.println(">>> Preferencias VACÍAS. Mostrando 0 gráficos.");
+            preguntasParaEstadistica = new ArrayList<>();
+        }
+        else {
+            try {
+                List<Long> ids = Arrays.stream(prefs.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .map(Long::valueOf)
+                        .collect(Collectors.toList());
+
+                preguntasParaEstadistica = preguntaRepositorio.findAllById(ids);
+                System.out.println(">>> Preferencias ENCONTRADAS. IDs: " + ids);
+            } catch (Exception e) {
+                System.err.println(">>> ERROR parseando preferencias: " + e.getMessage());
+                preguntasParaEstadistica = obtenerPreguntasPorDefecto();
+            }
+        }
+
         List<Paciente> pacientes = pacienteRepositorio.findByActivoTrue();
-        long totalPacientes = pacientes.size();
-
         List<EstadisticaDto> resultados = new ArrayList<>();
 
         for (Pregunta p : preguntasParaEstadistica) {
@@ -42,31 +73,25 @@ public class EstadisticaServicio {
             dto.setPreguntaId(p.getPregunta_id());
             dto.setTituloPregunta(p.getEtiqueta());
 
-            // Mapa para contar: "Opción A" -> 5, "Opción B" -> 3
             Map<String, Long> conteoRespuestas = new HashMap<>();
-
-            // Inicializar mapa con 0 para todas las opciones posibles (para que salgan aunque nadie responda)
-            p.getOpciones().forEach(op -> conteoRespuestas.put(op.getEtiqueta(), 0L));
-
-            // Contar respuestas reales
-            for (Paciente paciente : pacientes) {
-                // Buscar respuesta del paciente a esta pregunta
-                paciente.getRespuestas().stream()
-                        .filter(r -> r.getPregunta().getPregunta_id().equals(p.getPregunta_id()))
-                        .findFirst()
-                        .ifPresent(respuesta -> {
-                            String valor = respuesta.getValor();
-                            if (valor != null && !valor.isBlank()) {
-                                // Normalizar clave para evitar duplicados por espacios
-                                // Buscamos la etiqueta exacta en las opciones para sumar al bucket correcto
-                                conteoRespuestas.computeIfPresent(valor, (k, v) -> v + 1);
-                                // Si la respuesta no coincide exacto con una opción (ej: se editó la opción después),
-                                // se podría agregar como "Otros" o ignorar. Aquí asumimos consistencia.
-                            }
-                        });
+            if (p.getOpciones() != null) {
+                p.getOpciones().forEach(op -> conteoRespuestas.put(op.getEtiqueta(), 0L));
             }
 
-            // Convertir Mapa a Lista de DTOs
+            for (Paciente paciente : pacientes) {
+                if (paciente.getRespuestas() != null) {
+                    paciente.getRespuestas().stream()
+                            .filter(r -> r.getPregunta().getPregunta_id().equals(p.getPregunta_id()))
+                            .findFirst()
+                            .ifPresent(respuesta -> {
+                                String valor = respuesta.getValor();
+                                if (valor != null && !valor.isBlank()) {
+                                    conteoRespuestas.compute(valor, (k, v) -> (v == null) ? 1L : v + 1);
+                                }
+                            });
+                }
+            }
+
             List<EstadisticaDto.DatoGrafico> datosGrafico = new ArrayList<>();
             long totalRespuestasValidas = conteoRespuestas.values().stream().mapToLong(Long::longValue).sum();
 
@@ -75,9 +100,7 @@ public class EstadisticaServicio {
                 if (totalRespuestasValidas > 0) {
                     porcentaje = (entry.getValue() * 100.0) / totalRespuestasValidas;
                 }
-                // Redondear a 1 decimal
                 porcentaje = Math.round(porcentaje * 10.0) / 10.0;
-
                 datosGrafico.add(new EstadisticaDto.DatoGrafico(entry.getKey(), entry.getValue(), porcentaje));
             }
 
@@ -85,20 +108,25 @@ public class EstadisticaServicio {
             resultados.add(dto);
         }
 
-        // Extra: Agregar estadística fija de Casos vs Controles
         resultados.add(0, calcularEstadisticaCasosControles(pacientes));
 
         return resultados;
     }
 
+    private List<Pregunta> obtenerPreguntasPorDefecto() {
+        return preguntaRepositorio.findAll().stream()
+                .filter(p -> p.isActivo() && p.isGenerarEstadistica())
+                .collect(Collectors.toList());
+    }
+
     private EstadisticaDto calcularEstadisticaCasosControles(List<Paciente> pacientes) {
         long total = pacientes.size();
-        long casos = pacientes.stream().filter(Paciente::getEsCaso).count();
+        long casos = pacientes.stream().filter(p -> Boolean.TRUE.equals(p.getEsCaso())).count();
         long controles = total - casos;
 
         EstadisticaDto dto = new EstadisticaDto();
         dto.setTituloPregunta("Distribución Casos vs Controles");
-        dto.setPreguntaId(0L); // ID ficticio
+        dto.setPreguntaId(0L);
 
         List<EstadisticaDto.DatoGrafico> datos = new ArrayList<>();
 
@@ -110,5 +138,16 @@ public class EstadisticaServicio {
 
         dto.setDatos(datos);
         return dto;
+    }
+    public List<Map<String, Object>> obtenerOpcionesDisponibles() {
+        return preguntaRepositorio.findAll().stream()
+                .filter(p -> p.isActivo() && p.isGenerarEstadistica())
+                .map(p -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("preguntaId", p.getPregunta_id());
+                    map.put("tituloPregunta", p.getEtiqueta());
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 }

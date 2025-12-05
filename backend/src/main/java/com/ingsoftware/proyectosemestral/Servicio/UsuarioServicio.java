@@ -135,30 +135,25 @@ public class UsuarioServicio {
         return toResponseDto(saved);
     }
 
-    // --- CAMBIO PRINCIPAL AQUÍ ---
     @Transactional
     public void solicitarCambioEmail(String rut, String nuevoEmail, String passwordActual) {
         Usuario u = usuarioRepositorio.findByRut(rut)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // 1. Validar contraseña por seguridad
-        if (!passwordEncoder.matches(passwordActual, u.getContrasena())) {
+                if (!passwordEncoder.matches(passwordActual, u.getContrasena())) {
             throw new RuntimeException("La contraseña actual es incorrecta.");
         }
 
-        // 2. Validar que el nuevo email no esté ocupado
         if (usuarioRepositorio.findByEmail(nuevoEmail).isPresent()) {
             throw new RuntimeException("El correo electrónico ya está registrado en el sistema.");
         }
 
-        // 3. Generar Token
         String token = generarTokenNumerico();
         u.setTokenCambioEmail(token);
         u.setTokenCambioEmailExpiracion(LocalDateTime.now().plusMinutes(15));
 
         usuarioRepositorio.save(u);
 
-        // 4. Enviar correo al NUEVO destinatario para verificar que existe
         enviarCorreoTokenEmail(nuevoEmail, token);
     }
 
@@ -179,7 +174,6 @@ public class UsuarioServicio {
     public void confirmarCambioEmail(String rut, String token, String nuevoEmail) {
         validarTokenEmail(rut, token);
 
-        // Doble chequeo por si alguien se registró en el intertanto
         usuarioRepositorio.findByEmail(nuevoEmail).ifPresent(x -> {
             throw new RuntimeException("El nuevo correo ya está registrado por otro usuario");
         });
@@ -320,5 +314,25 @@ public class UsuarioServicio {
 
     public Optional<Usuario> buscarPorRut(String rut) {
         return usuarioRepositorio.findByRut(rut);
+    }
+
+    @Transactional
+    public void guardarPreferenciasEstadistica(String rut, List<Long> ids) {
+        Usuario u = usuarioRepositorio.findByRut(rut)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        String valorAGuardar;
+        if (ids == null || ids.isEmpty()) {
+            valorAGuardar = "";
+        } else {
+            valorAGuardar = ids.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+        }
+
+        System.out.println(">>> GUARDANDO PREFERENCIAS para " + rut + ": [" + valorAGuardar + "]");
+
+        u.setPreferenciasEstadisticas(valorAGuardar);
+        usuarioRepositorio.save(u);
     }
 }

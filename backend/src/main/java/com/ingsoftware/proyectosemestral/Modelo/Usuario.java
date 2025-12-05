@@ -96,4 +96,6 @@ public class Usuario {
     @Lob // Indica que es un objeto grande (Large Object)
     @Column(columnDefinition = "LONGBLOB") // Específico para MySQL para guardar archivos grandes
     private byte[] fotoPerfil;
+    @Column(columnDefinition = "TEXT")
+    private String preferenciasEstadisticas;
 }

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Spinner, Alert, Button, Offcanvas, Form, InputGroup, ProgressBar } from 'react-bootstrap';
-
 import { People, GraphUp, PieChart as IconPieChart, GenderAmbiguous, FunnelFill, BarChartFill, PieChartFill, GearFill, ListUl, Search, Floppy, Calculator, Filter } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -74,8 +73,9 @@ const DashboardHome = () => {
                 data.forEach(stat => {
                     if (!newTypes[stat.preguntaId]) {
                         const titulo = stat.tituloPregunta.toLowerCase();
-                        if (titulo.includes('sexo')) newTypes[stat.preguntaId] = 'pie';
-                        else if (titulo.includes('casos')) newTypes[stat.preguntaId] = 'progress';
+                        // Asignar tipo de gráfico por defecto según el título
+                        if (stat.preguntaId === 0 || titulo.includes('caso')) newTypes[stat.preguntaId] = 'pie';
+                        else if (titulo.includes('sexo')) newTypes[stat.preguntaId] = 'pie';
                         else newTypes[stat.preguntaId] = 'bar';
                     }
                     if (isNumericStat(stat) && !newGrouping[stat.preguntaId]) {
@@ -94,18 +94,34 @@ const DashboardHome = () => {
     // --- PROCESAMIENTO DE DATOS (CORREGIDO) ---
     const processedStats = useMemo(() => {
         return dashboardStats.map(stat => {
-            // 1. Filtrar pacientes según checkboxes
+            // 1. Filtrar pacientes según checkboxes (Casos / Controles)
             const filteredPatients = allPatients.filter(p => {
                 if (p.esCaso && !patientFilter.showCasos) return false;
                 if (!p.esCaso && !patientFilter.showControles) return false;
                 return true;
             });
 
-            // 2. Calcular frecuencias para esta pregunta
+            // --- INICIO CORRECCIÓN ---
+            // Manejo especial para el gráfico de "Casos vs Controles" (ID 0)
+            // Este gráfico NO depende de 'respuestas', sino del campo booleano 'esCaso'.
+            if (stat.preguntaId === 0) {
+                const countCasos = filteredPatients.filter(p => p.esCaso).length;
+                const countControles = filteredPatients.filter(p => !p.esCaso).length;
+
+                return {
+                    ...stat,
+                    datos: [
+                        { etiqueta: 'Casos', valor: countCasos },
+                        { etiqueta: 'Controles', valor: countControles }
+                    ]
+                };
+            }
+            // --- FIN CORRECCIÓN ---
+
+            // 2. Calcular frecuencias para preguntas normales (Encuestas)
             const counts = {};
             filteredPatients.forEach(p => {
-                // FIX: Buscar respuesta comprobando ambas variantes de nombre (preguntaId y pregunta_id)
-                // Además validamos que respuestas exista y sea un array
+                // Validación robusta de respuestas
                 if (!p.respuestas || !Array.isArray(p.respuestas)) return;
 
                 const respuesta = p.respuestas.find(r =>
@@ -132,10 +148,12 @@ const DashboardHome = () => {
 
 
     const isNumericStat = (stat) => {
+        // El gráfico de Casos vs Controles (ID 0) no es numérico continuo
+        if (stat.preguntaId === 0) return false;
+
         if (stat.tipoDato === 'NUMERO' || stat.tipoDato === 'DECIMAL') return true;
-        // Revisar si los datos dinámicos parecen números (si existen)
+        // Revisar si los datos dinámicos parecen números
         if (!stat.datos || stat.datos.length === 0) return false;
-        // Usamos una muestra para no iterar todo si es muy grande
         return !isNaN(parseFloat(stat.datos[0].etiqueta));
     };
 
@@ -220,6 +238,8 @@ const DashboardHome = () => {
         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
         const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
         const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+        // Solo mostramos etiqueta si el porcentaje es mayor a 0
+        if (percent === 0) return null;
         return <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="12px" fontWeight="bold">{`${(percent * 100).toFixed(0)}%`}</text>;
     };
 
@@ -293,7 +313,7 @@ const DashboardHome = () => {
                         </div>
 
                         <Button variant="success" size="sm" onClick={handleForceSave} disabled={savingManual}>
-                            {savingManual ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : <><Floppy className="me-2"/> Guardar Vista</>}
+                            {savingManual ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : <><Floppy className="me-2"/> Guardar Gráficos Seleccionados</>}
                         </Button>
                         <Button variant="primary" size="sm" onClick={() => setShowFilter(true)}>
                             <FunnelFill className="me-2"/> Configurar

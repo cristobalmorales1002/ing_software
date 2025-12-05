@@ -8,7 +8,6 @@ const Reports = () => {
     const [error, setError] = useState(null);
     const [userRole, setUserRole] = useState(null);
 
-    // Obtener el rol al cargar
     useEffect(() => {
         const fetchUserRole = async () => {
             try {
@@ -46,6 +45,7 @@ const Reports = () => {
     };
 
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
+    const isAdmin = hasRole(['ROLE_ADMIN']);
 
     return (
         <Container fluid className="p-0">
@@ -53,11 +53,8 @@ const Reports = () => {
 
             {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
 
-            {/* CAMBIO: Quitamos 'justify-content-center' para que alínee a la izquierda por defecto */}
-            <Row className="g-4">
-
-                {/* --- TARJETA 1: EXCEL (Visible para todos, botones internos restringidos) --- */}
-                <Col md={10} lg={6}>
+            <Row className="g-4 justify-content-center">
+                <Col md={10} lg={isAdmin ? 6 : 10} xl={isAdmin ? 6 : 9}>
                     <Card className="h-100 shadow-sm border-0">
                         <Card.Header className="bg-success bg-opacity-10 text-success fw-bold d-flex align-items-center gap-2 justify-content-center">
                             <FileEarmarkExcel size={20}/> Base de Datos (Excel)
@@ -68,7 +65,6 @@ const Reports = () => {
                             </p>
 
                             <div className="d-grid gap-3">
-                                {/* SOLO ADMIN E INVESTIGADOR ven la Base Completa */}
                                 {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR']) && (
                                     <Button
                                         variant="outline-success"
@@ -81,7 +77,6 @@ const Reports = () => {
                                     </Button>
                                 )}
 
-                                {/* Bases Anonimizadas (Visibles para todos) */}
                                 <Button
                                     variant="outline-primary"
                                     className="d-flex justify-content-between align-items-center"
@@ -106,8 +101,7 @@ const Reports = () => {
                     </Card>
                 </Col>
 
-                {/* --- TARJETA 2: PDF (SOLO VISIBLE PARA ADMIN) --- */}
-                {hasRole(['ROLE_ADMIN']) && (
+                {isAdmin && (
                     <Col md={10} lg={6}>
                         <Card className="h-100 shadow-sm border-0">
                             <Card.Header className="bg-danger bg-opacity-10 text-danger fw-bold d-flex align-items-center gap-2 justify-content-center">

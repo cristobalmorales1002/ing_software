@@ -1,5 +1,6 @@
 package com.ingsoftware.proyectosemestral.Controlador;
 
+import com.ingsoftware.proyectosemestral.DTO.MensajeEnviadoDto;
 import com.ingsoftware.proyectosemestral.DTO.MensajeEnvioDto;
 import com.ingsoftware.proyectosemestral.Modelo.Usuario;
 import com.ingsoftware.proyectosemestral.Servicio.MensajeriaServicio;
@@ -10,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/mensajes")
@@ -55,12 +58,15 @@ public class MensajeriaControlador {
     }
 
 
-    @GetMapping("/enviados")
-    public ResponseEntity<?> verEnviados() {
+    @GetMapping("/enviados") // Ejemplo de tu ruta
+    public ResponseEntity<?> obtenerEnviados() {
+
+        // El servicio ahora devuelve DTOs, así que esto compilará correctamente
         try {
             Usuario usuario = obtenerUsuarioAutenticado();
+            List<MensajeEnviadoDto> enviados = mensajeriaServicio.obtenerEnviados(usuario.getIdUsuario());
 
-            return ResponseEntity.ok(mensajeriaServicio.obtenerEnviados(usuario.getIdUsuario()));
+            return ResponseEntity.ok(enviados);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al obtener mensajes enviados.");
         }

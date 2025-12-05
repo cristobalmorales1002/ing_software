@@ -1,6 +1,7 @@
 package com.ingsoftware.proyectosemestral.Servicio;
 
 import com.ingsoftware.proyectosemestral.DTO.MensajeBandejaDto;
+import com.ingsoftware.proyectosemestral.DTO.MensajeEnviadoDto;
 import com.ingsoftware.proyectosemestral.DTO.MensajeEnvioDto;
 import com.ingsoftware.proyectosemestral.Modelo.*;
 import com.ingsoftware.proyectosemestral.Repositorio.*;
@@ -149,8 +150,25 @@ public class MensajeriaServicio {
                 .collect(Collectors.toList());
     }
 
-    public List<Mensaje> obtenerEnviados(Long idUsuario) {
-        return mensajeRepositorio.findByEmisor_IdUsuarioOrderByFechaEnvioDesc(idUsuario);
+    public List<MensajeEnviadoDto> obtenerEnviados(Long idUsuario) {
+        // 1. Obtenemos las entidades desde la BD
+        List<Mensaje> mensajes = mensajeRepositorio.findByEmisor_IdUsuarioOrderByFechaEnvioDesc(idUsuario);
+
+        // 2. Las convertimos a DTOs incluyendo el resumen de nombres
+        return mensajes.stream()
+                .map(m -> MensajeEnviadoDto.builder()
+                        .id(m.getId())
+                        .asunto(m.getAsunto())
+                        .contenido(m.getContenido())
+                        .fechaEnvio(m.getFechaEnvio())
+                        .destinatariosResumen(
+                                m.getDestinatarios() == null ? "Sin destinatarios" : // Protección contra nulos
+                                        m.getDestinatarios().stream()
+                                                .map(dm -> dm.getDestinatario().getNombres()) // Obtenemos el nombre
+                                                .collect(Collectors.joining(", ")) // Los unimos con comas
+                        )
+                        .build())
+                .collect(Collectors.toList());
     }
 
     public long contarNoLeidos(Long idUsuario) {

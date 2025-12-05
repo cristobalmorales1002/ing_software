@@ -1,129 +1,322 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, ListGroup, Badge, Button, Form, Modal, InputGroup, Card } from 'react-bootstrap';
+import React, { useState, useEffect, useRef } from 'react';
+import { Container, Row, Col, ListGroup, Badge, Button, Form, Modal, InputGroup, Spinner } from 'react-bootstrap';
 import {
-    Envelope,
     Send,
     Inbox,
     Search,
     PlusLg,
     PersonCircle,
     Trash,
-    Reply
+    Reply,
+    X,
+    Calendar3,
+    ArrowCounterclockwise
 } from 'react-bootstrap-icons';
-
-// --- DATOS MOCK (SIMULACIÓN DE BACKEND) ---
-const MOCK_USERS = [
-    { id: 1, nombre: 'Juan Pérez', rol: 'ROLE_ADMIN', email: 'juan.perez@cybergene.cl' },
-    { id: 2, nombre: 'Maria Gomez', rol: 'ROLE_INVESTIGADOR', email: 'maria.gomez@cybergene.cl' },
-    { id: 3, nombre: 'Carlos Ruiz', rol: 'ROLE_MEDICO', email: 'carlos.ruiz@cybergene.cl' },
-    { id: 4, nombre: 'Ana Torres', rol: 'ROLE_ESTUDIANTE', email: 'ana.torres@cybergene.cl' },
-    { id: 99, nombre: 'Todos los Usuarios', rol: 'SISTEMA', email: 'all@cybergene.cl' }
-];
-
-const MOCK_MESSAGES = [
-    { id: 1, senderId: 2, senderName: 'Maria Gomez', subject: 'Resultados Preliminares Caso #402', body: 'Hola, te adjunto los avances del caso clínico revisado ayer. Saludos.', date: '10:30 AM', read: false, type: 'received' },
-    { id: 2, senderId: 3, senderName: 'Carlos Ruiz', subject: 'Duda sobre protocolo', body: 'Necesito confirmar si el protocolo de seguridad cambió para el laboratorio B.', date: 'Ayer', read: true, type: 'received' },
-    { id: 3, senderId: 'me', senderName: 'Yo', recipientName: 'Juan Pérez', subject: 'Solicitud de vacaciones', body: 'Estimado, solicito días libres para la próxima semana.', date: '20 Nov', type: 'sent' }
-];
+import api from '../api/axios';
 
 const Messages = () => {
-    // Estados principales
-    const [activeTab, setActiveTab] = useState('inbox'); // 'inbox' | 'sent'
-    const [messages, setMessages] = useState(MOCK_MESSAGES);
-    const [searchTerm, setSearchTerm] = useState('');
+    // --- ESTADOS ---
+    const [activeTab, setActiveTab] = useState('inbox');
+    const [messages, setMessages] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Estados para Modales
+    // Estados de Filtros
+    const [searchTerm, setSearchTerm] = useState('');
+    const [dateFilters, setDateFilters] = useState({ inicio: '', fin: '' });
+
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [currentUser, setCurrentUser] = useState(null);
+
+    // Estados Modales
     const [showCompose, setShowCompose] = useState(false);
     const [showRead, setShowRead] = useState(false);
     const [selectedMessage, setSelectedMessage] = useState(null);
 
-    // Estados para Formulario de Redacción
+    // Estados Redacción
     const [recipientQuery, setRecipientQuery] = useState('');
-    const [suggestedRecipients, setSuggestedRecipients] = useState([]);
-    const [selectedRecipient, setSelectedRecipient] = useState(null); // Usuario seleccionado
+    const [availableUsers, setAvailableUsers] = useState([]);
+    const [selectedRecipients, setSelectedRecipients] = useState([]);
     const [newMessage, setNewMessage] = useState({ subject: '', body: '' });
+    const [isSending, setIsSending] = useState(false);
 
-    // --- LÓGICA DE FILTRADO DE MENSAJES ---
+    const searchInputRef = useRef(null);
+
+    // --- HELPER: FORMATEAR ROLES ---
+    const formatRole = (rawRole) => {
+        if (!rawRole) return 'Usuario';
+        const map = {
+            'ROLE_ADMIN': 'Administrador',
+            'ROLE_MEDICO': 'Médico',
+            'ROLE_INVESTIGADOR': 'Investigador',
+            'ROLE_ESTUDIANTE': 'Estudiante',
+            'ROLE_USER': 'Usuario',
+            'ROLE_VISUALIZADOR': 'Visualizador'
+        };
+        return map[rawRole] || rawRole.replace('ROLE_', '').charAt(0).toUpperCase() + rawRole.replace('ROLE_', '').slice(1).toLowerCase();
+    };
+
+    // --- CARGA DE DATOS ---
+    useEffect(() => {
+        fetchCurrentUser();
+        fetchAvailableUsers();
+    }, []);
+
+    useEffect(() => {
+        fetchMessages();
+        fetchUnreadCount();
+        // Al cambiar de pestaña, limpiamos filtros para evitar confusión visual
+        clearFilters();
+    }, [activeTab]);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const res = await api.get('/api/usuarios/me');
+            setCurrentUser(res.data);
+        } catch (error) {
+            console.error("Error obteniendo usuario actual", error);
+        }
+    };
+
+    const fetchAvailableUsers = async () => {
+        try {
+            const res = await api.get('/api/usuarios');
+            setAvailableUsers(res.data);
+        } catch (error) {
+            console.error("Error cargando usuarios.", error);
+        }
+    };
+
+    const fetchMessages = async () => {
+        setIsLoading(true);
+        try {
+            const endpoint = activeTab === 'inbox' ? '/api/mensajes/entrada' : '/api/mensajes/enviados';
+            const res = await api.get(endpoint);
+            setMessages(res.data);
+        } catch (error) {
+            console.error("Error cargando mensajes", error);
+            setMessages([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const fetchUnreadCount = async () => {
+        try {
+            const res = await api.get('/api/mensajes/noleidos/cantidad');
+            setUnreadCount(res.data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    // --- MANEJO DE FILTROS ---
+    const handleDateChange = (e) => {
+        setDateFilters({ ...dateFilters, [e.target.name]: e.target.value });
+    };
+
+    const clearFilters = () => {
+        setDateFilters({ inicio: '', fin: '' });
+        setSearchTerm('');
+    };
+
+    // --- FILTRADO COMBINADO (TEXTO + FECHA) ---
     const filteredMessages = messages.filter(msg => {
-        const matchesTab = activeTab === 'inbox' ? msg.type === 'received' : msg.type === 'sent';
-        const matchesSearch = msg.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            msg.senderName.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesTab && matchesSearch;
+        // 1. Filtro de Texto
+        const searchLower = searchTerm.toLowerCase();
+        const sender = msg.nombreEmisor || '';
+        const receiver = msg.destinatariosResumen || msg.nombreDestinatario || '';
+        const subject = msg.asunto || '';
+
+        const matchesText = subject.toLowerCase().includes(searchLower) ||
+            sender.toLowerCase().includes(searchLower) ||
+            receiver.toLowerCase().includes(searchLower);
+
+        // 2. Filtro de Fecha (Local)
+        let matchesDate = true;
+        if (dateFilters.inicio || dateFilters.fin) {
+            const msgDate = new Date(msg.fechaEnvio);
+            // Quitamos la hora para comparar solo fechas (00:00:00)
+            msgDate.setHours(0, 0, 0, 0);
+
+            if (dateFilters.inicio) {
+                // Ajuste de zona horaria simple creando fecha con T00:00:00
+                const startDate = new Date(dateFilters.inicio + 'T00:00:00');
+                if (msgDate < startDate) matchesDate = false;
+            }
+
+            if (matchesDate && dateFilters.fin) {
+                const endDate = new Date(dateFilters.fin + 'T00:00:00');
+                if (msgDate > endDate) matchesDate = false;
+            }
+        }
+
+        return matchesText && matchesDate;
     });
 
     // --- LÓGICA DE BÚSQUEDA DE DESTINATARIOS ---
-    useEffect(() => {
-        if (recipientQuery.length > 0 && !selectedRecipient) {
-            const lowerQuery = recipientQuery.toLowerCase();
-            const suggestions = MOCK_USERS.filter(u =>
-                u.nombre.toLowerCase().includes(lowerQuery) ||
-                u.rol.toLowerCase().includes(lowerQuery)
-            );
-            setSuggestedRecipients(suggestions);
-        } else {
-            setSuggestedRecipients([]);
+    const getSuggestions = () => {
+        if (!recipientQuery) return [];
+        const lowerQuery = recipientQuery.toLowerCase();
+        const currentUserId = currentUser?.usuarioId || currentUser?.id || currentUser?.idUsuario;
+
+        let suggestions = availableUsers
+            .map(u => ({
+                id: u.usuarioId || u.id || u.idUsuario,
+                nombre: u.nombre || u.nombres || 'Sin Nombre',
+                rol: formatRole(u.rol || u.role),
+                tipo: 'USER',
+                valor: u.usuarioId || u.id || u.idUsuario
+            }))
+            .filter(u => {
+                const matchesSearch = (u.nombre && u.nombre.toLowerCase().includes(lowerQuery)) ||
+                    (u.rol && u.rol.toLowerCase().includes(lowerQuery));
+                const isNotMe = u.id !== currentUserId;
+                return matchesSearch && isNotMe;
+            });
+
+        if (currentUser?.rol === 'ROLE_ADMIN') {
+            const specialGroups = [
+                { id: 'ALL', nombre: 'Todos', rol: 'Sistema', tipo: 'SPECIAL', valor: 'ALL' },
+                { id: 'ROLE_MEDICO', nombre: 'Médicos', rol: 'Grupo', tipo: 'ROLE', valor: 'ROLE_MEDICO' },
+                { id: 'ROLE_INVESTIGADOR', nombre: 'Investigadores', rol: 'Grupo', tipo: 'ROLE', valor: 'ROLE_INVESTIGADOR' },
+                { id: 'ROLE_ESTUDIANTE', nombre: 'Estudiantes', rol: 'Grupo', tipo: 'ROLE', valor: 'ROLE_ESTUDIANTE' },
+                { id: 'ROLE_VISUALIZADOR', nombre: 'Visualizadores', rol: 'Grupo', tipo: 'ROLE', valor: 'ROLE_VISUALIZADOR' }
+            ];
+            const matchedGroups = specialGroups.filter(g => g.nombre.toLowerCase().includes(lowerQuery));
+            suggestions = [...matchedGroups, ...suggestions];
         }
-    }, [recipientQuery, selectedRecipient]);
 
-    // --- ACCIONES ---
-    const handleSelectRecipient = (user) => {
-        setSelectedRecipient(user);
-        setRecipientQuery(user.nombre); // Mostrar nombre en el input
-        setSuggestedRecipients([]); // Ocultar lista
+        return suggestions.filter(s => !selectedRecipients.some(sel => sel.id === s.id));
     };
 
-    const handleClearRecipient = () => {
-        setSelectedRecipient(null);
+    const handleAddRecipient = (recipient) => {
+        setSelectedRecipients([...selectedRecipients, recipient]);
         setRecipientQuery('');
+        searchInputRef.current?.focus();
     };
 
-    const handleSendMessage = () => {
-        if (!selectedRecipient || !newMessage.subject) return;
+    const handleRemoveRecipient = (id) => {
+        setSelectedRecipients(selectedRecipients.filter(r => r.id !== id));
+    };
 
-        // Simulamos envío agregando a la lista local
-        const newMsgMock = {
-            id: Date.now(),
-            senderId: 'me',
-            senderName: 'Yo',
-            recipientName: selectedRecipient.nombre,
-            subject: newMessage.subject,
-            body: newMessage.body,
-            date: 'Ahora',
-            type: 'sent'
+    // --- ENVÍO ---
+    const handleSendMessage = async () => {
+        if (selectedRecipients.length === 0 || !newMessage.subject) return;
+        setIsSending(true);
+
+        const payload = {
+            asunto: newMessage.subject,
+            contenido: newMessage.body,
+            destinatariosIds: [],
+            enviarATodos: false,
+            enviarARol: null
         };
 
-        setMessages([newMsgMock, ...messages]);
-        setShowCompose(false);
-        resetComposeForm();
-        setActiveTab('sent'); // Vamos a enviados para ver el mensaje
+        const allTag = selectedRecipients.find(r => r.tipo === 'SPECIAL' && r.valor === 'ALL');
+        const roleTag = selectedRecipients.find(r => r.tipo === 'ROLE');
+
+        if (allTag) {
+            payload.enviarATodos = true;
+        } else if (roleTag) {
+            payload.enviarARol = roleTag.valor;
+            payload.destinatariosIds = selectedRecipients.filter(r => r.tipo === 'USER').map(r => r.valor);
+        } else {
+            payload.destinatariosIds = selectedRecipients.map(r => r.valor);
+        }
+
+        try {
+            await api.post('/api/mensajes/enviar', payload);
+            setShowCompose(false);
+            setNewMessage({ subject: '', body: '' });
+            setSelectedRecipients([]);
+            setRecipientQuery('');
+            await fetchMessages();
+            await fetchUnreadCount();
+            alert("Mensaje enviado exitosamente.");
+        } catch (error) {
+            console.error("Error enviando mensaje", error);
+            alert("Error al enviar: " + (error.response?.data || error.message));
+        } finally {
+            setIsSending(false);
+        }
     };
 
     const resetComposeForm = () => {
         setRecipientQuery('');
-        setSelectedRecipient(null);
+        setSelectedRecipients([]);
         setNewMessage({ subject: '', body: '' });
     };
 
-    const openReadModal = (msg) => {
-        // Marcar como leído si es recibido
-        if (msg.type === 'received' && !msg.read) {
-            const updatedMsgs = messages.map(m => m.id === msg.id ? { ...m, read: true } : m);
-            setMessages(updatedMsgs);
-        }
+    const openReadModal = async (msg) => {
         setSelectedMessage(msg);
         setShowRead(true);
+
+        if (activeTab === 'inbox' && !msg.leido) {
+            try {
+                await api.post(`/api/mensajes/leer/${msg.id}`);
+                setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, leido: true } : m));
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            } catch (error) {
+                console.error("Error marcando como leído", error);
+            }
+        }
+    };
+
+    const handleReply = () => {
+        if (!selectedMessage) return;
+        setShowRead(false);
+        const originalUser = availableUsers.find(u => u.email === selectedMessage.emailEmisor);
+
+        const recipientData = {
+            id: originalUser ? (originalUser.usuarioId || originalUser.id) : 'temp_id',
+            nombre: selectedMessage.nombreEmisor,
+            rol: originalUser ? formatRole(originalUser.rol || originalUser.role) : 'Usuario',
+            tipo: 'USER',
+            valor: originalUser ? (originalUser.usuarioId || originalUser.id) : null
+        };
+
+        if (!recipientData.valor) {
+            alert("No se encontró el ID del usuario para respuesta automática.");
+        } else {
+            setSelectedRecipients([recipientData]);
+        }
+
+        setNewMessage({
+            subject: `RE: ${selectedMessage.asunto}`,
+            body: `\n\n--- En respuesta a ---\n${selectedMessage.contenido}`
+        });
+        setShowCompose(true);
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const renderListAvatar = (msg) => {
+        if (activeTab === 'sent') return <Send size={24} />;
+        return <PersonCircle size={32} />;
+    };
+
+    const renderListHeader = (msg) => {
+        if (activeTab === 'inbox') {
+            return msg.nombreEmisor || "Desconocido";
+        } else {
+            return msg.destinatariosResumen ? `Para: ${msg.destinatariosResumen}` : "Para: (Varios)";
+        }
     };
 
     return (
         <Container fluid className="p-0 h-100">
             <Row className="g-0 h-100">
 
-                {/* 1. SIDEBAR IZQUIERDO (Navegación) */}
+                {/* SIDEBAR */}
                 <Col md={3} lg={2} className="bg-light border-end p-3 d-flex flex-column" style={{ minHeight: '80vh' }}>
                     <Button
                         variant="primary"
                         className="mb-4 shadow-sm w-100 d-flex align-items-center justify-content-center gap-2"
-                        onClick={() => setShowCompose(true)}
+                        onClick={() => { resetComposeForm(); setShowCompose(true); }}
                     >
                         <PlusLg /> Redactar
                     </Button>
@@ -136,10 +329,8 @@ const Messages = () => {
                             className="d-flex justify-content-between align-items-center border-0 rounded mb-1"
                         >
                             <span><Inbox className="me-2"/> Recibidos</span>
-                            {messages.filter(m => m.type === 'received' && !m.read).length > 0 && (
-                                <Badge bg="danger" pill>
-                                    {messages.filter(m => m.type === 'received' && !m.read).length}
-                                </Badge>
+                            {unreadCount > 0 && (
+                                <Badge bg="danger" pill>{unreadCount}</Badge>
                             )}
                         </ListGroup.Item>
                         <ListGroup.Item
@@ -153,28 +344,82 @@ const Messages = () => {
                     </ListGroup>
                 </Col>
 
-                {/* 2. AREA PRINCIPAL (Lista de mensajes) */}
+                {/* AREA PRINCIPAL */}
                 <Col md={9} lg={10} className="p-4 bg-white">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    {/* CABECERA CON FILTROS (Estilo AuditLog) */}
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                         <h4 className="mb-0 text-secondary">
                             {activeTab === 'inbox' ? 'Bandeja de Entrada' : 'Mensajes Enviados'}
                         </h4>
-                        <InputGroup style={{ maxWidth: '300px' }}>
-                            <InputGroup.Text className="bg-white border-end-0"><Search/></InputGroup.Text>
-                            <Form.Control
-                                placeholder="Buscar mensaje..."
-                                className="border-start-0 border-secondary-subtle shadow-none"
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                            />
-                        </InputGroup>
+
+                        {/* Bloque de Filtros */}
+                        <div className="d-flex flex-wrap gap-3 align-items-center justify-content-end">
+
+                            {/* Fechas Verticales */}
+                            <div className="d-flex flex-column gap-1">
+                                <InputGroup size="sm" className="shadow-sm" style={{width: '200px'}}>
+                                    <InputGroup.Text className="bg-white border-secondary border-opacity-25 text-muted fw-bold" style={{width: '60px', fontSize: '0.8rem'}}>
+                                        Desde
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type="date"
+                                        name="inicio"
+                                        value={dateFilters.inicio}
+                                        onChange={handleDateChange}
+                                        className="bg-white border-secondary border-opacity-25 shadow-none text-center"
+                                        style={{fontSize: '0.85rem'}}
+                                    />
+                                </InputGroup>
+                                <InputGroup size="sm" className="shadow-sm" style={{width: '200px'}}>
+                                    <InputGroup.Text className="bg-white border-secondary border-opacity-25 text-muted fw-bold" style={{width: '60px', fontSize: '0.8rem'}}>
+                                        Hasta
+                                    </InputGroup.Text>
+                                    <Form.Control
+                                        type="date"
+                                        name="fin"
+                                        value={dateFilters.fin}
+                                        onChange={handleDateChange}
+                                        className="bg-white border-secondary border-opacity-25 shadow-none text-center"
+                                        style={{fontSize: '0.85rem'}}
+                                    />
+                                </InputGroup>
+                            </div>
+
+                            {/* Icono Separador */}
+                            <div className="text-muted opacity-25 d-none d-md-block">
+                                <Calendar3 size={24} />
+                            </div>
+
+                            {/* Buscador */}
+                            <InputGroup style={{ maxWidth: '250px' }} className="shadow-sm">
+                                <InputGroup.Text className="bg-white text-muted border-secondary border-opacity-25"><Search/></InputGroup.Text>
+                                <Form.Control
+                                    placeholder="Buscar..."
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    className="bg-white border-secondary border-opacity-25 shadow-none"
+                                />
+                            </InputGroup>
+
+                            {/* Botón Limpiar */}
+                            <Button
+                                variant="outline-secondary"
+                                onClick={clearFilters}
+                                title="Limpiar Filtros"
+                                className="border-opacity-25"
+                            >
+                                <ArrowCounterclockwise />
+                            </Button>
+                        </div>
                     </div>
 
                     <ListGroup variant="flush" className="border-top">
-                        {filteredMessages.length === 0 ? (
+                        {isLoading ? (
+                            <div className="text-center py-5"><Spinner animation="border" variant="primary"/></div>
+                        ) : filteredMessages.length === 0 ? (
                             <div className="text-center py-5 text-muted">
                                 <Inbox size={40} className="mb-3 opacity-25"/>
-                                <p>No hay mensajes en esta bandeja.</p>
+                                <p>No hay mensajes que coincidan con los filtros.</p>
                             </div>
                         ) : (
                             filteredMessages.map(msg => (
@@ -182,27 +427,24 @@ const Messages = () => {
                                     key={msg.id}
                                     action
                                     onClick={() => openReadModal(msg)}
-                                    className={`d-flex align-items-center p-3 border-bottom ${!msg.read && msg.type === 'received' ? 'bg-light fw-bold' : ''}`}
+                                    className={`d-flex align-items-center p-3 border-bottom ${!msg.leido && activeTab === 'inbox' ? 'bg-light fw-bold' : ''}`}
                                 >
-                                    {/* Icono Avatar */}
                                     <div className="me-3 text-secondary">
-                                        <PersonCircle size={32} />
+                                        {renderListAvatar(msg)}
                                     </div>
-
-                                    {/* Contenido Resumido */}
                                     <div className="flex-grow-1 overflow-hidden">
                                         <div className="d-flex justify-content-between">
-                                            <span className="text-dark">
-                                                {msg.type === 'received' ? msg.senderName : `Para: ${msg.recipientName}`}
+                                            <span className="text-dark fw-medium">
+                                                {renderListHeader(msg)}
                                             </span>
-                                            <small className="text-muted">{msg.date}</small>
+                                            <small className="text-muted">{formatDate(msg.fechaEnvio)}</small>
                                         </div>
                                         <div className="text-truncate text-secondary small">
-                                            <span className={!msg.read && msg.type === 'received' ? 'text-dark' : ''}>
-                                                {msg.subject}
+                                            <span className={!msg.leido && activeTab === 'inbox' ? 'text-dark' : ''}>
+                                                {msg.asunto}
                                             </span>
                                             <span className="mx-1">-</span>
-                                            {msg.body}
+                                            {msg.contenido}
                                         </div>
                                     </div>
                                 </ListGroup.Item>
@@ -212,34 +454,55 @@ const Messages = () => {
                 </Col>
             </Row>
 
-            {/* --- 3. MODAL: LEER MENSAJE --- */}
+            {/* MODAL LEER */}
             <Modal show={showRead} onHide={() => setShowRead(false)} size="lg" centered>
                 {selectedMessage && (
                     <>
-                        <Modal.Header closeButton className="border-0 pb-0">
-                            <Modal.Title className="fs-5">{selectedMessage.subject}</Modal.Title>
+                        <Modal.Header closeButton className="border-bottom-0 pb-0">
+                            <Modal.Title className="fs-5">{selectedMessage.asunto}</Modal.Title>
                         </Modal.Header>
+
                         <Modal.Body>
-                            <div className="d-flex align-items-center mb-4">
-                                <PersonCircle size={40} className="text-secondary me-3"/>
-                                <div>
-                                    <div className="fw-bold">
-                                        {selectedMessage.type === 'received' ? selectedMessage.senderName : 'Yo'}
+                            <div className="d-flex align-items-start mb-4 p-3 bg-light rounded">
+                                <PersonCircle size={48} className="text-secondary me-3 mt-1"/>
+                                <div className="flex-grow-1">
+                                    <div className="d-flex justify-content-between">
+                                        <div>
+                                            <span className="text-muted small text-uppercase fw-bold">De:</span>
+                                            <div className="fw-bold fs-6">
+                                                {activeTab === 'inbox'
+                                                    ? (selectedMessage.nombreEmisor)
+                                                    : (currentUser ? `${currentUser.nombres || currentUser.nombre} (Mí)` : "Mí")
+                                                }
+                                                {activeTab === 'inbox' && selectedMessage.emailEmisor &&
+                                                    <span className="text-muted fw-normal small ms-1">&lt;{selectedMessage.emailEmisor}&gt;</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div className="text-end">
+                                            <small className="text-muted">{formatDate(selectedMessage.fechaEnvio)}</small>
+                                        </div>
                                     </div>
-                                    <div className="text-muted small">
-                                        {selectedMessage.type === 'received' ? `Para: Mi` : `Para: ${selectedMessage.recipientName}`}
-                                        {' • ' + selectedMessage.date}
+                                    <div className="mt-2">
+                                        <span className="text-muted small text-uppercase fw-bold">Para:</span>
+                                        <div className="text-dark">
+                                            {activeTab === 'inbox'
+                                                ? "Mí"
+                                                : (selectedMessage.destinatariosResumen || "Varios destinatarios")
+                                            }
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="p-3 bg-light rounded" style={{ whiteSpace: 'pre-wrap' }}>
-                                {selectedMessage.body}
+                            <div className="p-3" style={{ whiteSpace: 'pre-wrap', minHeight: '150px' }}>
+                                {selectedMessage.contenido}
                             </div>
                         </Modal.Body>
-                        <Modal.Footer className="border-0">
+
+                        <Modal.Footer className="border-top-0">
                             <Button variant="outline-secondary" onClick={() => setShowRead(false)}>Cerrar</Button>
-                            {selectedMessage.type === 'received' && (
-                                <Button variant="primary">
+                            {activeTab === 'inbox' && (
+                                <Button variant="primary" onClick={handleReply}>
                                     <Reply className="me-2"/> Responder
                                 </Button>
                             )}
@@ -248,85 +511,80 @@ const Messages = () => {
                 )}
             </Modal>
 
-            {/* --- 4. MODAL: REDACTAR MENSAJE --- */}
+            {/* MODAL REDACTAR (COMPLETO) */}
             <Modal show={showCompose} onHide={() => setShowCompose(false)} size="lg" backdrop="static">
                 <Modal.Header closeButton>
                     <Modal.Title>Nuevo Mensaje</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
-                        {/* INPUT PARA BUSCAR USUARIO */}
-                        <Form.Group className="mb-3 position-relative">
+                        <Form.Group className="mb-3">
                             <Form.Label>Para:</Form.Label>
-                            {selectedRecipient ? (
-                                <div className="d-flex align-items-center gap-2 p-2 border rounded bg-light">
-                                    <Badge bg="primary">{selectedRecipient.rol}</Badge>
-                                    <span className="fw-bold">{selectedRecipient.nombre}</span>
-                                    <small className="text-muted">({selectedRecipient.email})</small>
-                                    <Button variant="close" size="sm" className="ms-auto" onClick={handleClearRecipient}></Button>
-                                </div>
-                            ) : (
-                                <InputGroup>
-                                    <InputGroup.Text><Search/></InputGroup.Text>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Buscar por nombre o rol (ej: Admin, Juan...)"
-                                        value={recipientQuery}
-                                        onChange={(e) => setRecipientQuery(e.target.value)}
-                                        autoFocus
-                                    />
-                                </InputGroup>
-                            )}
-
-                            {/* LISTA DE SUGERENCIAS FLOTANTE */}
-                            {suggestedRecipients.length > 0 && !selectedRecipient && (
-                                <ListGroup className="position-absolute w-100 shadow mt-1" style={{ zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}>
-                                    {suggestedRecipients.map(user => (
-                                        <ListGroup.Item
-                                            key={user.id}
-                                            action
-                                            onClick={() => handleSelectRecipient(user)}
-                                            className="d-flex align-items-center justify-content-between"
-                                        >
-                                            <div>
-                                                <strong>{user.nombre}</strong>
-                                                <div className="small text-muted">{user.email}</div>
-                                            </div>
-                                            <Badge bg="secondary" className="ms-2">{user.rol}</Badge>
-                                        </ListGroup.Item>
-                                    ))}
-                                </ListGroup>
-                            )}
+                            <div className="d-flex flex-wrap align-items-center gap-2 p-2 border rounded bg-white position-relative focus-within-shadow">
+                                {selectedRecipients.map((recipient, idx) => (
+                                    <Badge
+                                        key={`${recipient.id}-${idx}`}
+                                        bg={recipient.tipo === 'SPECIAL' ? 'danger' : recipient.tipo === 'ROLE' ? 'warning' : 'secondary'}
+                                        text={recipient.tipo === 'ROLE' ? 'dark' : 'light'}
+                                        className="d-flex align-items-center py-2 px-3 rounded-pill"
+                                        style={{fontSize: '0.9em'}}
+                                    >
+                                        {recipient.tipo === 'USER' && <PersonCircle className="me-2"/>}
+                                        {recipient.nombre}
+                                        <X size={20} className="ms-2" style={{cursor: 'pointer'}} onClick={() => handleRemoveRecipient(recipient.id)} />
+                                    </Badge>
+                                ))}
+                                <Form.Control
+                                    ref={searchInputRef}
+                                    type="text"
+                                    className="border-0 shadow-none p-0"
+                                    style={{ width: '200px', minWidth: '50px' }}
+                                    placeholder={selectedRecipients.length === 0 ? "Buscar nombre o rol..." : ""}
+                                    value={recipientQuery}
+                                    onChange={(e) => setRecipientQuery(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Backspace' && recipientQuery === '' && selectedRecipients.length > 0) {
+                                            handleRemoveRecipient(selectedRecipients[selectedRecipients.length - 1].id);
+                                        }
+                                    }}
+                                    autoFocus
+                                />
+                                {recipientQuery.length > 0 && (
+                                    <ListGroup className="position-absolute shadow start-0 w-100" style={{ top: '100%', zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}>
+                                        {getSuggestions().length === 0 ? (
+                                            <ListGroup.Item disabled className="text-muted small">No se encontraron resultados</ListGroup.Item>
+                                        ) : (
+                                            getSuggestions().map((s, i) => (
+                                                <ListGroup.Item
+                                                    key={i}
+                                                    action
+                                                    onClick={() => handleAddRecipient(s)}
+                                                    className="d-flex align-items-center justify-content-between"
+                                                >
+                                                    <div><strong>{s.nombre}</strong></div>
+                                                    <Badge bg="light" text="dark" className="border">{s.rol}</Badge>
+                                                </ListGroup.Item>
+                                            ))
+                                        )}
+                                    </ListGroup>
+                                )}
+                            </div>
                         </Form.Group>
-
                         <Form.Group className="mb-3">
                             <Form.Label>Asunto:</Form.Label>
-                            <Form.Control
-                                type="text"
-                                value={newMessage.subject}
-                                onChange={e => setNewMessage({...newMessage, subject: e.target.value})}
-                            />
+                            <Form.Control type="text" value={newMessage.subject} onChange={e => setNewMessage({...newMessage, subject: e.target.value})} />
                         </Form.Group>
-
                         <Form.Group className="mb-3">
                             <Form.Label>Mensaje:</Form.Label>
-                            <Form.Control
-                                as="textarea"
-                                rows={6}
-                                value={newMessage.body}
-                                onChange={e => setNewMessage({...newMessage, body: e.target.value})}
-                            />
+                            <Form.Control as="textarea" rows={6} value={newMessage.body} onChange={e => setNewMessage({...newMessage, body: e.target.value})} />
                         </Form.Group>
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="light" onClick={() => setShowCompose(false)}><Trash/></Button>
-                    <Button
-                        variant="primary"
-                        onClick={handleSendMessage}
-                        disabled={!selectedRecipient || !newMessage.subject}
-                    >
-                        <Send className="me-2"/> Enviar Mensaje
+                    <Button variant="primary" onClick={handleSendMessage} disabled={selectedRecipients.length === 0 || !newMessage.subject || isSending}>
+                        {isSending ? <Spinner size="sm" animation="border" className="me-2"/> : <Send className="me-2"/>}
+                        Enviar Mensaje
                     </Button>
                 </Modal.Footer>
             </Modal>

@@ -32,7 +32,7 @@ public class UsuarioControlador {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UsuarioResponseDto>> getAll() {
         return ResponseEntity.ok(usuarioServicio.getAll());
     }

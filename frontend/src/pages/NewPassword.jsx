@@ -30,8 +30,8 @@ function NewPassword() {
         setError(null);
 
         // Validaciones locales
-        if (password.length < 4) {
-            setError('La contraseña debe tener al menos 4 caracteres.');
+        if (password.length < 6) {
+            setError('La contraseña debe tener al menos 6 caracteres.');
             return;
         }
         if (password !== confirmPassword) {
@@ -85,7 +85,7 @@ function NewPassword() {
                                     <Form.Control
                                         type="password"
                                         required
-                                        placeholder="Mínimo 4 caracteres"
+                                        placeholder="Mínimo 6 caracteres"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         disabled={isLoading || success}

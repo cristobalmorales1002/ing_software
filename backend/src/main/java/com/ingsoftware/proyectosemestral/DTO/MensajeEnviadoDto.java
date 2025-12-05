@@ -6,16 +6,14 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-public class MensajeBandejaDto {
+public class MensajeEnviadoDto {
     private Long id;
     private String asunto;
     private String contenido;
     private LocalDateTime fechaEnvio;
 
-    private String nombreEmisor;
-    private String emailEmisor;
+    private String destinatariosResumen;
 
-    private Long idEmisor;
-
-    private boolean leido;
+    // Opcional: Podrías agregar un contador de a cuántas personas se envió
+    // private int cantidadDestinatarios;
 }

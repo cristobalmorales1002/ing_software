@@ -6,9 +6,11 @@ import {
     ExclamationTriangle, QuestionCircle, Pencil, Trash
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
-import { formatRut } from '../utils/rutUtils';
+import { formatRut } from '../utils/rutUtils'; //
+import { getPhoneConfig, COUNTRY_PHONE_DATA } from '../utils/phoneUtils'; //
 
 const CasesControls = () => {
+    // --- ESTADOS ---
     const [items, setItems] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -19,35 +21,57 @@ const CasesControls = () => {
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [isDownloading, setIsDownloading] = useState(false);
 
+    // Estados del Modal
     const [showModal, setShowModal] = useState(false);
     const [isCase, setIsCase] = useState(true);
     const [surveyStructure, setSurveyStructure] = useState([]);
     const [currentStep, setCurrentStep] = useState(0);
     const [formData, setFormData] = useState({});
+
+    const [countryCodes, setCountryCodes] = useState({});
     const [loadingSurvey, setLoadingSurvey] = useState(false);
 
+    // --- USUARIO ACTUAL Y DICCIONARIO DE USUARIOS ---
     const [editingId, setEditingId] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
+    const [usersMap, setUsersMap] = useState({});
 
+    // 1. Obtener usuario logueado
     const fetchUserRole = async () => {
         try {
             const res = await api.get('/api/usuarios/me');
+            // DEBUG: Ver qué propiedades trae el usuario (id, idUsuario, usuarioId?)
+            console.log("Usuario Actual:", res.data);
             setCurrentUser(res.data);
         } catch (error) {
             console.error("Error al obtener usuario:", error);
         }
     };
 
+    // 2. Obtener lista completa de usuarios
+    const fetchUsers = async () => {
+        try {
+            const res = await api.get('/api/usuarios');
+            if (Array.isArray(res.data)) {
+                const map = {};
+                res.data.forEach(u => {
+                    const uid = u.usuarioId || u.id || u.idUsuario;
+                    const nombre = u.nombre || (u.nombres + ' ' + u.apellidos);
+                    if (uid) map[uid] = nombre;
+                });
+                setUsersMap(map);
+            }
+        } catch (err) {
+            console.error("Error cargando lista de usuarios:", err);
+        }
+    };
+
+    // --- CARGAR PACIENTES ---
     const fetchPacientes = async () => {
         setIsLoading(true);
         try {
-            const res = await api.get('/api/pacientes');
-
+            const res = await api.get('/api/pacientes'); //
             if (!Array.isArray(res.data)) {
-                console.error("Respuesta inválida:", res.data);
-                if (typeof res.data === 'string' && res.data.startsWith('<')) {
-                    alert("Sesión expirada.");
-                }
                 setItems([]);
                 return;
             }
@@ -58,11 +82,15 @@ const CasesControls = () => {
                 tipo: p.esCaso ? 'CASO' : 'CONTROL',
                 fechaIngreso: p.fechaIncl,
                 estado: 'Activo',
+
+                // Mapeamos el ID del backend (asegúrate de que este campo exista en el JSON)
                 creadorId: p.usuarioCreadorId,
+
                 respuestas: p.respuestas || []
             }));
 
             setItems(dataMapeada);
+
             if (dataMapeada.length > 0) {
                 if (selectedItem) {
                     const updatedItem = dataMapeada.find(i => i.dbId === selectedItem.dbId);
@@ -84,7 +112,7 @@ const CasesControls = () => {
     const fetchSurveyStructure = async () => {
         setLoadingSurvey(true);
         try {
-            const res = await api.get('/api/encuesta/completa');
+            const res = await api.get('/api/encuesta/completa'); //
             const structure = Array.isArray(res.data) ? res.data : [];
             const structureClean = structure.map(cat => ({
                 ...cat,
@@ -116,29 +144,42 @@ const CasesControls = () => {
         fetchPacientes();
         fetchSurveyStructure();
         fetchUserRole();
+        fetchUsers();
     }, []);
 
     const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
 
-    // --- LÓGICA DE EDICIÓN CORREGIDA ---
+    // --- REGLAS DE PERMISOS (CORREGIDO) ---
     const canEdit = (item) => {
         if (!currentUser || !item) return false;
 
-        // 1. Regla para CASOS: Solo Médicos (y solo si son suyos)
+        // 1. Obtener ID del Usuario Actual de forma segura
+        // Buscamos todas las posibles variantes de nombre de la propiedad ID
+        const currentUserId = currentUser.idUsuario || currentUser.id || currentUser.usuarioId;
+
+        // 2. Obtener ID del creador del item
+        const itemCreatorId = item.creadorId;
+
+        // 3. Comparación Flexible (==) para evitar fallos por String vs Number ("5" == 5)
+        const isCreator = itemCreatorId == currentUserId;
+
+        // REGLA 1: CASOS -> SOLO el médico creador
         if (item.tipo === 'CASO') {
-            return userRole === 'ROLE_MEDICO' && item.creadorId === currentUser.usuarioId;
+            return userRole === 'ROLE_MEDICO' && isCreator;
         }
 
-        // 2. Regla para CONTROLES
+        // REGLA 2: CONTROLES
         if (item.tipo === 'CONTROL') {
-            // Admin e Investigador pueden editar TODOS los controles
-            if (['ROLE_ADMIN', 'ROLE_INVESTIGADOR'].includes(userRole)) return true;
-
-            // Médico y Estudiante pueden editar SOLO sus propios controles
-            return item.creadorId === currentUser.usuarioId;
+            // Estudiantes: Solo sus propios controles
+            if (userRole === 'ROLE_ESTUDIANTE') {
+                return isCreator;
+            }
+            // Admin e Investigador: Gestión general (pueden editar todos los controles)
+            if (['ROLE_ADMIN', 'ROLE_INVESTIGADOR'].includes(userRole)) {
+                return true;
+            }
         }
-
         return false;
     };
 
@@ -146,12 +187,12 @@ const CasesControls = () => {
         return userRole === 'ROLE_ADMIN';
     };
 
+    // --- FILTRADO ---
     const filteredItems = useMemo(() => {
         const normalize = (text) =>
             text ? text.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
 
         const term = normalize(searchTerm);
-
         let result = items.filter(item =>
             (item.tipo === 'CASO' && filters.showCasos) ||
             (item.tipo === 'CONTROL' && filters.showControles)
@@ -162,21 +203,14 @@ const CasesControls = () => {
         if (term.includes(':')) {
             const rawTerm = searchTerm.toLowerCase();
             const regex = /([a-z0-9_ñáéíóú\s]+):\s*([^:]+?)(?=\s+[a-z0-9_ñáéíóú\s]+:|$)/gi;
-
             let match;
             const criteria = [];
-
             while ((match = regex.exec(rawTerm)) !== null) {
-                criteria.push({
-                    key: normalize(match[1]),
-                    value: normalize(match[2])
-                });
+                criteria.push({ key: normalize(match[1]), value: normalize(match[2]) });
             }
-
             if (criteria.length === 0) return [];
 
             const allQuestions = surveyStructure.flatMap(cat => cat.preguntas || []);
-
             return result.filter(patient => {
                 return criteria.every(criterion => {
                     const matchingQuestions = allQuestions.filter(q => {
@@ -184,28 +218,22 @@ const CasesControls = () => {
                         const code = normalize(q.codigoStata);
                         return label.includes(criterion.key) || (code && code.includes(criterion.key));
                     });
-
                     if (matchingQuestions.length === 0) return false;
-
                     return matchingQuestions.some(q => {
                         const answer = patient.respuestas?.find(r =>
-                            (r.preguntaId == q.pregunta_id) ||
-                            (r.pregunta_id == q.pregunta_id)
+                            (r.preguntaId == q.pregunta_id) || (r.pregunta_id == q.pregunta_id)
                         );
-
                         if (!answer || !answer.valor) return false;
                         return normalize(answer.valor).includes(criterion.value);
                     });
                 });
             });
-
         } else {
-            return result.filter(item =>
-                normalize(item.id).includes(term)
-            );
+            return result.filter(item => normalize(item.id).includes(term));
         }
     }, [items, searchTerm, filters, surveyStructure]);
 
+    // --- HANDLERS UI ---
     const handleFilterChange = (e) => {
         const { name, checked } = e.target;
         setFilters({ ...filters, [name]: checked });
@@ -248,7 +276,6 @@ const CasesControls = () => {
     };
 
     const handleDownloadPdf = async (pacienteId, codigo) => {
-        setIsDownloading(true);
         try {
             const response = await api.get(`/api/pdf/crf/paciente/${pacienteId}`, { responseType: 'blob' });
             const urlBlob = window.URL.createObjectURL(new Blob([response.data]));
@@ -261,16 +288,14 @@ const CasesControls = () => {
         } catch (err) {
             console.error(err);
             alert("Error al generar PDF.");
-        } finally {
-            setIsDownloading(false);
         }
     };
 
+    // --- MODAL Y GUARDADO ---
     const handleOpenModal = (esCaso, itemAEditar = null) => {
         if (itemAEditar) {
             setEditingId(itemAEditar.dbId);
             setIsCase(itemAEditar.tipo === 'CASO');
-
             const initialData = {};
             if (itemAEditar.respuestas) {
                 itemAEditar.respuestas.forEach(r => {
@@ -283,6 +308,7 @@ const CasesControls = () => {
             setEditingId(null);
             setIsCase(esCaso);
             setFormData({});
+            setCountryCodes({});
         }
         setCurrentStep(0);
         setShowModal(true);
@@ -290,8 +316,12 @@ const CasesControls = () => {
 
     const handleInputChange = (preguntaId, value, tipo) => {
         let val = value;
-        if (tipo === 'RUT') val = formatRut(value);
+        if (tipo === 'RUT') val = formatRut(value); //
         setFormData(prev => ({ ...prev, [preguntaId]: val }));
+    };
+
+    const handleCountryChange = (preguntaId, code) => {
+        setCountryCodes(prev => ({...prev, [preguntaId]: code}));
     };
 
     const handleNext = () => { if (currentStep < surveyStructure.length - 1) setCurrentStep(p => p + 1); };
@@ -311,7 +341,6 @@ const CasesControls = () => {
                 const payload = { esCaso: isCase, respuestas: respuestasDTO };
                 await api.post('/api/pacientes', payload);
             }
-
             setShowModal(false);
             setFormData({});
             setEditingId(null);
@@ -343,6 +372,7 @@ const CasesControls = () => {
     return (
         <Container fluid className="p-0 d-flex flex-column" style={{ height: 'calc(100vh - 100px)' }}>
 
+            {/* HEADER SUPERIOR */}
             <div className="d-flex justify-content-between align-items-center mb-3 flex-shrink-0">
                 <h2 className="mb-0">CASOS Y CONTROLES</h2>
                 <div className="d-flex gap-2">
@@ -360,7 +390,7 @@ const CasesControls = () => {
             </div>
 
             <Row className="flex-grow-1 overflow-hidden g-3">
-
+                {/* LISTA (IZQUIERDA) */}
                 <Col md={4} lg={3} className="d-flex flex-column h-100">
                     <Card className="h-100 shadow-sm border-0 overflow-hidden">
                         <div className="p-3 border-bottom border-secondary border-opacity-25">
@@ -382,11 +412,14 @@ const CasesControls = () => {
                                 <Form.Check type="checkbox" label={<span className="small fw-bold text-muted">Controles</span>} name="showControles" checked={filters.showControles} onChange={handleFilterChange} className="user-select-none"/>
                             </div>
 
-                            {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
-                                <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
-                                    <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
-                                </div>
-                            )}
+                            <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
+                                <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
+                                {selectedIds.size > 0 && (
+                                    <Button size="sm" variant="primary" onClick={handleBulkDownload} disabled={isDownloading} className="py-0 px-2" style={{fontSize: '0.8rem'}}>
+                                        {isDownloading ? <Spinner size="sm" animation="border"/> : <><Download className="me-1"/> Descargar ({selectedIds.size})</>}
+                                    </Button>
+                                )}
+                            </div>
                         </div>
 
                         <div className="flex-grow-1 overflow-auto">
@@ -411,11 +444,9 @@ const CasesControls = () => {
                                             }}
                                             onClick={() => setSelectedItem(item)}
                                         >
-                                            {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
-                                                <div className="me-3" onClick={(e) => e.stopPropagation()}>
-                                                    <Form.Check type="checkbox" checked={selectedIds.has(item.dbId)} onChange={() => handleToggleSelect(item.dbId)}/>
-                                                </div>
-                                            )}
+                                            <div className="me-3" onClick={(e) => e.stopPropagation()}>
+                                                <Form.Check type="checkbox" checked={selectedIds.has(item.dbId)} onChange={() => handleToggleSelect(item.dbId)}/>
+                                            </div>
 
                                             <div className="d-flex justify-content-between align-items-center flex-grow-1">
                                                 <div className="d-flex flex-column justify-content-center">
@@ -447,6 +478,7 @@ const CasesControls = () => {
                     </Card>
                 </Col>
 
+                {/* DETALLE (DERECHA) */}
                 <Col md={8} lg={9} className="h-100">
                     {selectedItem ? (
                         <Card className="h-100 shadow-sm border-0 overflow-hidden">
@@ -456,32 +488,17 @@ const CasesControls = () => {
                                         <PersonVcard />
                                         {selectedItem.id}
                                     </h4>
-                                    <small className="text-muted">
-                                        Fecha Ingreso: {selectedItem.fechaIngreso ? new Date(selectedItem.fechaIngreso).toLocaleDateString() : '-'}
-                                    </small>
+                                    {/* --- MOSTRAR NOMBRE DEL RECLUTADOR (CRUCE DE DATOS) --- */}
+                                    <div className="text-muted small">
+                                        <span>Ingreso: {selectedItem.fechaIngreso ? new Date(selectedItem.fechaIngreso).toLocaleDateString() : '-'}</span>
+                                        <span className="mx-2">•</span>
+                                        <span>Reclutado por: <strong>{usersMap[selectedItem.creadorId] || 'Desconocido/Cargando...'}</strong></span>
+                                    </div>
                                 </div>
                                 <div className="d-flex gap-2 align-items-center">
-
-                                    {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
-                                        <Button
-                                            variant="outline-danger"
-                                            size="sm"
-                                            disabled={isDownloading}
-                                            onClick={() => {
-                                                if(selectedIds.size > 0) {
-                                                    handleBulkDownload();
-                                                } else {
-                                                    handleDownloadPdf(selectedItem.dbId, selectedItem.id);
-                                                }
-                                            }}
-                                            title={selectedIds.size > 0 ? "Descargar selección en ZIP" : "Descargar PDF del participante actual"}
-                                        >
-                                            {isDownloading ? (
-                                                <Spinner animation="border" size="sm" className="me-2"/>
-                                            ) : (
-                                                <FileEarmarkPdf className="me-2"/>
-                                            )}
-                                            {selectedIds.size > 0 ? `Descargar PDF (${selectedIds.size})` : 'Descargar PDF'}
+                                    {userRole === 'ROLE_ADMIN' && (
+                                        <Button variant="outline-danger" size="sm" onClick={() => handleDownloadPdf(selectedItem.dbId, selectedItem.id)} title="Descargar PDF">
+                                            <FileEarmarkPdf className="me-2"/> PDF
                                         </Button>
                                     )}
 
@@ -530,19 +547,42 @@ const CasesControls = () => {
                                                         r.pregunta_id === pregunta.pregunta_id
                                                     );
 
-                                                    const cellContent = respuesta && respuesta.valor ? (
-                                                        <span className="text-primary fw-medium">{respuesta.valor}</span>
-                                                    ) : (
-                                                        <span className="text-danger d-flex align-items-center gap-2 small bg-danger bg-opacity-10 px-2 py-1 rounded fit-content" style={{width: 'fit-content'}}>
-                                                            <ExclamationTriangle />
-                                                            <span className="fst-italic">No registrado</span>
-                                                        </span>
-                                                    );
+                                                    let cellContent;
+                                                    if (respuesta && respuesta.valor) {
+                                                        if (pregunta.tipo_dato === 'RUT') {
+                                                            cellContent = <span className="text-primary fw-medium">{formatRut(respuesta.valor)}</span>;
+                                                        } else if (pregunta.tipo_dato === 'CELULAR') {
+                                                            const currentCode = countryCodes[pregunta.pregunta_id] || '+56';
+                                                            const config = getPhoneConfig(currentCode);
+                                                            const prefix = config.label.split('(')[1]?.replace(')', '') || '';
+                                                            // Muestra el número con un formato simple si existe
+                                                            cellContent = <span className="text-primary fw-medium">{prefix} {respuesta.valor}</span>;
+                                                        } else {
+                                                            cellContent = <span className="text-primary fw-medium">{respuesta.valor}</span>;
+                                                        }
+                                                    } else {
+                                                        cellContent = (
+                                                            <span className="text-danger d-flex align-items-center gap-2 small bg-danger bg-opacity-10 px-2 py-1 rounded fit-content" style={{width: 'fit-content'}}>
+                                                                <ExclamationTriangle />
+                                                                <span className="fst-italic">No registrado</span>
+                                                            </span>
+                                                        );
+                                                    }
 
                                                     return (
                                                         <tr key={pregunta.pregunta_id}>
                                                             <td className="ps-4 py-3" style={{width: '60%'}}>
-                                                                <div className="fw-bold">{pregunta.etiqueta}</div>
+                                                                <div className="fw-bold d-flex align-items-center">
+                                                                    {pregunta.etiqueta}
+                                                                    {pregunta.descripcion && (
+                                                                        <OverlayTrigger
+                                                                            placement="top"
+                                                                            overlay={<Tooltip id={`tooltip-table-${pregunta.pregunta_id}`}>{pregunta.codigoStata}: {pregunta.descripcion}</Tooltip>}
+                                                                        >
+                                                                            <QuestionCircle className="ms-2 text-info" style={{ cursor: 'help', fontSize: '0.9em' }} />
+                                                                        </OverlayTrigger>
+                                                                    )}
+                                                                </div>
                                                                 {pregunta.dato_sensible && <Badge bg="warning" text="dark" style={{fontSize:'0.6em'}}>SENSIBLE</Badge>}
                                                             </td>
                                                             <td className="py-3">{cellContent}</td>
@@ -570,6 +610,7 @@ const CasesControls = () => {
                 </Col>
             </Row>
 
+            {/* MODAL WIZARD */}
             <Modal
                 show={showModal}
                 onHide={() => setShowModal(false)}
@@ -638,6 +679,32 @@ const CasesControls = () => {
                                                 }
                                                 if(q.tipo_dato === 'RUT') {
                                                     return <Form.Control value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, 'RUT')} maxLength={12} placeholder="12.345.678-9"/>;
+                                                }
+                                                // --- INPUT CELULAR (Modificado con phoneUtils) ---
+                                                if(q.tipo_dato === 'CELULAR') {
+                                                    const currentCode = countryCodes[q.pregunta_id] || '+56';
+                                                    const config = getPhoneConfig(currentCode); //
+                                                    return (
+                                                        <InputGroup>
+                                                            <Form.Select
+                                                                style={{maxWidth:'90px'}}
+                                                                value={currentCode}
+                                                                onChange={(e) => handleCountryChange(q.pregunta_id, e.target.value)}
+                                                            >
+                                                                {COUNTRY_PHONE_DATA.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+                                                            </Form.Select>
+                                                            <Form.Control
+                                                                type="text"
+                                                                placeholder={config.placeholder}
+                                                                maxLength={config.maxLength}
+                                                                value={val}
+                                                                onChange={e => {
+                                                                    const numeric = e.target.value.replace(/\D/g, '');
+                                                                    handleInputChange(q.pregunta_id, numeric, 'CELULAR');
+                                                                }}
+                                                            />
+                                                        </InputGroup>
+                                                    )
                                                 }
                                                 return <Form.Control type={q.tipo_dato === 'NUMERO' ? 'number' : 'text'} value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, 'TEXTO')}/>;
                                             })()}

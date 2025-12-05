@@ -143,7 +143,6 @@ const CasesControls = () => {
     const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
 
-    // --- CORRECCIÓN AQUÍ EN canEdit ---
     const canEdit = (item) => {
         if (!currentUser || !item) return false;
 
@@ -156,11 +155,9 @@ const CasesControls = () => {
         }
 
         if (item.tipo === 'CONTROL') {
-            // AHORA: Si es Estudiante O Médico, puede editar si es el creador
             if (userRole === 'ROLE_ESTUDIANTE' || userRole === 'ROLE_MEDICO') {
                 return isCreator;
             }
-            // Admin e Investigador pueden editar cualquier control
             if (['ROLE_ADMIN', 'ROLE_INVESTIGADOR'].includes(userRole)) {
                 return true;
             }
@@ -174,6 +171,7 @@ const CasesControls = () => {
 
     const canDownload = hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR']);
 
+    // --- AQUÍ ESTÁ EL CAMBIO PRINCIPAL ---
     const filteredItems = useMemo(() => {
         const normalize = (text) =>
             text ? text.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
@@ -215,9 +213,15 @@ const CasesControls = () => {
                 });
             });
         } else {
-            return result.filter(item => normalize(item.id).includes(term));
+            // CAMBIO: Filtramos por ID del paciente O por Nombre del Creador
+            return result.filter(item => {
+                const matchesId = normalize(item.id).includes(term);
+                const creatorName = usersMap[item.creadorId];
+                const matchesCreator = creatorName ? normalize(creatorName).includes(term) : false;
+                return matchesId || matchesCreator;
+            });
         }
-    }, [items, searchTerm, filters, surveyStructure]);
+    }, [items, searchTerm, filters, surveyStructure, usersMap]); // Agregamos usersMap a las dependencias
 
     const handleFilterChange = (e) => {
         const { name, checked } = e.target;
@@ -401,7 +405,7 @@ const CasesControls = () => {
                                     <Search />
                                 </InputGroup.Text>
                                 <Form.Control
-                                    placeholder='Buscar ID o "Sexo: Femenino"...'
+                                    placeholder='Buscar ID, Nombre Creador o "Sexo:..."'
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="border-secondary border-opacity-50 bg-transparent shadow-none"
@@ -414,7 +418,6 @@ const CasesControls = () => {
                                 <Form.Check type="checkbox" label={<span className="small fw-bold text-muted">Controles</span>} name="showControles" checked={filters.showControles} onChange={handleFilterChange} className="user-select-none"/>
                             </div>
 
-                            {/* --- SECCIÓN DE DESCARGA MASIVA (OCULTA PARA ESTUDIANTES Y VISUALIZADORES) --- */}
                             {canDownload && (
                                 <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
                                     <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
@@ -449,7 +452,6 @@ const CasesControls = () => {
                                             }}
                                             onClick={() => setSelectedItem(item)}
                                         >
-                                            {/* --- CHECKBOX INDIVIDUAL (OCULTO PARA ESTUDIANTES Y VISUALIZADORES) --- */}
                                             {canDownload && (
                                                 <div className="me-3" onClick={(e) => e.stopPropagation()}>
                                                     <Form.Check type="checkbox" checked={selectedIds.has(item.dbId)} onChange={() => handleToggleSelect(item.dbId)}/>

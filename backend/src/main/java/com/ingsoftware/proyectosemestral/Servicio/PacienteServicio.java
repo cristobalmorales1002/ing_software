@@ -38,7 +38,8 @@ public class PacienteServicio {
                 .orElseThrow(() -> new EntityNotFoundException("Usuario no encontrado en sesión: " + rut));
     }
 
-    private List<RespuestaResponseDto> guardarOActualizarRespuestas(Paciente paciente, List<RespuestaDto> respuestasDto, Usuario usuario){
+    // --- CORRECCION: Agregamos el parámetro 'boolean esEdicion' ---
+    private List<RespuestaResponseDto> guardarOActualizarRespuestas(Paciente paciente, List<RespuestaDto> respuestasDto, Usuario usuario, boolean esEdicion){
         List<RespuestaResponseDto> dtosDeRespuesta = new ArrayList<>();
 
         for(RespuestaDto dto: respuestasDto) {
@@ -48,7 +49,12 @@ public class PacienteServicio {
             Optional<Respuesta> optRespuesta = respuestaRepositorio.findByPacienteAndPregunta(paciente, pregunta);
             Respuesta respuestaGuardada;
 
+            String etiquetaPregunta = pregunta.getEtiqueta() != null ? pregunta.getEtiqueta() : "Pregunta " + pregunta.getPregunta_id();
+            // Formato estándar: [CODIGO] | Pregunta...
+            String prefixLog = "Paciente: " + paciente.getParticipanteCod() + " | Pregunta: '" + etiquetaPregunta + "'";
+
             if(optRespuesta.isPresent()){
+                // CASO 1: La respuesta YA EXISTÍA (Update convencional)
                 Respuesta respuestaExistente = optRespuesta.get();
                 String valorAnterior = respuestaExistente.getValor();
 
@@ -56,21 +62,28 @@ public class PacienteServicio {
                     respuestaExistente.setValor(dto.getValor());
                     respuestaGuardada = respuestaRepositorio.save(respuestaExistente);
 
-                    String etiqueta = pregunta.getEtiqueta() != null ? pregunta.getEtiqueta() : "Pregunta " + pregunta.getPregunta_id();
-                    String detalle = "Pregunta: " + etiqueta + " | Anterior: '" + valorAnterior + "' -> Nuevo: '" + dto.getValor() + "'";
+                    // Solo registramos si cambiamos algo distinto de null/vacío a otro valor
+                    String detalle = prefixLog + " | Anterior: '" + valorAnterior + "' -> Nuevo: '" + dto.getValor() + "'";
 
-                    registroServicio.registrarAccion(usuario, "ACTUALIZAR_RESPUESTA",
-                            detalle,
-                            respuestaGuardada);
+                    registroServicio.registrarAccion(usuario, "ACTUALIZAR_RESPUESTA", detalle, respuestaGuardada);
                 } else {
                     respuestaGuardada = respuestaExistente;
                 }
             } else {
+                // CASO 2: La respuesta NO EXISTÍA (Era null/blanco en la BD)
                 Respuesta nuevaRespuesta = new Respuesta();
                 nuevaRespuesta.setPaciente(paciente);
                 nuevaRespuesta.setPregunta(pregunta);
                 nuevaRespuesta.setValor(dto.getValor());
                 respuestaGuardada = respuestaRepositorio.save(nuevaRespuesta);
+
+                // --- LOGICA CLAVE: Solo registramos creación de respuesta si estamos en MODO EDICIÓN ---
+                // Si es modo creación (paciente nuevo), ignoramos para no llenar el log.
+                // Si es modo edición, significa que llenaron un dato que faltaba.
+                if (esEdicion && dto.getValor() != null && !dto.getValor().isEmpty()) {
+                    String detalle = prefixLog + " | Dato completado: '" + dto.getValor() + "'";
+                    registroServicio.registrarAccion(usuario, "COMPLETAR_DATO", detalle, respuestaGuardada);
+                }
             }
 
             RespuestaResponseDto rDto = new RespuestaResponseDto();
@@ -99,8 +112,9 @@ public class PacienteServicio {
 
         Paciente pacienteGuardado = pacienteRepositorio.save(paciente);
 
+        // AQUÍ PASAMOS 'false' PORQUE ES CREACIÓN (No queremos logs individuales)
         List<RespuestaResponseDto> respuestasGuardadasDtos =
-                guardarOActualizarRespuestas(pacienteGuardado, dto.getRespuestas(), reclutador);
+                guardarOActualizarRespuestas(pacienteGuardado, dto.getRespuestas(), reclutador, false);
 
         registroServicio.registrarAccion(reclutador, "CREAR_PACIENTE",
                 "Paciente creado con codigo: " + pacienteGuardado.getParticipanteCod());
@@ -138,7 +152,8 @@ public class PacienteServicio {
             }
         }
 
-        guardarOActualizarRespuestas(paciente, respuestasDto, usuario);
+        // AQUÍ PASAMOS 'true' PORQUE ES EDICIÓN (Queremos logs si rellenan vacíos)
+        guardarOActualizarRespuestas(paciente, respuestasDto, usuario, true);
         return paciente;
     }
 

@@ -121,16 +121,21 @@ const CasesControls = () => {
     const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
 
+    // --- LÓGICA DE EDICIÓN CORREGIDA ---
     const canEdit = (item) => {
         if (!currentUser || !item) return false;
 
-        if (['ROLE_ADMIN', 'ROLE_INVESTIGADOR'].includes(userRole)) return true;
-
-        if (userRole === 'ROLE_ESTUDIANTE') {
-            return item.tipo === 'CONTROL' && item.creadorId === currentUser.usuarioId;
+        // 1. Regla para CASOS: Solo Médicos (y solo si son suyos)
+        if (item.tipo === 'CASO') {
+            return userRole === 'ROLE_MEDICO' && item.creadorId === currentUser.usuarioId;
         }
 
-        if (userRole === 'ROLE_MEDICO') {
+        // 2. Regla para CONTROLES
+        if (item.tipo === 'CONTROL') {
+            // Admin e Investigador pueden editar TODOS los controles
+            if (['ROLE_ADMIN', 'ROLE_INVESTIGADOR'].includes(userRole)) return true;
+
+            // Médico y Estudiante pueden editar SOLO sus propios controles
             return item.creadorId === currentUser.usuarioId;
         }
 
@@ -243,7 +248,7 @@ const CasesControls = () => {
     };
 
     const handleDownloadPdf = async (pacienteId, codigo) => {
-        setIsDownloading(true); // Usamos el mismo estado de carga
+        setIsDownloading(true);
         try {
             const response = await api.get(`/api/pdf/crf/paciente/${pacienteId}`, { responseType: 'blob' });
             const urlBlob = window.URL.createObjectURL(new Blob([response.data]));
@@ -377,7 +382,6 @@ const CasesControls = () => {
                                 <Form.Check type="checkbox" label={<span className="small fw-bold text-muted">Controles</span>} name="showControles" checked={filters.showControles} onChange={handleFilterChange} className="user-select-none"/>
                             </div>
 
-                            {/* --- CAMBIO: Se eliminó el botón de descarga de aquí --- */}
                             {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
                                 <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
                                     <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
@@ -458,7 +462,6 @@ const CasesControls = () => {
                                 </div>
                                 <div className="d-flex gap-2 align-items-center">
 
-                                    {/* --- CAMBIO: Botón Unificado con Lógica Inteligente --- */}
                                     {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
                                         <Button
                                             variant="outline-danger"

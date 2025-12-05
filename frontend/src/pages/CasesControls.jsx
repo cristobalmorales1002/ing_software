@@ -169,6 +169,10 @@ const CasesControls = () => {
         return userRole === 'ROLE_ADMIN';
     };
 
+    // --- NUEVO: Permiso para ver checkboxes y descargar ---
+    // Según tu backend, solo Admin e Investigador pueden descargar ZIPs
+    const canDownload = hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR']);
+
     const filteredItems = useMemo(() => {
         const normalize = (text) =>
             text ? text.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
@@ -409,14 +413,17 @@ const CasesControls = () => {
                                 <Form.Check type="checkbox" label={<span className="small fw-bold text-muted">Controles</span>} name="showControles" checked={filters.showControles} onChange={handleFilterChange} className="user-select-none"/>
                             </div>
 
-                            <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
-                                <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
-                                {selectedIds.size > 0 && (
-                                    <Button size="sm" variant="primary" onClick={handleBulkDownload} disabled={isDownloading} className="py-0 px-2" style={{fontSize: '0.8rem'}}>
-                                        {isDownloading ? <Spinner size="sm" animation="border"/> : <><Download className="me-1"/> Descargar ({selectedIds.size})</>}
-                                    </Button>
-                                )}
-                            </div>
+                            {/* --- SECCIÓN DE DESCARGA MASIVA (OCULTA PARA ESTUDIANTES Y VISUALIZADORES) --- */}
+                            {canDownload && (
+                                <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
+                                    <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
+                                    {selectedIds.size > 0 && (
+                                        <Button size="sm" variant="primary" onClick={handleBulkDownload} disabled={isDownloading} className="py-0 px-2" style={{fontSize: '0.8rem'}}>
+                                            {isDownloading ? <Spinner size="sm" animation="border"/> : <><Download className="me-1"/> Descargar ({selectedIds.size})</>}
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex-grow-1 overflow-auto">
@@ -441,9 +448,12 @@ const CasesControls = () => {
                                             }}
                                             onClick={() => setSelectedItem(item)}
                                         >
-                                            <div className="me-3" onClick={(e) => e.stopPropagation()}>
-                                                <Form.Check type="checkbox" checked={selectedIds.has(item.dbId)} onChange={() => handleToggleSelect(item.dbId)}/>
-                                            </div>
+                                            {/* --- CHECKBOX INDIVIDUAL (OCULTO PARA ESTUDIANTES Y VISUALIZADORES) --- */}
+                                            {canDownload && (
+                                                <div className="me-3" onClick={(e) => e.stopPropagation()}>
+                                                    <Form.Check type="checkbox" checked={selectedIds.has(item.dbId)} onChange={() => handleToggleSelect(item.dbId)}/>
+                                                </div>
+                                            )}
 
                                             <div className="d-flex justify-content-between align-items-center flex-grow-1">
                                                 <div className="d-flex flex-column justify-content-center">
@@ -732,7 +742,6 @@ const CasesControls = () => {
                 </Modal.Footer>
             </Modal>
 
-            {/* --- MODAL DE ELIMINACIÓN --- */}
             <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
                 <Modal.Header closeButton className="border-0 pb-0">
                     <Modal.Title className="text-danger d-flex align-items-center gap-2">

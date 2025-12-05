@@ -3,13 +3,12 @@ import { Container, Row, Col, Form, InputGroup, Button, Card, ListGroup, Badge, 
 import {
     Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft,
     Save, FileEarmarkPdf, Download,
-    ExclamationTriangle, QuestionCircle, Pencil, Trash // Agregados iconos
+    ExclamationTriangle, QuestionCircle, Pencil, Trash
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut } from '../utils/rutUtils';
 
 const CasesControls = () => {
-    // --- ESTADOS ---
     const [items, setItems] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -20,7 +19,6 @@ const CasesControls = () => {
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [isDownloading, setIsDownloading] = useState(false);
 
-    // Estados del Modal
     const [showModal, setShowModal] = useState(false);
     const [isCase, setIsCase] = useState(true);
     const [surveyStructure, setSurveyStructure] = useState([]);
@@ -28,21 +26,18 @@ const CasesControls = () => {
     const [formData, setFormData] = useState({});
     const [loadingSurvey, setLoadingSurvey] = useState(false);
 
-    // --- NUEVO: Estado de edición y usuario actual ---
     const [editingId, setEditingId] = useState(null);
-    const [currentUser, setCurrentUser] = useState(null); // Guardamos objeto completo (id y rol)
+    const [currentUser, setCurrentUser] = useState(null);
 
-    // OBTENER EL USUARIO ACTUAL (ROL e ID)
     const fetchUserRole = async () => {
         try {
             const res = await api.get('/api/usuarios/me');
-            setCurrentUser(res.data); // Asume que devuelve { idUsuario, rol, ... }
+            setCurrentUser(res.data);
         } catch (error) {
             console.error("Error al obtener usuario:", error);
         }
     };
 
-    // --- CARGAR DATOS ---
     const fetchPacientes = async () => {
         setIsLoading(true);
         try {
@@ -63,12 +58,11 @@ const CasesControls = () => {
                 tipo: p.esCaso ? 'CASO' : 'CONTROL',
                 fechaIngreso: p.fechaIncl,
                 estado: 'Activo',
-                creadorId: p.usuarioCreadorId, // Importante: Capturamos el ID del creador
+                creadorId: p.usuarioCreadorId,
                 respuestas: p.respuestas || []
             }));
 
             setItems(dataMapeada);
-            // Mantener selección tras recargar si es posible
             if (dataMapeada.length > 0) {
                 if (selectedItem) {
                     const updatedItem = dataMapeada.find(i => i.dbId === selectedItem.dbId);
@@ -124,36 +118,29 @@ const CasesControls = () => {
         fetchUserRole();
     }, []);
 
-    // --- PERMISOS ---
     const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
 
-    // Lógica de permiso para Editar
     const canEdit = (item) => {
         if (!currentUser || !item) return false;
 
-        // Admin e Investigador editan todo
         if (['ROLE_ADMIN', 'ROLE_INVESTIGADOR'].includes(userRole)) return true;
 
-        // Estudiante: Solo CONTROLES que él haya creado
         if (userRole === 'ROLE_ESTUDIANTE') {
-            return item.tipo === 'CONTROL' && item.creadorId === currentUser.idUsuario;
+            return item.tipo === 'CONTROL' && item.creadorId === currentUser.usuarioId;
         }
 
-        // Médico: Solo CASOS que él haya creado
         if (userRole === 'ROLE_MEDICO') {
-            return item.tipo === 'CASO' && item.creadorId === currentUser.idUsuario;
+            return item.creadorId === currentUser.usuarioId;
         }
 
         return false;
     };
 
-    // Lógica de permiso para Borrar
     const canDelete = () => {
         return userRole === 'ROLE_ADMIN';
     };
 
-    // 2. Filtro Inteligente
     const filteredItems = useMemo(() => {
         const normalize = (text) =>
             text ? text.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
@@ -214,8 +201,6 @@ const CasesControls = () => {
         }
     }, [items, searchTerm, filters, surveyStructure]);
 
-
-    // --- HANDLERS UI ---
     const handleFilterChange = (e) => {
         const { name, checked } = e.target;
         setFilters({ ...filters, [name]: checked });
@@ -273,15 +258,11 @@ const CasesControls = () => {
         }
     };
 
-    // --- MODAL Y GUARDADO ---
-
-    // Modificado para soportar edición
     const handleOpenModal = (esCaso, itemAEditar = null) => {
         if (itemAEditar) {
             setEditingId(itemAEditar.dbId);
             setIsCase(itemAEditar.tipo === 'CASO');
 
-            // Poblar datos
             const initialData = {};
             if (itemAEditar.respuestas) {
                 itemAEditar.respuestas.forEach(r => {
@@ -308,7 +289,6 @@ const CasesControls = () => {
     const handleNext = () => { if (currentStep < surveyStructure.length - 1) setCurrentStep(p => p + 1); };
     const handlePrev = () => { if (currentStep > 0) setCurrentStep(p => p - 1); };
 
-    // Manejo de Guardado (POST vs PUT)
     const handleSave = async () => {
         setIsSaving(true);
         try {
@@ -318,10 +298,8 @@ const CasesControls = () => {
             }));
 
             if (editingId) {
-                // Modo Edición: PUT a /respuestas (según tu backend controller)
                 await api.put(`/api/pacientes/${editingId}/respuestas`, respuestasDTO);
             } else {
-                // Modo Creación: POST a /pacientes
                 const payload = { esCaso: isCase, respuestas: respuestasDTO };
                 await api.post('/api/pacientes', payload);
             }
@@ -329,7 +307,7 @@ const CasesControls = () => {
             setShowModal(false);
             setFormData({});
             setEditingId(null);
-            fetchPacientes(); // Recargar lista
+            fetchPacientes();
         } catch (err) {
             console.error(err);
             const msg = err.response?.data?.message || "Error al guardar";
@@ -339,7 +317,6 @@ const CasesControls = () => {
         }
     };
 
-    // Manejo de Eliminación
     const handleDelete = async (id) => {
         if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) return;
         try {
@@ -358,7 +335,6 @@ const CasesControls = () => {
     return (
         <Container fluid className="p-0 d-flex flex-column" style={{ height: 'calc(100vh - 100px)' }}>
 
-            {/* HEADER */}
             <div className="d-flex justify-content-between align-items-center mb-3 flex-shrink-0">
                 <h2 className="mb-0">CASOS Y CONTROLES</h2>
                 <div className="d-flex gap-2">
@@ -377,10 +353,8 @@ const CasesControls = () => {
 
             <Row className="flex-grow-1 overflow-hidden g-3">
 
-                {/* --- COLUMNA IZQUIERDA (LISTA) --- */}
                 <Col md={4} lg={3} className="d-flex flex-column h-100">
                     <Card className="h-100 shadow-sm border-0 overflow-hidden">
-                        {/* (Código de lista sin cambios significativos, solo re-render) */}
                         <div className="p-3 border-bottom border-secondary border-opacity-25">
                             <InputGroup className="mb-3">
                                 <InputGroup.Text className="bg-transparent border-secondary border-opacity-50" style={{ color: 'var(--text-muted)' }}>
@@ -400,14 +374,17 @@ const CasesControls = () => {
                                 <Form.Check type="checkbox" label={<span className="small fw-bold text-muted">Controles</span>} name="showControles" checked={filters.showControles} onChange={handleFilterChange} className="user-select-none"/>
                             </div>
 
-                            <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
-                                <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
-                                {selectedIds.size > 0 && (
-                                    <Button size="sm" variant="primary" onClick={handleBulkDownload} disabled={isDownloading} className="py-0 px-2" style={{fontSize: '0.8rem'}}>
-                                        {isDownloading ? <Spinner size="sm" animation="border"/> : <><Download className="me-1"/> Descargar ({selectedIds.size})</>}
-                                    </Button>
-                                )}
-                            </div>
+                            {/* --- CAMBIO 1: Ocultar toda la barra azul de selección/descarga para roles no autorizados --- */}
+                            {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
+                                <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
+                                    <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
+                                    {selectedIds.size > 0 && (
+                                        <Button size="sm" variant="primary" onClick={handleBulkDownload} disabled={isDownloading} className="py-0 px-2" style={{fontSize: '0.8rem'}}>
+                                            {isDownloading ? <Spinner size="sm" animation="border"/> : <><Download className="me-1"/> Descargar ({selectedIds.size})</>}
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex-grow-1 overflow-auto">
@@ -432,9 +409,12 @@ const CasesControls = () => {
                                             }}
                                             onClick={() => setSelectedItem(item)}
                                         >
-                                            <div className="me-3" onClick={(e) => e.stopPropagation()}>
-                                                <Form.Check type="checkbox" checked={selectedIds.has(item.dbId)} onChange={() => handleToggleSelect(item.dbId)}/>
-                                            </div>
+                                            {/* --- CAMBIO 2: Ocultar el checkbox individual si no tienen permiso --- */}
+                                            {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
+                                                <div className="me-3" onClick={(e) => e.stopPropagation()}>
+                                                    <Form.Check type="checkbox" checked={selectedIds.has(item.dbId)} onChange={() => handleToggleSelect(item.dbId)}/>
+                                                </div>
+                                            )}
 
                                             <div className="d-flex justify-content-between align-items-center flex-grow-1">
                                                 <div className="d-flex flex-column justify-content-center">
@@ -466,7 +446,6 @@ const CasesControls = () => {
                     </Card>
                 </Col>
 
-                {/* --- COLUMNA DERECHA (DETALLE) --- */}
                 <Col md={8} lg={9} className="h-100">
                     {selectedItem ? (
                         <Card className="h-100 shadow-sm border-0 overflow-hidden">
@@ -481,11 +460,13 @@ const CasesControls = () => {
                                     </small>
                                 </div>
                                 <div className="d-flex gap-2 align-items-center">
-                                    <Button variant="outline-danger" size="sm" onClick={() => handleDownloadPdf(selectedItem.dbId, selectedItem.id)} title="Descargar PDF">
-                                        <FileEarmarkPdf className="me-2"/> PDF
-                                    </Button>
 
-                                    {/* --- BOTONES NUEVOS: Editar y Eliminar --- */}
+                                    {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
+                                        <Button variant="outline-danger" size="sm" onClick={() => handleDownloadPdf(selectedItem.dbId, selectedItem.id)} title="Descargar PDF">
+                                            <FileEarmarkPdf className="me-2"/> PDF
+                                        </Button>
+                                    )}
+
                                     {canEdit(selectedItem) && (
                                         <Button
                                             variant="outline-primary"
@@ -499,7 +480,7 @@ const CasesControls = () => {
 
                                     {canDelete() && (
                                         <Button
-                                            variant="outline-secondary" // Color sutil para no llamar la atención excesiva
+                                            variant="outline-secondary"
                                             size="sm"
                                             onClick={() => handleDelete(selectedItem.dbId)}
                                             title="Eliminar registro"
@@ -571,7 +552,6 @@ const CasesControls = () => {
                 </Col>
             </Row>
 
-            {/* MODAL WIZARD */}
             <Modal
                 show={showModal}
                 onHide={() => setShowModal(false)}
@@ -583,7 +563,6 @@ const CasesControls = () => {
                 <Modal.Header closeButton>
                     <div className="w-100 me-3">
                         <Modal.Title className="mb-2 fs-5">
-                            {/* Título dinámico para editar o crear */}
                             {editingId ? "Editar " : "Ingresar Nuevo "}
                             {isCase ? <span className="text-danger">Caso</span> : <span className="text-success">Control</span>}
                         </Modal.Title>
@@ -658,7 +637,6 @@ const CasesControls = () => {
                     {currentStep === surveyStructure.length - 1 ? (
                         <Button variant="success" onClick={handleSave} disabled={isSaving}>
                             {isSaving ? <Spinner size="sm" animation="border" className="me-2"/> : <Save className="me-2" />}
-                            {/* Botón cambia texto */}
                             {editingId ? "Actualizar" : "Guardar"}
                         </Button>
                     ) : (

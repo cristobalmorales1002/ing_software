@@ -1,17 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Form, InputGroup, Button, Card, ListGroup, Badge, Spinner, Modal, ProgressBar, Table, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { Link } from 'react-router-dom'; // <--- IMPORTADO
+import { Link } from 'react-router-dom';
 import {
     Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft,
     Save, FileEarmarkPdf, Download,
-    ExclamationTriangle, QuestionCircle, Pencil, Trash
+    ExclamationTriangle, QuestionCircle, Pencil, Trash, ExclamationCircle
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut } from '../utils/rutUtils';
 import { getPhoneConfig, COUNTRY_PHONE_DATA } from '../utils/phoneUtils';
 
 const CasesControls = () => {
-    // --- ESTADOS ---
     const [items, setItems] = useState([]);
     const [selectedItem, setSelectedItem] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -22,7 +21,6 @@ const CasesControls = () => {
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [isDownloading, setIsDownloading] = useState(false);
 
-    // Estados del Modal
     const [showModal, setShowModal] = useState(false);
     const [isCase, setIsCase] = useState(true);
     const [surveyStructure, setSurveyStructure] = useState([]);
@@ -32,12 +30,13 @@ const CasesControls = () => {
     const [countryCodes, setCountryCodes] = useState({});
     const [loadingSurvey, setLoadingSurvey] = useState(false);
 
-    // --- USUARIO ACTUAL Y DICCIONARIO DE USUARIOS ---
     const [editingId, setEditingId] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
     const [usersMap, setUsersMap] = useState({});
 
-    // 1. Obtener usuario logueado
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
+
     const fetchUserRole = async () => {
         try {
             const res = await api.get('/api/usuarios/me');
@@ -47,7 +46,6 @@ const CasesControls = () => {
         }
     };
 
-    // 2. Obtener lista completa de usuarios
     const fetchUsers = async () => {
         try {
             const res = await api.get('/api/usuarios');
@@ -65,7 +63,6 @@ const CasesControls = () => {
         }
     };
 
-    // --- CARGAR PACIENTES ---
     const fetchPacientes = async () => {
         setIsLoading(true);
         try {
@@ -81,10 +78,7 @@ const CasesControls = () => {
                 tipo: p.esCaso ? 'CASO' : 'CONTROL',
                 fechaIngreso: p.fechaIncl,
                 estado: 'Activo',
-
-                // Mapeamos el ID del backend
                 creadorId: p.usuarioCreadorId,
-
                 respuestas: p.respuestas || []
             }));
 
@@ -149,7 +143,6 @@ const CasesControls = () => {
     const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
 
-    // --- REGLAS DE PERMISOS ---
     const canEdit = (item) => {
         if (!currentUser || !item) return false;
 
@@ -176,7 +169,6 @@ const CasesControls = () => {
         return userRole === 'ROLE_ADMIN';
     };
 
-    // --- FILTRADO ---
     const filteredItems = useMemo(() => {
         const normalize = (text) =>
             text ? text.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
@@ -222,7 +214,6 @@ const CasesControls = () => {
         }
     }, [items, searchTerm, filters, surveyStructure]);
 
-    // --- HANDLERS UI ---
     const handleFilterChange = (e) => {
         const { name, checked } = e.target;
         setFilters({ ...filters, [name]: checked });
@@ -280,7 +271,6 @@ const CasesControls = () => {
         }
     };
 
-    // --- MODAL Y GUARDADO ---
     const handleOpenModal = (esCaso, itemAEditar = null) => {
         if (itemAEditar) {
             setEditingId(itemAEditar.dbId);
@@ -305,7 +295,7 @@ const CasesControls = () => {
 
     const handleInputChange = (preguntaId, value, tipo) => {
         let val = value;
-        if (tipo === 'RUT') val = formatRut(value); //
+        if (tipo === 'RUT') val = formatRut(value);
         setFormData(prev => ({ ...prev, [preguntaId]: val }));
     };
 
@@ -343,12 +333,18 @@ const CasesControls = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) return;
+    const requestDelete = (id) => {
+        setItemToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
         try {
-            await api.delete(`/api/pacientes/${id}`);
-            if (selectedItem && selectedItem.dbId === id) setSelectedItem(null);
+            await api.delete(`/api/pacientes/${itemToDelete}`);
+            if (selectedItem && selectedItem.dbId === itemToDelete) setSelectedItem(null);
             fetchPacientes();
+            setShowDeleteModal(false);
         } catch (err) {
             console.error(err);
             alert("Error al eliminar.");
@@ -360,8 +356,21 @@ const CasesControls = () => {
 
     return (
         <Container fluid className="p-0 d-flex flex-column" style={{ height: 'calc(100vh - 100px)' }}>
+            <style type="text/css">
+                {`
+                .btn-delete-custom {
+                    color: #6c757d;
+                    border-color: #6c757d;
+                    transition: all 0.2s ease;
+                }
+                .btn-delete-custom:hover {
+                    color: #fff;
+                    background-color: #dc3545;
+                    border-color: #dc3545;
+                }
+                `}
+            </style>
 
-            {/* HEADER SUPERIOR */}
             <div className="d-flex justify-content-between align-items-center mb-3 flex-shrink-0">
                 <h2 className="mb-0">CASOS Y CONTROLES</h2>
                 <div className="d-flex gap-2">
@@ -379,7 +388,6 @@ const CasesControls = () => {
             </div>
 
             <Row className="flex-grow-1 overflow-hidden g-3">
-                {/* LISTA (IZQUIERDA) */}
                 <Col md={4} lg={3} className="d-flex flex-column h-100">
                     <Card className="h-100 shadow-sm border-0 overflow-hidden">
                         <div className="p-3 border-bottom border-secondary border-opacity-25">
@@ -467,7 +475,6 @@ const CasesControls = () => {
                     </Card>
                 </Col>
 
-                {/* DETALLE (DERECHA) */}
                 <Col md={8} lg={9} className="h-100">
                     {selectedItem ? (
                         <Card className="h-100 shadow-sm border-0 overflow-hidden">
@@ -477,7 +484,6 @@ const CasesControls = () => {
                                         <PersonVcard />
                                         {selectedItem.id}
                                     </h4>
-                                    {/* --- AQUÍ SE COLOCÓ EL LINK AL PERFIL DEL RECLUTADOR --- */}
                                     <div className="text-muted small">
                                         <span>Ingreso: {selectedItem.fechaIngreso ? new Date(selectedItem.fechaIngreso).toLocaleDateString() : '-'}</span>
                                         <span className="mx-2">•</span>
@@ -512,8 +518,9 @@ const CasesControls = () => {
                                     {canDelete() && (
                                         <Button
                                             variant="outline-secondary"
+                                            className="btn-delete-custom"
                                             size="sm"
-                                            onClick={() => handleDelete(selectedItem.dbId)}
+                                            onClick={() => requestDelete(selectedItem.dbId)}
                                             title="Eliminar registro"
                                         >
                                             <Trash />
@@ -551,7 +558,6 @@ const CasesControls = () => {
                                                             const currentCode = countryCodes[pregunta.pregunta_id] || '+56';
                                                             const config = getPhoneConfig(currentCode);
                                                             const prefix = config.label.split('(')[1]?.replace(')', '') || '';
-                                                            // Muestra el número con un formato simple si existe
                                                             cellContent = <span className="text-primary fw-medium">{prefix} {respuesta.valor}</span>;
                                                         } else {
                                                             cellContent = <span className="text-primary fw-medium">{respuesta.valor}</span>;
@@ -606,7 +612,6 @@ const CasesControls = () => {
                 </Col>
             </Row>
 
-            {/* MODAL WIZARD */}
             <Modal
                 show={showModal}
                 onHide={() => setShowModal(false)}
@@ -676,10 +681,9 @@ const CasesControls = () => {
                                                 if(q.tipo_dato === 'RUT') {
                                                     return <Form.Control value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, 'RUT')} maxLength={12} placeholder="12.345.678-9"/>;
                                                 }
-                                                // --- INPUT CELULAR (Modificado con phoneUtils) ---
                                                 if(q.tipo_dato === 'CELULAR') {
                                                     const currentCode = countryCodes[q.pregunta_id] || '+56';
-                                                    const config = getPhoneConfig(currentCode); //
+                                                    const config = getPhoneConfig(currentCode);
                                                     return (
                                                         <InputGroup>
                                                             <Form.Select
@@ -725,6 +729,23 @@ const CasesControls = () => {
                             Siguiente <ArrowRight className="ms-2" />
                         </Button>
                     )}
+                </Modal.Footer>
+            </Modal>
+
+            {/* --- MODAL DE ELIMINACIÓN --- */}
+            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+                <Modal.Header closeButton className="border-0 pb-0">
+                    <Modal.Title className="text-danger d-flex align-items-center gap-2">
+                        <ExclamationCircle /> Confirmar Eliminación
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="text-center pt-4 pb-4 px-5">
+                    <p className="mb-1 fw-bold fs-5">¿Estás seguro de que deseas eliminar este registro?</p>
+                    <p className="text-muted small">Esta acción no se puede deshacer y eliminará todos los datos asociados al paciente.</p>
+                </Modal.Body>
+                <Modal.Footer className="border-0 justify-content-center pb-4 gap-3">
+                    <Button variant="light" onClick={() => setShowDeleteModal(false)} className="px-4 py-2">Cancelar</Button>
+                    <Button variant="danger" onClick={confirmDelete} className="px-5 py-2 fw-bold">Eliminar</Button>
                 </Modal.Footer>
             </Modal>
         </Container>

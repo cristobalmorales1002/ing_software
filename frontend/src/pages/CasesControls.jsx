@@ -243,6 +243,7 @@ const CasesControls = () => {
     };
 
     const handleDownloadPdf = async (pacienteId, codigo) => {
+        setIsDownloading(true); // Usamos el mismo estado de carga
         try {
             const response = await api.get(`/api/pdf/crf/paciente/${pacienteId}`, { responseType: 'blob' });
             const urlBlob = window.URL.createObjectURL(new Blob([response.data]));
@@ -255,6 +256,8 @@ const CasesControls = () => {
         } catch (err) {
             console.error(err);
             alert("Error al generar PDF.");
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -374,15 +377,10 @@ const CasesControls = () => {
                                 <Form.Check type="checkbox" label={<span className="small fw-bold text-muted">Controles</span>} name="showControles" checked={filters.showControles} onChange={handleFilterChange} className="user-select-none"/>
                             </div>
 
-                            {/* --- CAMBIO 1: Ocultar toda la barra azul de selección/descarga para roles no autorizados --- */}
+                            {/* --- CAMBIO: Se eliminó el botón de descarga de aquí --- */}
                             {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
                                 <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
                                     <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
-                                    {selectedIds.size > 0 && (
-                                        <Button size="sm" variant="primary" onClick={handleBulkDownload} disabled={isDownloading} className="py-0 px-2" style={{fontSize: '0.8rem'}}>
-                                            {isDownloading ? <Spinner size="sm" animation="border"/> : <><Download className="me-1"/> Descargar ({selectedIds.size})</>}
-                                        </Button>
-                                    )}
                                 </div>
                             )}
                         </div>
@@ -409,7 +407,6 @@ const CasesControls = () => {
                                             }}
                                             onClick={() => setSelectedItem(item)}
                                         >
-                                            {/* --- CAMBIO 2: Ocultar el checkbox individual si no tienen permiso --- */}
                                             {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
                                                 <div className="me-3" onClick={(e) => e.stopPropagation()}>
                                                     <Form.Check type="checkbox" checked={selectedIds.has(item.dbId)} onChange={() => handleToggleSelect(item.dbId)}/>
@@ -461,9 +458,27 @@ const CasesControls = () => {
                                 </div>
                                 <div className="d-flex gap-2 align-items-center">
 
+                                    {/* --- CAMBIO: Botón Unificado con Lógica Inteligente --- */}
                                     {hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO']) && (
-                                        <Button variant="outline-danger" size="sm" onClick={() => handleDownloadPdf(selectedItem.dbId, selectedItem.id)} title="Descargar PDF">
-                                            <FileEarmarkPdf className="me-2"/> PDF
+                                        <Button
+                                            variant="outline-danger"
+                                            size="sm"
+                                            disabled={isDownloading}
+                                            onClick={() => {
+                                                if(selectedIds.size > 0) {
+                                                    handleBulkDownload();
+                                                } else {
+                                                    handleDownloadPdf(selectedItem.dbId, selectedItem.id);
+                                                }
+                                            }}
+                                            title={selectedIds.size > 0 ? "Descargar selección en ZIP" : "Descargar PDF del participante actual"}
+                                        >
+                                            {isDownloading ? (
+                                                <Spinner animation="border" size="sm" className="me-2"/>
+                                            ) : (
+                                                <FileEarmarkPdf className="me-2"/>
+                                            )}
+                                            {selectedIds.size > 0 ? `Descargar PDF (${selectedIds.size})` : 'Descargar PDF'}
                                         </Button>
                                     )}
 

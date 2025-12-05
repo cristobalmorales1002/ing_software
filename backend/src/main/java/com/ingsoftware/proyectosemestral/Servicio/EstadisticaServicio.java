@@ -41,14 +41,17 @@ public class EstadisticaServicio {
 
         List<Pregunta> preguntasParaEstadistica;
 
+        // CASO 1: Usuario Nuevo (NULL) -> Usar Defaults (Solo Sexo)
         if (prefs == null) {
-            System.out.println(">>> Preferencias NULL. Usando DEFAULTS.");
+            System.out.println(">>> Preferencias NULL. Usando DEFAULTS (Sexo).");
             preguntasParaEstadistica = obtenerPreguntasPorDefecto();
         }
+        // CASO 2: Usuario limpió todo explícitamente (Vacío) -> Ver nada
         else if (prefs.trim().isEmpty()) {
             System.out.println(">>> Preferencias VACÍAS. Mostrando 0 gráficos.");
             preguntasParaEstadistica = new ArrayList<>();
         }
+        // CASO 3: Usuario tiene selección guardada
         else {
             try {
                 List<Long> ids = Arrays.stream(prefs.split(","))
@@ -68,6 +71,7 @@ public class EstadisticaServicio {
         List<Paciente> pacientes = pacienteRepositorio.findByActivoTrue();
         List<EstadisticaDto> resultados = new ArrayList<>();
 
+        // Generar gráficos dinámicos (Sexo, etc.)
         for (Pregunta p : preguntasParaEstadistica) {
             EstadisticaDto dto = new EstadisticaDto();
             dto.setPreguntaId(p.getPregunta_id());
@@ -108,14 +112,22 @@ public class EstadisticaServicio {
             resultados.add(dto);
         }
 
+        // Agregar SIEMPRE estadística fija de Casos vs Controles al principio (Posición 0)
         resultados.add(0, calcularEstadisticaCasosControles(pacientes));
 
         return resultados;
     }
 
+    /**
+     * Lógica por defecto: devuelve SOLO las preguntas que contengan "Sexo" en el título.
+     * (El gráfico de Casos vs Controles se agrega aparte, no es una Pregunta).
+     */
     private List<Pregunta> obtenerPreguntasPorDefecto() {
         return preguntaRepositorio.findAll().stream()
                 .filter(p -> p.isActivo() && p.isGenerarEstadistica())
+                // --- CAMBIO CLAVE AQUÍ ---
+                // Filtramos para que, si no hay preferencias, solo salga "Sexo"
+                .filter(p -> p.getEtiqueta() != null && p.getEtiqueta().toLowerCase().contains("sexo"))
                 .collect(Collectors.toList());
     }
 
@@ -126,7 +138,7 @@ public class EstadisticaServicio {
 
         EstadisticaDto dto = new EstadisticaDto();
         dto.setTituloPregunta("Distribución Casos vs Controles");
-        dto.setPreguntaId(0L);
+        dto.setPreguntaId(0L); // ID ficticio
 
         List<EstadisticaDto.DatoGrafico> datos = new ArrayList<>();
 
@@ -139,6 +151,7 @@ public class EstadisticaServicio {
         dto.setDatos(datos);
         return dto;
     }
+
     public List<Map<String, Object>> obtenerOpcionesDisponibles() {
         return preguntaRepositorio.findAll().stream()
                 .filter(p -> p.isActivo() && p.isGenerarEstadistica())

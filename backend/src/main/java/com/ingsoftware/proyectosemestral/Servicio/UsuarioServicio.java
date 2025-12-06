@@ -16,6 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.javamail.MimeMessageHelper;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -248,28 +251,37 @@ public class UsuarioServicio {
             helper.setTo(usuario.getEmail());
             helper.setSubject("Bienvenido a la Plataforma - Credenciales de Acceso");
 
+            String urlLogin = "http://localhost:3000/";
             String htmlMsg = String.format(
-                    "<div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px; max-width: 600px;'>" +
-                            "  <h2 style='color: #333;'>Bienvenido/a %s</h2>" +
-                            "  <p style='font-size: 14px; color: #555;'>Su cuenta ha sido creada exitosamente.</p>" +
-                            "  <p style='font-size: 14px; color: #555;'>A continuación sus credenciales temporales:</p>" +
-                            "  <div style='margin: 25px 0; text-align: center;'>" +
-                            "    <span style='font-size: 24px; font-family: monospace; font-weight: bold; color: #0056b3; letter-spacing: 2px; background-color: #f8f9fa; padding: 15px 25px; border-radius: 5px; border: 1px dashed #0056b3;'>%s</span>" +
+                    "<div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; max-width: 600px; margin: 0 auto; background-color: #ffffff;'>" +
+                            "  <h2 style='color: #333; text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px;'>Bienvenido/a %s</h2>" +
+                            "  <p style='font-size: 15px; color: #555; text-align: center;'>Su cuenta ha sido creada exitosamente.</p>" +
+
+                            "  <div style='background-color: #f8f9fa; padding: 20px; border-radius: 6px; border: 1px dashed #0056b3; margin: 25px 0; text-align: center;'>" +
+                            "    <p style='margin: 0 0 15px 0; font-size: 14px; color: #666;'>Sus credenciales de acceso son:</p>" +
+                            "    <p style='font-size: 16px; color: #333; margin: 5px 0;'><strong>Usuario (RUT):</strong> %s</p>" +
+                            "    <p style='font-size: 16px; color: #333; margin: 5px 0;'><strong>Contraseña Temporal:</strong></p>" +
+                            "    <div style='font-size: 24px; font-family: monospace; font-weight: bold; color: #0056b3; letter-spacing: 2px; margin-top: 5px; background: #fff; display: inline-block; padding: 5px 15px; border-radius: 4px; border: 1px solid #ddd;'>%s</div>" +
                             "  </div>" +
-                            "  <p style='font-size: 14px; color: #555;'><strong>Usuario:</strong> %s</p>" +
-                            "  <p style='font-size: 14px; color: #555;'>Le recomendamos cambiar su contraseña al iniciar sesión.</p>" +
+
+                            "  <div style='text-align: center; margin: 35px 0;'>" +
+                            "      <a href='%s' style='background-color: #0056b3; color: white; padding: 14px 28px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block;'>Iniciar Sesión</a>" +
+                            "  </div>" +
+
+                            "  <p style='font-size: 14px; color: #d9534f; text-align: center; font-weight: bold;'>Le recomendamos cambiar su contraseña inmediatamente al ingresar.</p>" +
                             "  <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'>" +
-                            "  <p style='font-size: 12px; color: #999;'>Plataforma de Investigación Cáncer Gástrico</p>" +
+                            "  <p style='font-size: 12px; color: #999; text-align: center;'>Plataforma de Investigación Cáncer Gástrico</p>" +
                             "</div>",
                     usuario.getNombres(),
+                    usuario.getRut(),
                     contrasenaTemporal,
-                    usuario.getRut()
+                    urlLogin
             );
-
             helper.setText(htmlMsg, true);
             remitenteDeCorreo.send(mensaje);
         } catch (MessagingException e) {
             System.err.println("Error al enviar correo de bienvenida: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

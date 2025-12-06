@@ -220,6 +220,7 @@ public class UsuarioServicio {
                 .rol(rolNombre)
                 .estadoU(u.isActivo() ? "ACTIVO" : "INACTIVO")
                 .fotoBase64(imagenBase64)
+                .tema(u.getTema() != null ? u.getTema() : "dark")
                 .build();
     }
 
@@ -333,6 +334,14 @@ public class UsuarioServicio {
         System.out.println(">>> GUARDANDO PREFERENCIAS para " + rut + ": [" + valorAGuardar + "]");
 
         u.setPreferenciasEstadisticas(valorAGuardar);
+        usuarioRepositorio.save(u);
+    }
+
+    @Transactional
+    public void actualizarTema(String rut, String nuevoTema) {
+        Usuario u = usuarioRepositorio.findByRut(rut)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        u.setTema(nuevoTema);
         usuarioRepositorio.save(u);
     }
 }

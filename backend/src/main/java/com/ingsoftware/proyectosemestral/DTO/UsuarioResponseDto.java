@@ -17,4 +17,5 @@ public class UsuarioResponseDto {
     private String rol;
     private String estadoU;
     private String fotoBase64;
+    private String tema;
 }

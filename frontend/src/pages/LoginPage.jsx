@@ -11,17 +11,22 @@ import { Eye, EyeSlash } from 'react-bootstrap-icons';
 import './Login.css';
 import logoCybergene from '../assets/logo-biocode.png';
 
+// 3. IMPORTAR EL HOOK DEL TEMA
+import { useTheme } from '../context/ThemeContext';
+
 function LoginPage() {
     const [rut, setRut] = useState('');
     const [password, setPassword] = useState('');
 
-    // 3. Nuevo estado para controlar la visibilidad
     const [showPassword, setShowPassword] = useState(false);
 
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
+
+    // 4. OBTENER LA FUNCIÓN DE SINCRONIZACIÓN
+    const { syncTheme } = useTheme();
 
     useEffect(() => {
         if (localStorage.getItem('isLoggedIn') === 'true') {
@@ -58,14 +63,11 @@ function LoginPage() {
             });
 
             if (res.status === 200 || res.status === 204) {
-                // Guardar datos del usuario si el backend los devuelve (opcional, depende de tu auth)
-                // Por ahora solo marcamos como logueado
                 localStorage.setItem('isLoggedIn', 'true');
 
-                // Si el backend devuelve info del usuario en el body del login, la guardamos aquí:
-                // localStorage.setItem('user', JSON.stringify(res.data));
-                // Nota: Como es form-login standard, a veces solo devuelve OK y hay que pedir el usuario aparte.
-                // Si ya te funciona así, déjalo así.
+                // 5. ¡AQUÍ ESTÁ LA CLAVE!
+                // Forzamos la carga del tema del usuario que acaba de entrar
+                await syncTheme();
 
                 navigate('/dashboard', { replace: true });
             } else {
@@ -111,20 +113,19 @@ function LoginPage() {
                                 <Form.Group className="mb-4" controlId="password">
                                     <Form.Label>Contraseña</Form.Label>
 
-                                    {/* 4. Envolvemos el input y el botón en un InputGroup */}
                                     <InputGroup>
                                         <Form.Control
-                                            type={showPassword ? "text" : "password"} // Cambia dinámicamente
+                                            type={showPassword ? "text" : "password"}
                                             placeholder="********"
                                             required
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
-                                            style={{ borderRight: 'none' }} // Estilo opcional para unirlo mejor
+                                            style={{ borderRight: 'none' }}
                                         />
                                         <Button
                                             variant="outline-secondary"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            style={{ borderLeft: 'none', borderColor: '#dee2e6' }} // Para que coincida con el input
+                                            style={{ borderLeft: 'none', borderColor: '#dee2e6' }}
                                             title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                                         >
                                             {showPassword ? <EyeSlash /> : <Eye />}

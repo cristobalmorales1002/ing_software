@@ -136,4 +136,11 @@ public class UsuarioControlador {
 
         return ResponseEntity.ok().build();
     }
+    @PutMapping("/me/tema")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> actualizarTema(@RequestBody Map<String, String> body, Authentication authentication) {
+        String tema = body.get("tema");
+        usuarioServicio.actualizarTema(authentication.getName(), tema);
+        return ResponseEntity.ok().build();
+    }
 }

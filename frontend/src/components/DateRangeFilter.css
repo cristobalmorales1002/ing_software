@@ -1,0 +1,82 @@
+.react-datepicker {
+    font-family: 'Poppins', sans-serif !important;
+    border: 1px solid var(--border-color) !important;
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.react-datepicker__header {
+    background-color: var(--bg-card) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+    color: var(--text-main) !important;
+}
+
+.react-datepicker__day {
+    color: var(--text-main) !important;
+    border-radius: 50% !important;
+}
+
+.react-datepicker__day:hover {
+    background-color: var(--hover-bg) !important;
+}
+
+/* --- FIX DÍA ACTUAL (HOY) EN MODO OSCURO --- */
+/* Si es el día actual, pero NO está seleccionado en el rango, forzamos texto negro */
+[data-theme="dark"] .react-datepicker__day--today:not(.react-datepicker__day--selected):not(.react-datepicker__day--range-start):not(.react-datepicker__day--range-end) {
+    color: #000000 !important;
+    font-weight: bold !important;
+    background-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* --- ESTILOS DE SELECCIÓN (Azul) --- */
+.react-datepicker__day--selected,
+.react-datepicker__day--range-start,
+.react-datepicker__day--range-end {
+    background-color: #1a73e8 !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
+    border-radius: 50% !important;
+}
+
+/* Rango intermedio */
+.react-datepicker__day--in-range {
+    background-color: #e8f0fe !important;
+    color: #1a73e8 !important;
+    border-radius: 0 !important;
+}
+
+[data-theme="dark"] .react-datepicker__day--in-range {
+    background-color: rgba(26, 115, 232, 0.3) !important;
+    color: #ffffff !important;
+}
+
+.react-datepicker__navigation-icon::before {
+    border-color: var(--text-muted) !important;
+}
+
+/* --- INPUT CUSTOM --- */
+.custom-date-input {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 6px 12px;
+    /* Aumentado a 45px para que el texto no choque con la X */
+    padding-right: 45px;
+    border-radius: 6px;
+    width: 270px; /* Un poco más ancho */
+    display: flex;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    font-size: 0.9rem;
+    height: 38px;
+}
+
+.custom-date-input:hover {
+    border-color: var(--accent-color);
+}

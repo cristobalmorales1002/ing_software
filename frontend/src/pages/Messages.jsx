@@ -1,30 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Row, Col, ListGroup, Badge, Button, Form, Modal, InputGroup, Spinner } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import {
-    Send, Inbox, Search, PlusLg, PersonCircle, Trash, Reply, X, Calendar3, ArrowCounterclockwise
+    Send, Inbox, Search, PlusLg, PersonCircle, Trash, Reply, X, ArrowCounterclockwise
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
+import DateRangeFilter from '../components/DateRangeFilter';
 
 const Messages = () => {
-    // --- ESTADOS ---
     const [activeTab, setActiveTab] = useState('inbox');
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Estados de Filtros
     const [searchTerm, setSearchTerm] = useState('');
     const [dateFilters, setDateFilters] = useState({ inicio: '', fin: '' });
 
     const [unreadCount, setUnreadCount] = useState(0);
     const [currentUser, setCurrentUser] = useState(null);
 
-    // Estados Modales
     const [showCompose, setShowCompose] = useState(false);
     const [showRead, setShowRead] = useState(false);
     const [selectedMessage, setSelectedMessage] = useState(null);
 
-    // Estados Redacción
     const [recipientQuery, setRecipientQuery] = useState('');
     const [availableUsers, setAvailableUsers] = useState([]);
     const [selectedRecipients, setSelectedRecipients] = useState([]);
@@ -33,7 +30,6 @@ const Messages = () => {
 
     const searchInputRef = useRef(null);
 
-    // --- HELPER: FORMATEAR ROLES ---
     const formatRole = (rawRole) => {
         if (!rawRole) return 'Usuario';
         const map = {
@@ -47,37 +43,23 @@ const Messages = () => {
         return map[rawRole] || rawRole.replace('ROLE_', '').charAt(0).toUpperCase() + rawRole.replace('ROLE_', '').slice(1).toLowerCase();
     };
 
-    // --- CARGA DE DATOS ---
     useEffect(() => {
-        fetchCurrentUser();
-        fetchAvailableUsers();
+        const fetchUserData = async () => {
+            try {
+                const [resMe, resUsers] = await Promise.all([
+                    api.get('/api/usuarios/me'),
+                    api.get('/api/usuarios')
+                ]);
+                setCurrentUser(resMe.data);
+                setAvailableUsers(resUsers.data);
+            } catch (error) {
+                console.error("Error obteniendo datos de usuario", error);
+            }
+        };
+        fetchUserData();
     }, []);
 
-    useEffect(() => {
-        fetchMessages();
-        fetchUnreadCount();
-        clearFilters();
-    }, [activeTab]);
-
-    const fetchCurrentUser = async () => {
-        try {
-            const res = await api.get('/api/usuarios/me');
-            setCurrentUser(res.data);
-        } catch (error) {
-            console.error("Error obteniendo usuario actual", error);
-        }
-    };
-
-    const fetchAvailableUsers = async () => {
-        try {
-            const res = await api.get('/api/usuarios');
-            setAvailableUsers(res.data);
-        } catch (error) {
-            console.error("Error cargando usuarios.", error);
-        }
-    };
-
-    const fetchMessages = async () => {
+    const fetchMessages = useCallback(async () => {
         setIsLoading(true);
         try {
             const endpoint = activeTab === 'inbox' ? '/api/mensajes/entrada' : '/api/mensajes/enviados';
@@ -89,28 +71,32 @@ const Messages = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [activeTab]);
 
-    const fetchUnreadCount = async () => {
+    const fetchUnreadCount = useCallback(async () => {
         try {
             const res = await api.get('/api/mensajes/noleidos/cantidad');
             setUnreadCount(res.data);
         } catch (error) {
             console.error(error);
         }
-    };
+    }, []);
 
-    // --- MANEJO DE FILTROS ---
-    const handleDateChange = (e) => {
-        setDateFilters({ ...dateFilters, [e.target.name]: e.target.value });
-    };
-
-    const clearFilters = () => {
+    const clearFilters = useCallback(() => {
         setDateFilters({ inicio: '', fin: '' });
         setSearchTerm('');
+    }, []);
+
+    useEffect(() => {
+        fetchMessages();
+        fetchUnreadCount();
+        clearFilters();
+    }, [activeTab, fetchMessages, fetchUnreadCount, clearFilters]);
+
+    const handleDateRangeChange = (newRange) => {
+        setDateFilters(newRange);
     };
 
-    // --- FILTRADO COMBINADO ---
     const filteredMessages = messages.filter(msg => {
         const searchLower = searchTerm.toLowerCase();
         const sender = msg.nombreEmisor || '';
@@ -138,7 +124,6 @@ const Messages = () => {
         return matchesText && matchesDate;
     });
 
-    // --- LÓGICA DE BÚSQUEDA DE DESTINATARIOS ---
     const getSuggestions = () => {
         if (!recipientQuery) return [];
         const lowerQuery = recipientQuery.toLowerCase();
@@ -184,7 +169,6 @@ const Messages = () => {
         setSelectedRecipients(selectedRecipients.filter(r => r.id !== id));
     };
 
-    // --- ENVÍO ---
     const handleSendMessage = async () => {
         if (selectedRecipients.length === 0 || !newMessage.subject) return;
         setIsSending(true);
@@ -279,12 +263,11 @@ const Messages = () => {
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    const renderListAvatar = (msg) => {
+    const renderListAvatar = () => {
         if (activeTab === 'sent') return <Send size={24} />;
         return <PersonCircle size={32} />;
     };
 
-    // En la lista lateral mantenemos el texto simple para no sobrecargar el renderizado
     const renderListHeader = (msg) => {
         if (activeTab === 'inbox') {
             return msg.nombreEmisor || "Desconocido";
@@ -293,17 +276,12 @@ const Messages = () => {
         }
     };
 
-    // --- RENDER DE DESTINATARIOS EN MODAL (NUEVA FUNCIÓN) ---
     const renderModalRecipients = (msg) => {
-        // Si no hay detalle (ej: versiones viejas) o es vacío, mostrar resumen texto
         if (!msg.destinatariosDetalle || msg.destinatariosDetalle.length === 0) {
             return msg.destinatariosResumen || "Varios destinatarios";
         }
-
-        // Si hay detalle, mapear a Links
         return msg.destinatariosDetalle.map((d, index) => (
             <span key={d.id || index}>
-                {/* Corrección: Ruta absoluta a /dashboard/usuarios/ID */}
                 <Link to={`/dashboard/usuarios/${d.id}`} className="text-decoration-none fw-bold text-dark hover-link">
                     {d.nombre}
                 </Link>
@@ -315,7 +293,6 @@ const Messages = () => {
     return (
         <Container fluid className="p-0 h-100">
             <Row className="g-0 h-100">
-                {/* SIDEBAR */}
                 <Col md={3} lg={2} className="bg-light border-end p-3 d-flex flex-column" style={{ minHeight: '80vh' }}>
                     <Button
                         variant="primary"
@@ -324,7 +301,6 @@ const Messages = () => {
                     >
                         <PlusLg /> Redactar
                     </Button>
-
                     <ListGroup variant="flush" className="bg-transparent">
                         <ListGroup.Item
                             action
@@ -347,54 +323,19 @@ const Messages = () => {
                         </ListGroup.Item>
                     </ListGroup>
                 </Col>
-
-                {/* AREA PRINCIPAL */}
                 <Col md={9} lg={10} className="p-4 bg-white">
-                    {/* CABECERA CON FILTROS (Estilo AuditLog) */}
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                         <h4 className="mb-0 text-secondary">
                             {activeTab === 'inbox' ? 'Bandeja de Entrada' : 'Mensajes Enviados'}
                         </h4>
-
-                        {/* Bloque de Filtros */}
                         <div className="d-flex flex-wrap gap-3 align-items-center justify-content-end">
-
-                            {/* Fechas Verticales */}
-                            <div className="d-flex flex-column gap-1">
-                                <InputGroup size="sm" className="shadow-sm" style={{width: '200px'}}>
-                                    <InputGroup.Text className="bg-white border-secondary border-opacity-25 text-muted fw-bold" style={{width: '60px', fontSize: '0.8rem'}}>
-                                        Desde
-                                    </InputGroup.Text>
-                                    <Form.Control
-                                        type="date"
-                                        name="inicio"
-                                        value={dateFilters.inicio}
-                                        onChange={handleDateChange}
-                                        className="bg-white border-secondary border-opacity-25 shadow-none text-center"
-                                        style={{fontSize: '0.85rem'}}
-                                    />
-                                </InputGroup>
-                                <InputGroup size="sm" className="shadow-sm" style={{width: '200px'}}>
-                                    <InputGroup.Text className="bg-white border-secondary border-opacity-25 text-muted fw-bold" style={{width: '60px', fontSize: '0.8rem'}}>
-                                        Hasta
-                                    </InputGroup.Text>
-                                    <Form.Control
-                                        type="date"
-                                        name="fin"
-                                        value={dateFilters.fin}
-                                        onChange={handleDateChange}
-                                        className="bg-white border-secondary border-opacity-25 shadow-none text-center"
-                                        style={{fontSize: '0.85rem'}}
-                                    />
-                                </InputGroup>
+                            <div style={{zIndex: 1050}}>
+                                <DateRangeFilter
+                                    startDate={dateFilters.inicio}
+                                    endDate={dateFilters.fin}
+                                    onChange={handleDateRangeChange}
+                                />
                             </div>
-
-                            {/* Icono Separador */}
-                            <div className="text-muted opacity-25 d-none d-md-block">
-                                <Calendar3 size={24} />
-                            </div>
-
-                            {/* Buscador */}
                             <InputGroup style={{ maxWidth: '250px' }} className="shadow-sm">
                                 <InputGroup.Text className="bg-white text-muted border-secondary border-opacity-25"><Search/></InputGroup.Text>
                                 <Form.Control
@@ -404,8 +345,6 @@ const Messages = () => {
                                     className="bg-white border-secondary border-opacity-25 shadow-none"
                                 />
                             </InputGroup>
-
-                            {/* Botón Limpiar */}
                             <Button
                                 variant="outline-secondary"
                                 onClick={clearFilters}
@@ -434,7 +373,7 @@ const Messages = () => {
                                     className={`d-flex align-items-center p-3 border-bottom ${!msg.leido && activeTab === 'inbox' ? 'bg-light fw-bold' : ''}`}
                                 >
                                     <div className="me-3 text-secondary">
-                                        {renderListAvatar(msg)}
+                                        {renderListAvatar()}
                                     </div>
                                     <div className="flex-grow-1 overflow-hidden">
                                         <div className="d-flex justify-content-between">
@@ -458,14 +397,12 @@ const Messages = () => {
                 </Col>
             </Row>
 
-            {/* MODAL LEER (CON LINKS DE PERFIL ACTUALIZADOS) */}
             <Modal show={showRead} onHide={() => setShowRead(false)} size="lg" centered>
                 {selectedMessage && (
                     <>
                         <Modal.Header closeButton className="border-bottom-0 pb-0">
                             <Modal.Title className="fs-5">{selectedMessage.asunto}</Modal.Title>
                         </Modal.Header>
-
                         <Modal.Body>
                             <div className="d-flex align-items-start mb-4 p-3 bg-light rounded">
                                 <PersonCircle size={48} className="text-secondary me-3 mt-1"/>
@@ -475,17 +412,14 @@ const Messages = () => {
                                             <span className="text-muted small text-uppercase fw-bold">De:</span>
                                             <div className="fw-bold fs-6">
                                                 {activeTab === 'inbox' ? (
-                                                    // Bandeja Entrada: Link al Emisor (/dashboard/usuarios/ID)
                                                     <Link to={`/dashboard/usuarios/${selectedMessage.idEmisor}`} className="text-decoration-none text-dark hover-link">
                                                         {selectedMessage.nombreEmisor}
                                                     </Link>
                                                 ) : (
-                                                    // Enviados: "Mí" (Link al propio perfil: /dashboard/perfil)
                                                     <Link to="/dashboard/perfil" className="text-decoration-none text-dark hover-link">
                                                         {currentUser ? `${currentUser.nombres || currentUser.nombre} (Mí)` : "Mí"}
                                                     </Link>
                                                 )}
-
                                                 {activeTab === 'inbox' && selectedMessage.emailEmisor &&
                                                     <span className="text-muted fw-normal small ms-1">&lt;{selectedMessage.emailEmisor}&gt;</span>
                                                 }
@@ -499,7 +433,6 @@ const Messages = () => {
                                         <span className="text-muted small text-uppercase fw-bold">Para:</span>
                                         <div className="text-dark">
                                             {activeTab === 'inbox' ? (
-                                                // Bandeja Entrada: Para Mí (/dashboard/perfil)
                                                 <Link to="/dashboard/perfil" className="text-decoration-none text-dark hover-link">Mí</Link>
                                             ) : (
                                                 renderModalRecipients(selectedMessage)
@@ -512,7 +445,6 @@ const Messages = () => {
                                 {selectedMessage.contenido}
                             </div>
                         </Modal.Body>
-
                         <Modal.Footer className="border-top-0">
                             <Button variant="outline-secondary" onClick={() => setShowRead(false)}>Cerrar</Button>
                             {activeTab === 'inbox' && (
@@ -525,7 +457,6 @@ const Messages = () => {
                 )}
             </Modal>
 
-            {/* MODAL REDACTAR (COMPLETO) */}
             <Modal show={showCompose} onHide={() => setShowCompose(false)} size="lg" backdrop="static">
                 <Modal.Header closeButton>
                     <Modal.Title>Nuevo Mensaje</Modal.Title>

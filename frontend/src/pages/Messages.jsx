@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Container, Row, Col, ListGroup, Badge, Button, Form, Modal, InputGroup, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, ListGroup, Badge, Button, Form, Modal, InputGroup, Spinner, Toast, ToastContainer } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import {
-    Send, Inbox, Search, PlusLg, PersonCircle, Trash, Reply, X, ArrowCounterclockwise
+    Send, Inbox, Search, PlusLg, PersonCircle, Trash, Reply, X, ArrowCounterclockwise, CheckCircle, ExclamationCircle
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import DateRangeFilter from '../components/DateRangeFilter';
@@ -28,6 +28,12 @@ const Messages = () => {
     const [newMessage, setNewMessage] = useState({ subject: '', body: '' });
     const [isSending, setIsSending] = useState(false);
 
+    const [toastConfig, setToastConfig] = useState({
+        show: false,
+        message: '',
+        variant: 'success'
+    });
+
     const searchInputRef = useRef(null);
 
     const formatRole = (rawRole) => {
@@ -41,6 +47,10 @@ const Messages = () => {
             'ROLE_VISUALIZADOR': 'Visualizador'
         };
         return map[rawRole] || rawRole.replace('ROLE_', '').charAt(0).toUpperCase() + rawRole.replace('ROLE_', '').slice(1).toLowerCase();
+    };
+
+    const showNotification = (message, variant = 'success') => {
+        setToastConfig({ show: true, message, variant });
     };
 
     useEffect(() => {
@@ -201,10 +211,11 @@ const Messages = () => {
             setRecipientQuery('');
             await fetchMessages();
             await fetchUnreadCount();
-            alert("Mensaje enviado exitosamente.");
+            showNotification('Mensaje enviado exitosamente.', 'success');
         } catch (error) {
             console.error("Error enviando mensaje", error);
-            alert("Error al enviar: " + (error.response?.data || error.message));
+            const errorMsg = error.response?.data || error.message;
+            showNotification(`Error al enviar: ${errorMsg}`, 'danger');
         } finally {
             setIsSending(false);
         }
@@ -245,7 +256,7 @@ const Messages = () => {
         };
 
         if (!recipientData.valor) {
-            alert("No se encontró el ID del usuario para respuesta automática.");
+            showNotification("No se encontró el ID del usuario para respuesta automática.", 'danger');
         } else {
             setSelectedRecipients([recipientData]);
         }
@@ -282,7 +293,7 @@ const Messages = () => {
         }
         return msg.destinatariosDetalle.map((d, index) => (
             <span key={d.id || index}>
-                <Link to={`/dashboard/usuarios/${d.id}`} className="text-decoration-none fw-bold text-dark hover-link">
+                <Link to={`/dashboard/usuarios/${d.id}`} className="text-decoration-none hover-link" style={{ color: 'var(--text-main)', fontWeight: 'bold' }}>
                     {d.nombre}
                 </Link>
                 {index < msg.destinatariosDetalle.length - 1 && ", "}
@@ -291,9 +302,9 @@ const Messages = () => {
     };
 
     return (
-        <Container fluid className="p-0 h-100">
+        <Container fluid className="p-0 h-100 position-relative">
             <Row className="g-0 h-100">
-                <Col md={3} lg={2} className="bg-light border-end p-3 d-flex flex-column" style={{ minHeight: '80vh' }}>
+                <Col md={3} lg={2} className="border-end p-3 d-flex flex-column" style={{ minHeight: '80vh' }}>
                     <Button
                         variant="primary"
                         className="mb-4 shadow-sm w-100 d-flex align-items-center justify-content-center gap-2"
@@ -323,8 +334,11 @@ const Messages = () => {
                         </ListGroup.Item>
                     </ListGroup>
                 </Col>
-                <Col md={9} lg={10} className="p-4 bg-white">
-                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+
+                <Col md={9} lg={10} className="p-4 d-flex flex-column" style={{ backgroundColor: 'var(--bg-main)', height: '100vh', maxHeight: '100vh', overflow: 'hidden' }}>
+
+                    {/* Header y Filtros */}
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 flex-shrink-0">
                         <h4 className="mb-0 text-secondary">
                             {activeTab === 'inbox' ? 'Bandeja de Entrada' : 'Mensajes Enviados'}
                         </h4>
@@ -337,12 +351,18 @@ const Messages = () => {
                                 />
                             </div>
                             <InputGroup style={{ maxWidth: '250px' }} className="shadow-sm">
-                                <InputGroup.Text className="bg-white text-muted border-secondary border-opacity-25"><Search/></InputGroup.Text>
+                                <InputGroup.Text
+                                    className="border-secondary border-opacity-25"
+                                    style={{ backgroundColor: 'var(--bg-input)', color: 'var(--text-muted)' }}
+                                >
+                                    <Search/>
+                                </InputGroup.Text>
                                 <Form.Control
                                     placeholder="Buscar..."
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
-                                    className="bg-white border-secondary border-opacity-25 shadow-none"
+                                    className="border-secondary border-opacity-25 shadow-none"
+                                    style={{ backgroundColor: 'var(--bg-input)', color: 'var(--text-main)' }}
                                 />
                             </InputGroup>
                             <Button
@@ -356,44 +376,57 @@ const Messages = () => {
                         </div>
                     </div>
 
-                    <ListGroup variant="flush" className="border-top">
-                        {isLoading ? (
-                            <div className="text-center py-5"><Spinner animation="border" variant="primary"/></div>
-                        ) : filteredMessages.length === 0 ? (
-                            <div className="text-center py-5 text-muted">
-                                <Inbox size={40} className="mb-3 opacity-25"/>
-                                <p>No hay mensajes que coincidan con los filtros.</p>
-                            </div>
-                        ) : (
-                            filteredMessages.map(msg => (
-                                <ListGroup.Item
-                                    key={msg.id}
-                                    action
-                                    onClick={() => openReadModal(msg)}
-                                    className={`d-flex align-items-center p-3 border-bottom ${!msg.leido && activeTab === 'inbox' ? 'bg-light fw-bold' : ''}`}
-                                >
-                                    <div className="me-3 text-secondary">
-                                        {renderListAvatar()}
-                                    </div>
-                                    <div className="flex-grow-1 overflow-hidden">
-                                        <div className="d-flex justify-content-between">
-                                            <span className="text-dark fw-medium">
-                                                {renderListHeader(msg)}
-                                            </span>
-                                            <small className="text-muted">{formatDate(msg.fechaEnvio)}</small>
+                    {/* Contenedor de lista con Scroll interno */}
+                    {/* CORRECCIÓN: Fondo usa var(--bg-card) para ser blanco en modo claro y oscuro en modo oscuro */}
+                    <div className="flex-grow-1 overflow-auto rounded border"
+                         style={{
+                             borderColor: 'var(--border-color)',
+                             backgroundColor: 'var(--bg-card)'
+                         }}>
+
+                        <ListGroup variant="flush">
+                            {isLoading ? (
+                                <div className="text-center py-5"><Spinner animation="border" variant="primary"/></div>
+                            ) : filteredMessages.length === 0 ? (
+                                <div className="text-center py-5 text-muted">
+                                    <Inbox size={40} className="mb-3 opacity-25"/>
+                                    <p>No hay mensajes que coincidan con los filtros.</p>
+                                </div>
+                            ) : (
+                                filteredMessages.map(msg => (
+                                    <ListGroup.Item
+                                        key={msg.id}
+                                        action
+                                        onClick={() => openReadModal(msg)}
+                                        className="d-flex align-items-center p-3 border-bottom"
+                                        style={{
+                                            backgroundColor: (!msg.leido && activeTab === 'inbox') ? 'var(--hover-bg)' : 'transparent',
+                                            color: 'var(--text-main)',
+                                            borderColor: 'var(--border-color)'
+                                        }}
+                                    >
+                                        <div className="me-3 text-secondary">
+                                            {renderListAvatar()}
                                         </div>
-                                        <div className="text-truncate text-secondary small">
-                                            <span className={!msg.leido && activeTab === 'inbox' ? 'text-dark' : ''}>
-                                                {msg.asunto}
-                                            </span>
-                                            <span className="mx-1">-</span>
-                                            {msg.contenido}
+
+                                        <div className="flex-grow-1 overflow-hidden" style={{ minWidth: 0 }}>
+                                            <div className="d-flex justify-content-between mb-1">
+                                                <span className="fw-medium text-truncate" style={{ color: 'var(--text-main)' }}>
+                                                    {renderListHeader(msg)}
+                                                </span>
+                                                <small style={{ color: 'var(--text-muted)', flexShrink: 0, marginLeft: '8px' }}>{formatDate(msg.fechaEnvio)}</small>
+                                            </div>
+                                            <div className="text-truncate small" style={{ color: 'var(--text-main)' }}>
+                                                <span className={!msg.leido && activeTab === 'inbox' ? 'fw-bold' : ''}>
+                                                    {msg.asunto}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </ListGroup.Item>
-                            ))
-                        )}
-                    </ListGroup>
+                                    </ListGroup.Item>
+                                ))
+                            )}
+                        </ListGroup>
+                    </div>
                 </Col>
             </Row>
 
@@ -404,36 +437,37 @@ const Messages = () => {
                             <Modal.Title className="fs-5">{selectedMessage.asunto}</Modal.Title>
                         </Modal.Header>
                         <Modal.Body>
-                            <div className="d-flex align-items-start mb-4 p-3 bg-light rounded">
+                            <div className="d-flex align-items-start mb-4 p-3 rounded border"
+                                 style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', borderColor: 'var(--border-color)' }}>
                                 <PersonCircle size={48} className="text-secondary me-3 mt-1"/>
                                 <div className="flex-grow-1">
                                     <div className="d-flex justify-content-between">
                                         <div>
-                                            <span className="text-muted small text-uppercase fw-bold">De:</span>
-                                            <div className="fw-bold fs-6">
+                                            <span className="small text-uppercase fw-bold" style={{ color: 'var(--text-muted)' }}>De:</span>
+                                            <div className="fw-bold fs-6" style={{ color: 'var(--text-main)' }}>
                                                 {activeTab === 'inbox' ? (
-                                                    <Link to={`/dashboard/usuarios/${selectedMessage.idEmisor}`} className="text-decoration-none text-dark hover-link">
+                                                    <Link to={`/dashboard/usuarios/${selectedMessage.idEmisor}`} className="text-decoration-none hover-link" style={{ color: 'var(--text-main)' }}>
                                                         {selectedMessage.nombreEmisor}
                                                     </Link>
                                                 ) : (
-                                                    <Link to="/dashboard/perfil" className="text-decoration-none text-dark hover-link">
+                                                    <Link to="/dashboard/perfil" className="text-decoration-none hover-link" style={{ color: 'var(--text-main)' }}>
                                                         {currentUser ? `${currentUser.nombres || currentUser.nombre} (Mí)` : "Mí"}
                                                     </Link>
                                                 )}
                                                 {activeTab === 'inbox' && selectedMessage.emailEmisor &&
-                                                    <span className="text-muted fw-normal small ms-1">&lt;{selectedMessage.emailEmisor}&gt;</span>
+                                                    <span className="fw-normal small ms-1" style={{ color: 'var(--text-muted)' }}>&lt;{selectedMessage.emailEmisor}&gt;</span>
                                                 }
                                             </div>
                                         </div>
                                         <div className="text-end">
-                                            <small className="text-muted">{formatDate(selectedMessage.fechaEnvio)}</small>
+                                            <small style={{ color: 'var(--text-muted)' }}>{formatDate(selectedMessage.fechaEnvio)}</small>
                                         </div>
                                     </div>
                                     <div className="mt-2">
-                                        <span className="text-muted small text-uppercase fw-bold">Para:</span>
-                                        <div className="text-dark">
+                                        <span className="small text-uppercase fw-bold" style={{ color: 'var(--text-muted)' }}>Para:</span>
+                                        <div style={{ color: 'var(--text-main)' }}>
                                             {activeTab === 'inbox' ? (
-                                                <Link to="/dashboard/perfil" className="text-decoration-none text-dark hover-link">Mí</Link>
+                                                <Link to="/dashboard/perfil" className="text-decoration-none hover-link" style={{ color: 'var(--text-main)' }}>Mí</Link>
                                             ) : (
                                                 renderModalRecipients(selectedMessage)
                                             )}
@@ -441,7 +475,17 @@ const Messages = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="p-3" style={{ whiteSpace: 'pre-wrap', minHeight: '150px' }}>
+
+                            <div className="p-3 rounded border mt-3"
+                                 style={{
+                                     backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                     borderColor: 'var(--border-color)',
+                                     color: 'var(--text-main)',
+                                     whiteSpace: 'pre-wrap',
+                                     wordBreak: 'break-word',
+                                     overflowWrap: 'break-word',
+                                     minHeight: '150px'
+                                 }}>
                                 {selectedMessage.contenido}
                             </div>
                         </Modal.Body>
@@ -458,6 +502,36 @@ const Messages = () => {
             </Modal>
 
             <Modal show={showCompose} onHide={() => setShowCompose(false)} size="lg" backdrop="static">
+                <style>
+                    {`
+                        .btn-trash-custom {
+                            color: var(--text-main) !important;
+                            border-color: var(--border-color) !important;
+                        }
+                        .btn-trash-custom:hover {
+                            color: #dc3545 !important;
+                            border-color: #dc3545 !important;
+                            background-color: transparent !important;
+                        }
+                        .dropdown-list-dark {
+                            background-color: var(--bg-card) !important;
+                            border: 1px solid var(--border-color) !important;
+                        }
+                        .dropdown-item-dark {
+                            background-color: var(--bg-card) !important;
+                            color: var(--text-main) !important;
+                            border-bottom: 1px solid var(--border-color) !important;
+                        }
+                        .dropdown-item-dark:hover {
+                            background-color: var(--hover-bg) !important;
+                            color: var(--text-main) !important;
+                        }
+                        .dropdown-item-dark.disabled {
+                            background-color: var(--bg-card) !important;
+                            color: var(--text-muted) !important;
+                        }
+                    `}
+                </style>
                 <Modal.Header closeButton>
                     <Modal.Title>Nuevo Mensaje</Modal.Title>
                 </Modal.Header>
@@ -465,11 +539,12 @@ const Messages = () => {
                     <Form>
                         <Form.Group className="mb-3">
                             <Form.Label>Para:</Form.Label>
-                            <div className="d-flex flex-wrap align-items-center gap-2 p-2 border rounded bg-white position-relative focus-within-shadow">
+                            <div className="d-flex flex-wrap align-items-center gap-2 p-2 border rounded position-relative focus-within-shadow"
+                                 style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', borderColor: 'var(--border-color)' }}>
                                 {selectedRecipients.map((recipient, idx) => (
                                     <Badge
                                         key={`${recipient.id}-${idx}`}
-                                        bg={recipient.tipo === 'SPECIAL' ? 'danger' : recipient.tipo === 'ROLE' ? 'warning' : 'secondary'}
+                                        bg={recipient.tipo === 'SPECIAL' ? 'danger' : recipient.tipo === 'ROLE' ? 'warning' : 'primary'}
                                         text={recipient.tipo === 'ROLE' ? 'dark' : 'light'}
                                         className="d-flex align-items-center py-2 px-3 rounded-pill"
                                         style={{fontSize: '0.9em'}}
@@ -479,11 +554,17 @@ const Messages = () => {
                                         <X size={20} className="ms-2" style={{cursor: 'pointer'}} onClick={() => handleRemoveRecipient(recipient.id)} />
                                     </Badge>
                                 ))}
-                                <Form.Control
+                                <input
                                     ref={searchInputRef}
                                     type="text"
                                     className="border-0 shadow-none p-0"
-                                    style={{ width: '200px', minWidth: '50px' }}
+                                    style={{
+                                        width: '200px',
+                                        minWidth: '50px',
+                                        outline: 'none',
+                                        backgroundColor: 'transparent',
+                                        color: 'var(--text-main)'
+                                    }}
                                     placeholder={selectedRecipients.length === 0 ? "Buscar nombre o rol..." : ""}
                                     value={recipientQuery}
                                     onChange={(e) => setRecipientQuery(e.target.value)}
@@ -495,16 +576,16 @@ const Messages = () => {
                                     autoFocus
                                 />
                                 {recipientQuery.length > 0 && (
-                                    <ListGroup className="position-absolute shadow start-0 w-100" style={{ top: '100%', zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}>
+                                    <ListGroup className="position-absolute shadow start-0 w-100 dropdown-list-dark" style={{ top: '100%', zIndex: 1050, maxHeight: '200px', overflowY: 'auto' }}>
                                         {getSuggestions().length === 0 ? (
-                                            <ListGroup.Item disabled className="text-muted small">No se encontraron resultados</ListGroup.Item>
+                                            <ListGroup.Item disabled className="dropdown-item-dark disabled">No se encontraron resultados</ListGroup.Item>
                                         ) : (
                                             getSuggestions().map((s, i) => (
                                                 <ListGroup.Item
                                                     key={i}
                                                     action
                                                     onClick={() => handleAddRecipient(s)}
-                                                    className="d-flex align-items-center justify-content-between"
+                                                    className="d-flex align-items-center justify-content-between dropdown-item-dark"
                                                 >
                                                     <div><strong>{s.nombre}</strong></div>
                                                     <Badge bg="light" text="dark" className="border">{s.rol}</Badge>
@@ -526,13 +607,30 @@ const Messages = () => {
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="light" onClick={() => setShowCompose(false)}><Trash/></Button>
+                    <Button variant="outline-secondary" className="btn-trash-custom" onClick={() => setShowCompose(false)}><Trash/></Button>
                     <Button variant="primary" onClick={handleSendMessage} disabled={selectedRecipients.length === 0 || !newMessage.subject || isSending}>
                         {isSending ? <Spinner size="sm" animation="border" className="me-2"/> : <Send className="me-2"/>}
                         Enviar Mensaje
                     </Button>
                 </Modal.Footer>
             </Modal>
+
+            <ToastContainer position="bottom-end" className="p-3" style={{ zIndex: 9999 }}>
+                <Toast
+                    onClose={() => setToastConfig({ ...toastConfig, show: false })}
+                    show={toastConfig.show}
+                    delay={3000}
+                    autohide
+                    bg={toastConfig.variant}
+                >
+                    <Toast.Body className={toastConfig.variant === 'light' ? 'text-dark' : 'text-white'}>
+                        <div className="d-flex align-items-center gap-2">
+                            {toastConfig.variant === 'success' ? <CheckCircle size={20} /> : <ExclamationCircle size={20} />}
+                            <strong>{toastConfig.message}</strong>
+                        </div>
+                    </Toast.Body>
+                </Toast>
+            </ToastContainer>
         </Container>
     );
 };

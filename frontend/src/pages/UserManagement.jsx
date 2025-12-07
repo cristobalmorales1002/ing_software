@@ -1,24 +1,27 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Modal, Form, Container, Row, Col, Badge, Spinner, Alert, Pagination, InputGroup } from 'react-bootstrap';
-// 1. IMPORTAMOS EL NUEVO ICONO PARA RESTAURAR
-import { PencilSquare, Trash, PlusLg, Search, ArrowCounterclockwise } from 'react-bootstrap-icons';
+import { Table, Button, Modal, Form, Container, Row, Col, Badge, Spinner, Alert, Pagination, InputGroup, Toast, ToastContainer } from 'react-bootstrap';
+import { PencilSquare, Trash, PlusLg, Search, ArrowCounterclockwise, CheckCircle, ExclamationCircle } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut, validateRut } from '../utils/rutUtils';
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
+
     const [rutError, setRutError] = useState(null);
 
     const [showFormModal, setShowFormModal] = useState(false);
-
-    // Cambiamos el nombre del estado para que sea genérico (sirve para activar o desactivar)
     const [showStatusModal, setShowStatusModal] = useState(false);
-    const [statusAction, setStatusAction] = useState('desactivar'); // 'desactivar' o 'activar'
+    const [statusAction, setStatusAction] = useState('desactivar');
 
     const [isEditing, setIsEditing] = useState(false);
-    const [selectedUser, setSelectedUser] = useState(null); // Guardamos el usuario completo, no solo el ID
+    const [selectedUser, setSelectedUser] = useState(null);
+
+    const [toastConfig, setToastConfig] = useState({
+        show: false,
+        message: '',
+        variant: 'success'
+    });
 
     const initialFormState = {
         rut: '', nombres: '', apellidos: '', email: '', telefono: '',
@@ -30,18 +33,24 @@ const UserManagement = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
+    // 3. FUNCIÓN HELPER PARA MOSTRAR NOTIFICACIÓN
+    const showNotification = (message, variant = 'success') => {
+        setToastConfig({ show: true, message, variant });
+    };
+
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
             const res = await api.get('/api/usuarios');
             setUsers(res.data);
-        } catch (err) { setError('Error al cargar usuarios.'); }
+        } catch (err) {
+            showNotification('Error al cargar la lista de usuarios.', 'danger');
+        }
         finally { setIsLoading(false); }
     };
 
     useEffect(() => { fetchUsers(); }, []);
 
-    // 1. FILTRADO
     const filteredUsers = users.filter((user) => {
         if (searchTerm === '') return true;
         const searchLower = searchTerm.toLowerCase();
@@ -53,16 +62,11 @@ const UserManagement = () => {
         );
     });
 
-    // 2. NUEVA LÓGICA DE ORDENAMIENTO: Inactivos al final
     const sortedUsers = [...filteredUsers].sort((a, b) => {
         const isActiveA = a.estadoU === 'ACTIVO' || a.estadoU === true;
         const isActiveB = b.estadoU === 'ACTIVO' || b.estadoU === true;
-
-        // Si A es activo y B inactivo, A va primero (-1)
         if (isActiveA && !isActiveB) return -1;
-        // Si A es inactivo y B activo, B va primero (1)
         if (!isActiveA && isActiveB) return 1;
-        // Si son iguales, mantenemos el orden (o podrías ordenar por nombre/rut)
         return 0;
     });
 
@@ -70,8 +74,6 @@ const UserManagement = () => {
 
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-
-    // Usamos sortedUsers para la paginación en lugar de filteredUsers
     const currentUsers = sortedUsers.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -91,7 +93,12 @@ const UserManagement = () => {
         }
     };
 
-    const openCreateModal = () => { setFormData(initialFormState); setIsEditing(false); setRutError(null); setShowFormModal(true); setError(null); };
+    const openCreateModal = () => {
+        setFormData(initialFormState);
+        setIsEditing(false);
+        setRutError(null);
+        setShowFormModal(true);
+    };
 
     const openEditModal = (user) => {
         setFormData({
@@ -105,13 +112,11 @@ const UserManagement = () => {
             rol: user.rol || 'ROLE_INVESTIGADOR'
         });
         setRutError(null);
-        setSelectedUser(user); // Guardamos el usuario completo
+        setSelectedUser(user);
         setIsEditing(true);
         setShowFormModal(true);
-        setError(null);
     };
 
-    // 3. ABRIR MODAL DE CAMBIO DE ESTADO (ACTIVAR/DESACTIVAR)
     const openStatusModal = (user) => {
         setSelectedUser(user);
         const isActive = user.estadoU === 'ACTIVO' || user.estadoU === true;
@@ -121,52 +126,57 @@ const UserManagement = () => {
 
     const handleSaveUser = async (e) => {
         e.preventDefault();
-        setRutError(null); setError(null);
+        setRutError(null);
+
         if (!validateRut(formData.rut)) { setRutError('RUT inválido.'); return; }
+
         try {
             const dataToSend = {
                 rut: formData.rut, nombres: formData.nombres, apellidos: formData.apellidos,
                 email: formData.email, telefono: formData.telefono, rol: formData.rol,
-                activo: formData.activo // Esto respeta lo que diga el checkbox del form
+                activo: formData.activo
             };
+
             if (isEditing) {
                 await api.put(`/api/usuarios/${selectedUser.usuarioId}`, dataToSend);
+                showNotification('Usuario actualizado correctamente.', 'success');
             } else {
                 dataToSend.password = "Temporal123!";
                 await api.post('/api/usuarios', dataToSend);
+                showNotification('Usuario creado exitosamente. Se ha enviado el correo.', 'success');
             }
-            fetchUsers(); setShowFormModal(false);
+
+            fetchUsers();
+            setShowFormModal(false);
+
         } catch (err) {
-            const msg = err.response?.data?.message || 'Error al guardar.'; setError(msg);
+            const msg = err.response?.data?.message || 'Error al procesar la solicitud.';
+            showNotification(msg, 'danger');
         }
     };
 
-    // 4. LÓGICA DE TOGGLE (ACTIVAR/DESACTIVAR)
-    // 4. LÓGICA DE TOGGLE (ACTIVAR/DESACTIVAR) ACTUALIZADA
     const handleToggleStatus = async () => {
         try {
             if (statusAction === 'desactivar') {
-                // Si la acción es desactivar, llamamos al DELETE (Tu backend ejecuta desactivate)
                 await api.delete(`/api/usuarios/${selectedUser.usuarioId}`);
+                showNotification('Usuario desactivado correctamente.', 'warning');
             } else {
-                // Si la acción es activar, llamamos al endpoint específico de activar
-                // Nota: Asegúrate de que en tu backend la ruta sea "/{id}/activate"
                 await api.put(`/api/usuarios/${selectedUser.usuarioId}/activate`);
+                showNotification('Usuario reactivado correctamente.', 'success');
             }
 
-            // Recargamos la lista y cerramos el modal
             fetchUsers();
             setShowStatusModal(false);
         } catch (err) {
             console.error(err);
-            setError('Error al cambiar el estado del usuario.');
+            showNotification('Error al cambiar el estado del usuario.', 'danger');
         }
     };
 
     const formatRoleName = (role) => { switch(role) { case 'ROLE_ADMIN': return 'Administrador'; case 'ROLE_INVESTIGADOR': return 'Investigador'; case 'ROLE_MEDICO': return 'Médico'; case 'ROLE_ESTUDIANTE': return 'Estudiante'; case 'ROLE_VISUALIZADOR': return 'Visualizador'; default: return role; } };
 
     return (
-        <Container fluid className="p-0">
+        <Container fluid className="p-0 position-relative" style={{minHeight: '100%'}}>
             <Row className="mb-4 align-items-center">
                 <Col md={5}>
                     <h2 className="mb-0">GESTIÓN DE USUARIOS</h2>
@@ -195,8 +205,6 @@ const UserManagement = () => {
                 </Col>
             </Row>
 
-            {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}
-
             <div className="table-responsive rounded border border-secondary border-opacity-25">
                 <Table hover className="mb-0 align-middle text-nowrap">
                     <thead className="bg-light">
@@ -222,7 +230,6 @@ const UserManagement = () => {
                             const isActive = user.estadoU === 'ACTIVO' || user.estadoU === true;
                             return (
                                 <tr key={user.usuarioId} style={{ opacity: isActive ? 1 : 0.6 }}>
-                                    {/* Bajamos opacidad si es inactivo para efecto visual */}
                                     <td className="fw-bold">{user.rut}</td>
                                     <td>{user.nombres} {user.apellidos}</td>
                                     <td className="text-center">
@@ -241,8 +248,6 @@ const UserManagement = () => {
                                         <Button variant="outline-primary" size="sm" className="me-2" onClick={() => openEditModal(user)}>
                                             <PencilSquare />
                                         </Button>
-
-                                        {/* 5. BOTÓN DINÁMICO: BASURA O RESTAURAR */}
                                         {isActive ? (
                                             <Button variant="outline-danger" size="sm" onClick={() => openStatusModal(user)} title="Desactivar usuario">
                                                 <Trash />
@@ -261,7 +266,6 @@ const UserManagement = () => {
                 </Table>
             </div>
 
-            {/* PAGINACIÓN */}
             {filteredUsers.length > itemsPerPage && (
                 <div className="d-flex justify-content-center mt-4">
                     <Pagination>
@@ -276,7 +280,6 @@ const UserManagement = () => {
                 </div>
             )}
 
-            {/* MODAL CREAR/EDITAR */}
             <Modal show={showFormModal} onHide={() => setShowFormModal(false)} backdrop="static" size="lg">
                 <Modal.Header closeButton><Modal.Title>{isEditing ? 'Editar' : 'Crear'}</Modal.Title></Modal.Header>
                 <Form onSubmit={handleSaveUser}>
@@ -313,7 +316,6 @@ const UserManagement = () => {
                 </Form>
             </Modal>
 
-            {/* 6. MODAL DINÁMICO DE ACTIVACIÓN/DESACTIVACIÓN */}
             <Modal show={showStatusModal} onHide={() => setShowStatusModal(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>
@@ -335,6 +337,25 @@ const UserManagement = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
+
+            <ToastContainer position="bottom-end" className="p-3" style={{ zIndex: 1100, position: 'fixed' }}>
+                <Toast
+                    onClose={() => setToastConfig({ ...toastConfig, show: false })}
+                    show={toastConfig.show}
+                    delay={4000}
+                    autohide
+                    bg={toastConfig.variant}
+                >
+                    <Toast.Header closeButton={true}>
+                        {toastConfig.variant === 'success' ? <CheckCircle className="text-success me-2"/> : <ExclamationCircle className="text-danger me-2"/>}
+                        <strong className="me-auto">Notificación</strong>
+                    </Toast.Header>
+                    <Toast.Body className={toastConfig.variant === 'danger' || toastConfig.variant === 'success' ? 'text-white' : ''}>
+                        {toastConfig.message}
+                    </Toast.Body>
+                </Toast>
+            </ToastContainer>
+
         </Container>
     );
 };

@@ -16,14 +16,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import org.springframework.mail.javamail.MimeMessageHelper;
-
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -78,7 +75,9 @@ public class UsuarioServicio {
         u.getRoles().add(rol);
 
         Usuario saved = usuarioRepositorio.save(u);
-        enviarCorreoBienvenida(saved, contrasenaTemporal);
+
+        CompletableFuture.runAsync(() -> enviarCorreoBienvenida(saved, contrasenaTemporal));
+
         return toResponseDto(saved);
     }
 
@@ -143,7 +142,7 @@ public class UsuarioServicio {
         Usuario u = usuarioRepositorio.findByRut(rut)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-                if (!passwordEncoder.matches(passwordActual, u.getContrasena())) {
+        if (!passwordEncoder.matches(passwordActual, u.getContrasena())) {
             throw new RuntimeException("La contraseña actual es incorrecta.");
         }
 
@@ -157,7 +156,7 @@ public class UsuarioServicio {
 
         usuarioRepositorio.save(u);
 
-        enviarCorreoTokenEmail(nuevoEmail, token);
+        CompletableFuture.runAsync(() -> enviarCorreoTokenEmail(nuevoEmail, token));
     }
 
     @Transactional(readOnly = true)

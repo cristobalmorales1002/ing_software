@@ -91,12 +91,17 @@ const UserDetails = () => {
                         <Card.Body className="text-center pt-0 position-relative">
                             {/* Foto de Perfil superpuesta */}
                             <div className="d-inline-block position-relative mb-3" style={{ marginTop: '-60px' }}>
-                                <div className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-white mx-auto shadow-sm"
-                                     style={{ width: '130px', height: '130px', border: `4px solid var(--bg-card)` }}> {/* Borde del color de la tarjeta para que se vea bien en dark mode */}
+                                <div className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center mx-auto shadow-sm"
+                                     style={{
+                                         width: '130px',
+                                         height: '130px',
+                                         border: `4px solid var(--bg-card)`,
+                                         backgroundColor: 'var(--bg-main)'
+                                     }}>
                                     {user.fotoBase64 ? (
                                         <img src={`data:image/jpeg;base64,${user.fotoBase64}`} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                        <PersonCircle size={130} className={`text-${roleInfo.bg} opacity-75`} />
+                                        <PersonCircle size={130} className="text-secondary opacity-50" />
                                     )}
                                 </div>
                             </div>

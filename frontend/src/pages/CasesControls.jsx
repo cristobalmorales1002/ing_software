@@ -37,6 +37,10 @@ const CasesControls = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
 
+    // --- LOGICA DE NAVEGACION INTELIGENTE ---
+    // Obtenemos el ID del usuario actual de forma segura para compararlo después
+    const currentUserId = currentUser ? (currentUser.idUsuario || currentUser.id || currentUser.usuarioId) : null;
+
     const fetchUserRole = async () => {
         try {
             const res = await api.get('/api/usuarios/me');
@@ -146,7 +150,6 @@ const CasesControls = () => {
     const canEdit = (item) => {
         if (!currentUser || !item) return false;
 
-        const currentUserId = currentUser.idUsuario || currentUser.id || currentUser.usuarioId;
         const itemCreatorId = item.creadorId;
         const isCreator = itemCreatorId == currentUserId;
 
@@ -501,8 +504,11 @@ const CasesControls = () => {
                                         <span className="mx-2">•</span>
                                         <span>Reclutado por: </span>
                                         {selectedItem.creadorId && usersMap[selectedItem.creadorId] ? (
-                                            /* FIX: Clase personalizada para color y subrayado en modo oscuro/claro */
-                                            <Link to={`/dashboard/usuarios/${selectedItem.creadorId}`} className="profile-link">
+                                            /* FIX: Navegación Inteligente (Read Only vs Edit) */
+                                            <Link
+                                                to={currentUserId == selectedItem.creadorId ? '/dashboard/perfil' : `/dashboard/usuarios/${selectedItem.creadorId}`}
+                                                className="profile-link"
+                                            >
                                                 {usersMap[selectedItem.creadorId]}
                                             </Link>
                                         ) : (

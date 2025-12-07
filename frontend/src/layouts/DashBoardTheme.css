@@ -64,10 +64,10 @@
 
 /* Arreglos específicos para modo claro */
 [data-theme="light"] .btn-close {
-    filter: none !important; /* X negra en modo claro */
+    filter: none !important;
 }
 [data-theme="dark"] .btn-close {
-    filter: invert(1) grayscale(100%) brightness(200%) !important; /* X blanca en oscuro */
+    filter: invert(1) grayscale(100%) brightness(200%) !important;
 }
 
 .dashboard-theme .form-control::placeholder,
@@ -281,7 +281,7 @@ input[type="date"] {
     color: #000 !important;
 }
 
-/* Botón PDF */
+/* Botón PDF (General) */
 [data-theme="dark"] .btn-outline-danger {
     color: #f87171 !important;
     border-color: #f87171 !important;
@@ -305,7 +305,7 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     opacity: 1 !important;
 }
 
-/* MODO OSCURO --- */
+/* --- ACORDEONES MODO OSCURO --- */
 
 [data-theme="dark"] .accordion-item {
     background-color: var(--bg-card) !important;
@@ -329,7 +329,7 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     filter: invert(1) grayscale(100%) brightness(200%);
 }
 
-/*-------------------BOTONES FORMULARIO MODO CLARO--------------- */
+/* BOTONES FORMULARIO (MODO CLARO) */
 
 /* Botón +Pregunta */
 [data-theme="light"] .btn-outline-info {
@@ -346,7 +346,7 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     box-shadow: 0 2px 5px rgba(23, 162, 184, 0.4);
 }
 
-/* Botón Editar */
+/* Botón Editar (Solo en Acordeón) */
 [data-theme="light"] .accordion-body .btn-outline-secondary {
     background-color: #6c757d !important;
     color: #ffffff !important;
@@ -361,7 +361,7 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     box-shadow: 0 2px 5px rgba(108, 117, 125, 0.4);
 }
 
-/* Botón Eliminar */
+/* Botón Eliminar (Solo en Acordeón) */
 [data-theme="light"] .accordion-body .btn-outline-danger {
     background-color: #dc3545 !important;
     color: #ffffff !important;
@@ -376,7 +376,7 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     box-shadow: 0 2px 5px rgba(220, 53, 69, 0.4);
 }
 
-/* ------------------BOTONES FORMULARIO MODO OSCURO------------------*/
+/*  BOTONES FORMULARIO (MODO OSCURO)*/
 
 /* Botón +Pregunta */
 [data-theme="dark"] .btn-outline-info {
@@ -392,7 +392,7 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
 }
 
-/* Botón Editar*/
+/* Botón Editar (Solo en Acordeón) */
 [data-theme="dark"] .accordion-body .btn-outline-secondary {
     background-color: #475569 !important;
     color: #f1f5f9 !important;
@@ -405,7 +405,7 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     color: #ffffff !important;
 }
 
-/* Botón Eliminar */
+/* Botón Eliminar (Solo en Acordeón) */
 [data-theme="dark"] .accordion-body .btn-outline-danger {
     background-color: #be123c !important;
     color: #ffffff !important;
@@ -419,7 +419,7 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     box-shadow: 0 0 10px rgba(244, 63, 94, 0.4);
 }
 
-/*--------------- FIX: ENLACES DE PERFIL EN CASOS Y CONTROLES--------------*/
+/*ENLACES DE PERFIL (CASOS Y CONTROLES)*/
 
 .profile-link {
     color: var(--accent-color) !important;

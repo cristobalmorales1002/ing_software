@@ -27,7 +27,6 @@ const Sidebar = () => {
     const { theme, toggleTheme } = useTheme();
 
     const [userRole, setUserRole] = useState(null);
-    // 1. Estado para el contador de mensajes
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
@@ -40,7 +39,6 @@ const Sidebar = () => {
             }
         };
 
-        // 2. Función para obtener conteo de mensajes no leídos
         const fetchUnreadCount = async () => {
             try {
                 const res = await api.get('/api/mensajes/noleidos/cantidad');
@@ -52,10 +50,6 @@ const Sidebar = () => {
 
         fetchUserRole();
         fetchUnreadCount();
-
-        // Opcional: Podrías poner un intervalo para actualizar cada X segundos
-        // const interval = setInterval(fetchUnreadCount, 30000);
-        // return () => clearInterval(interval);
 
     }, []);
 
@@ -151,12 +145,18 @@ const Sidebar = () => {
             >
                 <span className="nav-icon">
                     <Envelope />
+                    {/* Badge Flotante para MODO CONTRAÍDO */}
+                    {unreadCount > 0 && (
+                        <Badge bg="danger" pill className="nav-badge-overlay">
+                            {unreadCount}
+                        </Badge>
+                    )}
                 </span>
                 <span className="nav-text d-flex justify-content-between align-items-center w-100">
                     Mensajes
-                    {/* 3. Renderizado condicional basado en el estado real */}
+                    {/* Badge Inline para MODO EXPANDIDO */}
                     {unreadCount > 0 && (
-                        <Badge bg="danger" pill className="ms-2" style={{ fontSize: '0.75rem' }}>
+                        <Badge bg="danger" pill className="ms-2 nav-badge-inline" style={{ fontSize: '0.75rem' }}>
                             {unreadCount}
                         </Badge>
                     )}

@@ -21,10 +21,7 @@
     width: 260px;
 }
 
-/* Busca la clase .nav-link-custom y déjala así: */
-
 .nav-link-custom {
-    /* CAMBIO IMPORTANTE: Usar la variable para que cambie de color */
     color: var(--text-muted);
 
     text-decoration: none;
@@ -36,13 +33,11 @@
     border-left: 4px solid transparent;
 }
 
-/* Y asegura que al pasar el mouse se use el texto principal */
 .nav-link-custom:hover {
     color: var(--text-main);
     background-color: var(--hover-bg);
 }
 
-/* Item Activo */
 .nav-link-custom.active {
     color: var(--accent-color);
     background-color: var(--hover-bg);
@@ -50,11 +45,54 @@
 }
 
 .nav-icon {
+    position: relative; /* CRÍTICO: Necesario para que el badge se posicione sobre el ícono */
     font-size: 1.4rem;
     min-width: 30px;
     display: flex;
     justify-content: center;
 }
+
+/* --- Badge Dinámico --- */
+
+/* 1. Badge Flotante (Overlay): MODO CONTRAÍDO (La pelotita) */
+.nav-badge-overlay {
+    position: absolute;
+    top: -4px;          /* Ajuste para que se vea en la esquina superior */
+    right: -4px;        /* Ajuste para que se vea en la esquina derecha */
+    padding: 1px 4px;   /* Tamaño Mínimo */
+    font-size: 0.6rem;  /* Texto muy pequeño */
+    font-weight: 700;
+    line-height: 1.1;
+    z-index: 1001;
+
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+/* 2. Badge Inline (el que está junto al texto): Oculto en modo CONTRAÍDO */
+.nav-badge-inline {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+/* 3. Comportamiento al EXPANDIR (:hover) */
+
+/* Ocultar el badge flotante (Overlay) cuando expandimos */
+.sidebar:hover .nav-badge-overlay {
+    visibility: hidden;
+    opacity: 0;
+}
+
+/* Mostrar el badge inline cuando expandimos */
+.sidebar:hover .nav-badge-inline {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* --- Fin Badge Dinámico --- */
+
 
 .nav-text {
     font-weight: 500;
@@ -69,11 +107,7 @@
 }
 
 .logout-btn {
-    /* margin-top: auto;  <--- ¡BORRA O COMENTA ESTA LÍNEA! */
-
     border-top: 1px solid var(--border-color);
-    /* Si quieres que se vea pegadito, puedes quitar el border-top también,
-       o dejarlo para separar la zona de "salir" */
 }
 
 .logout-btn:hover {
@@ -83,7 +117,6 @@
 
 /* --- BLOQUE ESPECIAL PARA EL LOGO --- */
 
-/* 1. El contenedor que centra el logo */
 .logo-container {
     width: 100%;
     height: 80px;
@@ -91,36 +124,31 @@
     justify-content: center;
     align-items: center;
 
-    /* CAMBIO AQUÍ: Usamos las variables */
     background-color: var(--logo-bg);
     border-bottom: 1px solid var(--logo-border);
 
     overflow: hidden;
-    transition: height 0.3s ease, background-color 0.3s ease; /* Agregamos transición de color */
+    transition: height 0.3s ease, background-color 0.3s ease;
 }
 
-/* 2. La imagen del logo controlada */
 .logo-img {
-    width: 45px;  /* Tamaño pequeño cuando el menú está cerrado (80px ancho total) */
+    width: 45px;
     height: 45px;
-    /* CAMBIO CLAVE: 'contain' muestra toda la imagen sin recortar nada */
     object-fit: contain;
 
-    /* CAMBIO CLAVE: Bordes redondeados suaves en lugar de círculo perfecto */
     border-radius: 8px;
-    border: 2px solid #4da8da; /* Borde elegante celeste */
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efecto rebote suave */
-    background-color: white; /* Fondo blanco para que el logo resalte si es PNG transparente */
+    border: 2px solid #4da8da;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background-color: white;
 }
 
-/* 3. Transformación al pasar el mouse (Sidebar Abierto) */
 .sidebar:hover .logo-container {
-    height: 110px; /* El encabezado crece un poco */
+    height: 110px;
 }
 
 .sidebar:hover .logo-img {
-    width: 80px;  /* El logo crece */
+    width: 80px;
     height: 80px;
     border-width: 3px;
-    box-shadow: 0 0 15px rgba(77, 168, 218, 0.5); /* Resplandor 'Cyber' */
+    box-shadow: 0 0 15px rgba(77, 168, 218, 0.5);
 }

@@ -270,7 +270,8 @@ const Messages = () => {
 
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        const date = new Date(dateString);
+        const fechaUTC = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+        const date = new Date(fechaUTC);
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
@@ -337,7 +338,6 @@ const Messages = () => {
 
                 <Col md={9} lg={10} className="p-4 d-flex flex-column" style={{ backgroundColor: 'var(--bg-main)', height: '100vh', maxHeight: '100vh', overflow: 'hidden' }}>
 
-                    {/* Header y Filtros */}
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 flex-shrink-0">
                         <h4 className="mb-0 text-secondary">
                             {activeTab === 'inbox' ? 'Bandeja de Entrada' : 'Mensajes Enviados'}
@@ -376,8 +376,6 @@ const Messages = () => {
                         </div>
                     </div>
 
-                    {/* Contenedor de lista con Scroll interno */}
-                    {/* CORRECCIÓN: Fondo usa var(--bg-card) para ser blanco en modo claro y oscuro en modo oscuro */}
                     <div className="flex-grow-1 overflow-auto rounded border"
                          style={{
                              borderColor: 'var(--border-color)',

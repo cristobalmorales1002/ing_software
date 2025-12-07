@@ -96,7 +96,8 @@ const AuditLog = () => {
 
     const formatDate = (dateString) => {
         if (!dateString) return '-';
-        return new Date(dateString).toLocaleString('es-CL');
+        const fechaUTC = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+        return new Date(fechaUTC).toLocaleString('es-CL');
     };
 
     const getActionBadge = (accion) => {

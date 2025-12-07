@@ -42,7 +42,7 @@ const CasesControls = () => {
             const res = await api.get('/api/usuarios/me');
             setCurrentUser(res.data);
         } catch (error) {
-            console.error("Error al obtener usuario:", error);
+            console.error(error);
         }
     };
 
@@ -59,7 +59,7 @@ const CasesControls = () => {
                 setUsersMap(map);
             }
         } catch (err) {
-            console.error("Error cargando lista de usuarios:", err);
+            console.error(err);
         }
     };
 
@@ -96,7 +96,7 @@ const CasesControls = () => {
             }
 
         } catch (err) {
-            console.error("Error cargando pacientes", err);
+            console.error(err);
         } finally {
             setIsLoading(false);
         }
@@ -114,7 +114,7 @@ const CasesControls = () => {
 
             setSurveyStructure(structureClean);
         } catch (err) {
-            console.error("Error estructura", err);
+            console.error(err);
             setSurveyStructure([]);
         } finally {
             setLoadingSurvey(false);
@@ -171,7 +171,6 @@ const CasesControls = () => {
 
     const canDownload = hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR']);
 
-    // --- AQUÍ ESTÁ EL CAMBIO PRINCIPAL ---
     const filteredItems = useMemo(() => {
         const normalize = (text) =>
             text ? text.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() : "";
@@ -213,7 +212,6 @@ const CasesControls = () => {
                 });
             });
         } else {
-            // CAMBIO: Filtramos por ID del paciente O por Nombre del Creador
             return result.filter(item => {
                 const matchesId = normalize(item.id).includes(term);
                 const creatorName = usersMap[item.creadorId];
@@ -221,7 +219,7 @@ const CasesControls = () => {
                 return matchesId || matchesCreator;
             });
         }
-    }, [items, searchTerm, filters, surveyStructure, usersMap]); // Agregamos usersMap a las dependencias
+    }, [items, searchTerm, filters, surveyStructure, usersMap]);
 
     const handleFilterChange = (e) => {
         const { name, checked } = e.target;
@@ -498,7 +496,8 @@ const CasesControls = () => {
                                         {selectedItem.id}
                                     </h4>
                                     <div className="text-muted small">
-                                        <span>Ingreso: {selectedItem.fechaIngreso ? new Date(selectedItem.fechaIngreso).toLocaleDateString() : '-'}</span>
+                                        {/* FIX HORA: Forzamos la interpretación como local agregando T00:00:00 */}
+                                        <span>Ingreso: {selectedItem.fechaIngreso ? new Date(selectedItem.fechaIngreso + 'T00:00:00').toLocaleDateString() : '-'}</span>
                                         <span className="mx-2">•</span>
                                         <span>Reclutado por: </span>
                                         {selectedItem.creadorId && usersMap[selectedItem.creadorId] ? (

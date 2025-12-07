@@ -3,6 +3,7 @@ import { Table, Button, Modal, Form, Container, Row, Col, Badge, Spinner, Alert,
 import { PencilSquare, Trash, PlusLg, Search, ArrowCounterclockwise, CheckCircle, ExclamationCircle } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut, validateRut } from '../utils/rutUtils';
+import { COUNTRY_PHONE_DATA, getPhoneConfig } from '../utils/phoneUtils'; // <--- 1. IMPORTAR UTILS
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -24,16 +25,18 @@ const UserManagement = () => {
     });
 
     const initialFormState = {
-        rut: '', nombres: '', apellidos: '', email: '', telefono: '',
+        rut: '', nombres: '', apellidos: '', email: '',
         contrasena: '', activo: true, rol: 'ROLE_INVESTIGADOR'
     };
     const [formData, setFormData] = useState(initialFormState);
+
+    // --- 2. ESTADO PARA EL TELÉFONO SEPARADO ---
+    const [phoneData, setPhoneData] = useState({ code: '+56', number: '' });
 
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    // 3. FUNCIÓN HELPER PARA MOSTRAR NOTIFICACIÓN
     const showNotification = (message, variant = 'success') => {
         setToastConfig({ show: true, message, variant });
     };
@@ -93,24 +96,68 @@ const UserManagement = () => {
         }
     };
 
+    // --- 3. HANDLERS PARA EL TELÉFONO ---
+    const handlePhoneCodeChange = (e) => {
+        const newCode = e.target.value;
+        const config = getPhoneConfig(newCode);
+
+        // Recortar si el número actual excede el nuevo largo máximo
+        let currentNumber = phoneData.number;
+        if (currentNumber.length > config.maxLength) {
+            currentNumber = currentNumber.slice(0, config.maxLength);
+        }
+        setPhoneData({ code: newCode, number: currentNumber });
+    };
+
+    const handlePhoneNumberChange = (e) => {
+        const val = e.target.value;
+        const config = getPhoneConfig(phoneData.code);
+        // Solo permitir números y respetar largo máximo
+        if (/^\d*$/.test(val)) {
+            if (val.length <= config.maxLength) {
+                setPhoneData({ ...phoneData, number: val });
+            }
+        }
+    };
+
     const openCreateModal = () => {
         setFormData(initialFormState);
+        setPhoneData({ code: '+56', number: '' }); // Resetear teléfono
         setIsEditing(false);
         setRutError(null);
         setShowFormModal(true);
     };
 
     const openEditModal = (user) => {
+        // Lógica para separar el teléfono existente
+        let pCode = '+56';
+        let pNum = '';
+
+        if (user.telefono) {
+            // Buscar si empieza con algún código conocido (ordenados por largo para evitar conflictos con +1 vs +12)
+            const sortedCodes = [...COUNTRY_PHONE_DATA].sort((a, b) => b.code.length - a.code.length);
+            const found = sortedCodes.find(c => user.telefono.startsWith(c.code));
+
+            if (found) {
+                pCode = found.code;
+                pNum = user.telefono.replace(found.code, '');
+            } else {
+                pNum = user.telefono; // Si no tiene código conocido, lo ponemos todo en número
+            }
+        }
+
         setFormData({
             rut: user.rut,
             nombres: user.nombres,
             apellidos: user.apellidos,
             email: user.email,
-            telefono: user.telefono || '',
+            // telefono: user.telefono || '', <-- YA NO SE USA DIRECTO
             contrasena: '',
             activo: user.estadoU === 'ACTIVO' || user.estadoU === true,
             rol: user.rol || 'ROLE_INVESTIGADOR'
         });
+
+        setPhoneData({ code: pCode, number: pNum });
         setRutError(null);
         setSelectedUser(user);
         setIsEditing(true);
@@ -130,10 +177,18 @@ const UserManagement = () => {
 
         if (!validateRut(formData.rut)) { setRutError('RUT inválido.'); return; }
 
+        // --- 4. CONSTRUIR EL TELÉFONO FINAL ---
+        let finalPhone = '';
+        if (phoneData.number) {
+            finalPhone = phoneData.code + phoneData.number;
+        }
+
         try {
             const dataToSend = {
                 rut: formData.rut, nombres: formData.nombres, apellidos: formData.apellidos,
-                email: formData.email, telefono: formData.telefono, rol: formData.rol,
+                email: formData.email,
+                telefono: finalPhone, // Enviamos el combinado
+                rol: formData.rol,
                 activo: formData.activo
             };
 
@@ -296,7 +351,31 @@ const UserManagement = () => {
                             <Col md={6}><Form.Group className="mb-3"><Form.Label>Apellidos (*)</Form.Label><Form.Control type="text" name="apellidos" value={formData.apellidos} onChange={handleInputChange} required /></Form.Group></Col>
                         </Row>
                         <Row>
-                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Teléfono</Form.Label><Form.Control type="text" name="telefono" value={formData.telefono} onChange={handleInputChange} /></Form.Group></Col>
+                            <Col md={6}>
+                                {/* --- 5. NUEVO INPUT GROUP DE TELÉFONO --- */}
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Teléfono</Form.Label>
+                                    <InputGroup>
+                                        <Form.Select
+                                            value={phoneData.code}
+                                            onChange={handlePhoneCodeChange}
+                                            style={{ maxWidth: '120px', borderRight: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-main)' }}
+                                        >
+                                            {COUNTRY_PHONE_DATA.map((c) => (
+                                                <option key={c.code} value={c.code}>{c.label}</option>
+                                            ))}
+                                        </Form.Select>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder={getPhoneConfig(phoneData.code).placeholder}
+                                            value={phoneData.number}
+                                            onChange={handlePhoneNumberChange}
+                                            maxLength={15}
+                                            style={{ borderLeft: '1px solid var(--border-color)' }}
+                                        />
+                                    </InputGroup>
+                                </Form.Group>
+                            </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3"><Form.Label>Rol (*)</Form.Label>
                                     <Form.Select name="rol" value={formData.rol} onChange={handleInputChange}>

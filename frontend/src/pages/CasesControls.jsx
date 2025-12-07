@@ -501,7 +501,8 @@ const CasesControls = () => {
                                         <span className="mx-2">•</span>
                                         <span>Reclutado por: </span>
                                         {selectedItem.creadorId && usersMap[selectedItem.creadorId] ? (
-                                            <Link to={`/dashboard/usuarios/${selectedItem.creadorId}`} className="fw-bold text-decoration-none text-dark hover-link">
+                                            /* FIX: Clase personalizada para color y subrayado en modo oscuro/claro */
+                                            <Link to={`/dashboard/usuarios/${selectedItem.creadorId}`} className="profile-link">
                                                 {usersMap[selectedItem.creadorId]}
                                             </Link>
                                         ) : (

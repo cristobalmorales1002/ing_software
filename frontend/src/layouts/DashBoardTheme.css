@@ -418,3 +418,18 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     color: #ffffff !important;
     box-shadow: 0 0 10px rgba(244, 63, 94, 0.4);
 }
+
+/*--------------- FIX: ENLACES DE PERFIL EN CASOS Y CONTROLES--------------*/
+
+.profile-link {
+    color: var(--accent-color) !important;
+    text-decoration: underline !important;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.profile-link:hover {
+    filter: brightness(1.2);
+    text-decoration-thickness: 2px !important;
+    cursor: pointer;
+}

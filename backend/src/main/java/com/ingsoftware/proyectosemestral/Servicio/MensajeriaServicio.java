@@ -168,14 +168,25 @@ public class MensajeriaServicio {
                                                 .map(dm -> dm.getDestinatario().getNombres()) // Obtenemos el nombre
                                                 .collect(Collectors.joining(", ")) // Los unimos con comas
                         )
+                        //AGREGUE ESTO Y COMENTE LO QUE ESTABA ANTES PARA BORRARLO MAS FACILMENTE SI QUIEREN
                         .destinatariosDetalle(m.getDestinatarios().stream()
+                                .map(dm -> DestinatarioSimpleDto.builder()
+                                        .id(dm.getDestinatario().getIdUsuario())
+                                        .nombre(dm.getDestinatario().getNombres() + " " + dm.getDestinatario().getApellidos())
+                                        .leido(dm.isLeido()) // <--- Estado de lectura
+                                        .fechaLectura(dm.getFechaLectura()) // <--- Cuándo lo leyó
+                                        .build())
+                                .collect(Collectors.toList()))
+                        .build())
+                .collect(Collectors.toList());
+                        /*.destinatariosDetalle(m.getDestinatarios().stream()
                                 .map(dm -> DestinatarioSimpleDto.builder()
                                         .id(dm.getDestinatario().getIdUsuario())
                                         .nombre(dm.getDestinatario().getNombres() + " " + dm.getDestinatario().getApellidos())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
-                .collect(Collectors.toList());
+                .collect(Collectors.toList());*/
     }
 
     public long contarNoLeidos(Long idUsuario) {

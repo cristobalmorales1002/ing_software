@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Container, Row, Col, ListGroup, Badge, Button, Form, Modal, InputGroup, Spinner, Toast, ToastContainer } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import {
-    Send, Inbox, Search, PlusLg, PersonCircle, Trash, Reply, X, ArrowCounterclockwise, CheckCircle, ExclamationCircle
+    Send, Inbox, Search, PlusLg, PersonCircle, Trash, Reply, X, ArrowCounterclockwise,
+    CheckCircle, ExclamationCircle, Check2, Check2All
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import DateRangeFilter from '../components/DateRangeFilter';
@@ -275,6 +276,58 @@ const Messages = () => {
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    // --- HELPER PARA RENDERIZAR EL ESTADO EN LA LISTA ---
+    const renderDeliveryStatusInList = (msg) => {
+        if (activeTab !== 'sent' || !msg.destinatariosDetalle || msg.destinatariosDetalle.length === 0) return null;
+
+        const total = msg.destinatariosDetalle.length;
+        const readList = msg.destinatariosDetalle.filter(d => d.leido);
+        const readCount = readList.length;
+
+        if (total === 0) return null;
+
+        // 1. Caso: Leído (Por al menos uno)
+        if (readCount > 0) {
+            const latestReadTime = readList.sort((a, b) => new Date(b.fechaLectura) - new Date(a.fechaLectura))[0];
+            const timeStr = formatDate(latestReadTime.fechaLectura).split(' ')[1] || '';
+
+            const displayText = total === 1 ? `Visto ${timeStr}` : `Visto ${readCount}/${total}`;
+
+            return (
+                <Badge
+                    bg="success"
+                    className="d-block fw-bold text-center py-1 px-2 text-white"
+                    style={{
+                        fontSize: '0.7rem',
+                        minWidth: '90px',
+                        backgroundColor: '#10b981', // Verde esmeralda (Visto)
+                        boxShadow: '0 1px 3px rgba(16, 185, 129, 0.4)'
+                    }}
+                    title={`Visto por ${readCount} de ${total}`}
+                >
+                    {displayText}
+                </Badge>
+            );
+        }
+
+        // 2. Caso: Entregado (Nadie leyó)
+        return (
+            <Badge
+                bg="secondary"
+                className="d-block fw-bold text-center py-1 px-2 text-white"
+                style={{
+                    fontSize: '0.7rem',
+                    minWidth: '90px',
+                    backgroundColor: '#ADB5BD', // Gris claro (Entregado)
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}
+                title="Mensaje entregado, pero no leído."
+            >
+                Entregado
+            </Badge>
+        );
+    };
+
     const renderListAvatar = () => {
         if (activeTab === 'sent') return <Send size={24} />;
         return <PersonCircle size={32} />;
@@ -288,18 +341,25 @@ const Messages = () => {
         }
     };
 
+    // LÓGICA DEL MODAL: ELIMINAMOS STATUS DE DESTINATARIOS
     const renderModalRecipients = (msg) => {
         if (!msg.destinatariosDetalle || msg.destinatariosDetalle.length === 0) {
             return msg.destinatariosResumen || "Varios destinatarios";
         }
-        return msg.destinatariosDetalle.map((d, index) => (
-            <span key={d.id || index}>
-                <Link to={`/dashboard/usuarios/${d.id}`} className="text-decoration-none hover-link" style={{ color: 'var(--text-main)', fontWeight: 'bold' }}>
-                    {d.nombre}
-                </Link>
-                {index < msg.destinatariosDetalle.length - 1 && ", "}
-            </span>
-        ));
+
+        // Listamos los nombres de los destinatarios sin el estado.
+        return (
+            <>
+                {msg.destinatariosDetalle.map((d, index) => (
+                    <span key={d.id || index}>
+                        <Link to={`/dashboard/usuarios/${d.id}`} className="text-decoration-none hover-link" style={{ color: 'var(--text-main)', fontWeight: 'bold' }}>
+                            {d.nombre}
+                        </Link>
+                        {index < msg.destinatariosDetalle.length - 1 ? ", " : ""}
+                    </span>
+                ))}
+            </>
+        );
     };
 
     return (
@@ -331,7 +391,7 @@ const Messages = () => {
                             onClick={() => setActiveTab('sent')}
                             className="border-0 rounded mb-1"
                         >
-                            <Send className="me-2"/> Enviados
+                            <Send size={24} className="me-2"/> Enviados
                         </ListGroup.Item>
                     </ListGroup>
                 </Col>
@@ -407,19 +467,29 @@ const Messages = () => {
                                             {renderListAvatar()}
                                         </div>
 
-                                        <div className="flex-grow-1 overflow-hidden" style={{ minWidth: 0 }}>
-                                            <div className="d-flex justify-content-between mb-1">
+                                        {/* INICIO NUEVA ESTRUCTURA DE ALINEACIÓN */}
+                                        <div className="d-flex justify-content-between flex-grow-1" style={{ minWidth: 0 }}>
+
+                                            {/* LEFT BLOCK: Header and Subject (para que el asunto baje) */}
+                                            <div className="d-flex flex-column overflow-hidden me-2">
                                                 <span className="fw-medium text-truncate" style={{ color: 'var(--text-main)' }}>
                                                     {renderListHeader(msg)}
                                                 </span>
-                                                <small style={{ color: 'var(--text-muted)', flexShrink: 0, marginLeft: '8px' }}>{formatDate(msg.fechaEnvio)}</small>
+                                                <div className="text-truncate small" style={{ color: 'var(--text-main)' }}>
+                                                    <span className={!msg.leido && activeTab === 'inbox' ? 'fw-bold' : ''}>
+                                                        {msg.asunto}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="text-truncate small" style={{ color: 'var(--text-main)' }}>
-                                                <span className={!msg.leido && activeTab === 'inbox' ? 'fw-bold' : ''}>
-                                                    {msg.asunto}
-                                                </span>
+
+                                            {/* RIGHT BLOCK: Date and Status (Alineado al fondo) */}
+                                            <div className="d-flex flex-column align-items-end justify-content-end" style={{ flexShrink: 0, minWidth: '100px' }}>
+                                                <small style={{ color: 'var(--text-muted)' }}>{formatDate(msg.fechaEnvio)}</small>
+                                                {renderDeliveryStatusInList(msg)}
                                             </div>
+
                                         </div>
+                                        {/* FIN NUEVA ESTRUCTURA DE ALINEACIÓN */}
                                     </ListGroup.Item>
                                 ))
                             )}

@@ -37,11 +37,15 @@ public class UsuarioControlador {
         return ResponseEntity.ok(usuarioServicio.getAll());
     }
 
+    // --- CORRECCIÓN AQUÍ ---
+    // Antes decía @PreAuthorize("hasRole('ADMIN')")
+    // Lo cambiamos a isAuthenticated() para que Médicos, Investigadores, etc. puedan ver perfiles.
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UsuarioResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(usuarioServicio.getById(id));
     }
+    // -----------------------
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
@@ -64,7 +68,7 @@ public class UsuarioControlador {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{id}/activate") // O @PatchMapping
+    @PutMapping("/{id}/activate")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> activate(@PathVariable Long id) {
         usuarioServicio.activate(id);
@@ -74,11 +78,10 @@ public class UsuarioControlador {
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UsuarioResponseDto> getMyProfile(Authentication authentication) {
-        // Obtenemos el RUT del usuario que está logueado automáticamente
         String rut = authentication.getName();
-        // Buscamos sus datos y los devolvemos
         return ResponseEntity.ok(usuarioServicio.getByRut(rut));
     }
+
     @PutMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UsuarioResponseDto> updateProfile(Authentication authentication,
@@ -88,7 +91,6 @@ public class UsuarioControlador {
         return ResponseEntity.ok(updated);
     }
 
-    // --- CAMBIO PRINCIPAL: Ahora recibe Body con nuevoEmail y password ---
     @PostMapping("/me/email/solicitar")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> solicitarCambioEmail(Authentication authentication, @RequestBody Map<String, String> body) {
@@ -125,6 +127,7 @@ public class UsuarioControlador {
         usuarioServicio.confirmarCambioEmail(rut, dto.getToken(), dto.getNuevoEmail());
         return ResponseEntity.ok(Map.of("mensaje", "Correo electrónico actualizado exitosamente."));
     }
+
     @PostMapping("/me/foto")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> subirFotoPerfil(@RequestParam("archivo") MultipartFile archivo, Authentication authentication) throws IOException {
@@ -136,6 +139,7 @@ public class UsuarioControlador {
 
         return ResponseEntity.ok().build();
     }
+
     @PutMapping("/me/tema")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> actualizarTema(@RequestBody Map<String, String> body, Authentication authentication) {

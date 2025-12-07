@@ -3,13 +3,15 @@ import { Table, Button, Modal, Form, Container, Row, Col, Badge, Spinner, Alert,
 import { PencilSquare, Trash, PlusLg, Search, ArrowCounterclockwise, CheckCircle, ExclamationCircle } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut, validateRut } from '../utils/rutUtils';
-import { COUNTRY_PHONE_DATA, getPhoneConfig } from '../utils/phoneUtils'; // <--- 1. IMPORTAR UTILS
+import { COUNTRY_PHONE_DATA, getPhoneConfig } from '../utils/phoneUtils';
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Estados de Error
     const [rutError, setRutError] = useState(null);
+    const [emailError, setEmailError] = useState(null); // <--- NUEVO ESTADO DE ERROR
 
     const [showFormModal, setShowFormModal] = useState(false);
     const [showStatusModal, setShowStatusModal] = useState(false);
@@ -30,7 +32,6 @@ const UserManagement = () => {
     };
     const [formData, setFormData] = useState(initialFormState);
 
-    // --- 2. ESTADO PARA EL TELÉFONO SEPARADO ---
     const [phoneData, setPhoneData] = useState({ code: '+56', number: '' });
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -83,6 +84,10 @@ const UserManagement = () => {
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
+
+        // Limpiar errores al escribir
+        if (name === 'email') setEmailError(null);
+
         if (name === 'rut') {
             if (value.length > 12) return;
             const formatted = formatRut(value);
@@ -96,12 +101,9 @@ const UserManagement = () => {
         }
     };
 
-    // --- 3. HANDLERS PARA EL TELÉFONO ---
     const handlePhoneCodeChange = (e) => {
         const newCode = e.target.value;
         const config = getPhoneConfig(newCode);
-
-        // Recortar si el número actual excede el nuevo largo máximo
         let currentNumber = phoneData.number;
         if (currentNumber.length > config.maxLength) {
             currentNumber = currentNumber.slice(0, config.maxLength);
@@ -112,7 +114,6 @@ const UserManagement = () => {
     const handlePhoneNumberChange = (e) => {
         const val = e.target.value;
         const config = getPhoneConfig(phoneData.code);
-        // Solo permitir números y respetar largo máximo
         if (/^\d*$/.test(val)) {
             if (val.length <= config.maxLength) {
                 setPhoneData({ ...phoneData, number: val });
@@ -122,19 +123,18 @@ const UserManagement = () => {
 
     const openCreateModal = () => {
         setFormData(initialFormState);
-        setPhoneData({ code: '+56', number: '' }); // Resetear teléfono
+        setPhoneData({ code: '+56', number: '' });
         setIsEditing(false);
         setRutError(null);
+        setEmailError(null); // Resetear error
         setShowFormModal(true);
     };
 
     const openEditModal = (user) => {
-        // Lógica para separar el teléfono existente
         let pCode = '+56';
         let pNum = '';
 
         if (user.telefono) {
-            // Buscar si empieza con algún código conocido (ordenados por largo para evitar conflictos con +1 vs +12)
             const sortedCodes = [...COUNTRY_PHONE_DATA].sort((a, b) => b.code.length - a.code.length);
             const found = sortedCodes.find(c => user.telefono.startsWith(c.code));
 
@@ -142,7 +142,7 @@ const UserManagement = () => {
                 pCode = found.code;
                 pNum = user.telefono.replace(found.code, '');
             } else {
-                pNum = user.telefono; // Si no tiene código conocido, lo ponemos todo en número
+                pNum = user.telefono;
             }
         }
 
@@ -151,7 +151,6 @@ const UserManagement = () => {
             nombres: user.nombres,
             apellidos: user.apellidos,
             email: user.email,
-            // telefono: user.telefono || '', <-- YA NO SE USA DIRECTO
             contrasena: '',
             activo: user.estadoU === 'ACTIVO' || user.estadoU === true,
             rol: user.rol || 'ROLE_INVESTIGADOR'
@@ -159,6 +158,7 @@ const UserManagement = () => {
 
         setPhoneData({ code: pCode, number: pNum });
         setRutError(null);
+        setEmailError(null); // Resetear error
         setSelectedUser(user);
         setIsEditing(true);
         setShowFormModal(true);
@@ -174,10 +174,22 @@ const UserManagement = () => {
     const handleSaveUser = async (e) => {
         e.preventDefault();
         setRutError(null);
+        setEmailError(null);
 
-        if (!validateRut(formData.rut)) { setRutError('RUT inválido.'); return; }
+        // 1. Validación de RUT
+        if (!validateRut(formData.rut)) {
+            setRutError('RUT inválido.');
+            return;
+        }
 
-        // --- 4. CONSTRUIR EL TELÉFONO FINAL ---
+        // 2. Validación de Email (Regex estándar) [NUEVO]
+        // Formato: algo + @ + algo + . + algo (ej: nombre@dominio.cl)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            setEmailError('El formato del correo no es válido (ej: usuario@dominio.com).');
+            return;
+        }
+
         let finalPhone = '';
         if (phoneData.number) {
             finalPhone = phoneData.code + phoneData.number;
@@ -187,7 +199,7 @@ const UserManagement = () => {
             const dataToSend = {
                 rut: formData.rut, nombres: formData.nombres, apellidos: formData.apellidos,
                 email: formData.email,
-                telefono: finalPhone, // Enviamos el combinado
+                telefono: finalPhone,
                 rol: formData.rol,
                 activo: formData.activo
             };
@@ -344,7 +356,19 @@ const UserManagement = () => {
                                 <Form.Control type="text" name="rut" value={formData.rut} onChange={handleInputChange} isInvalid={!!rutError} maxLength={12} placeholder="12.345.678-9" required />
                                 <Form.Control.Feedback type="invalid">{rutError}</Form.Control.Feedback>
                             </Form.Group></Col>
-                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Email (*)</Form.Label><Form.Control type="email" name="email" value={formData.email} onChange={handleInputChange} required /></Form.Group></Col>
+
+                            {/* --- 3. INPUT DE EMAIL CON VALIDACIÓN VISUAL --- */}
+                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Email (*)</Form.Label>
+                                <Form.Control
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
+                                    isInvalid={!!emailError} // Borde rojo si hay error
+                                    required
+                                />
+                                <Form.Control.Feedback type="invalid">{emailError}</Form.Control.Feedback>
+                            </Form.Group></Col>
                         </Row>
                         <Row>
                             <Col md={6}><Form.Group className="mb-3"><Form.Label>Nombres (*)</Form.Label><Form.Control type="text" name="nombres" value={formData.nombres} onChange={handleInputChange} required /></Form.Group></Col>
@@ -352,7 +376,6 @@ const UserManagement = () => {
                         </Row>
                         <Row>
                             <Col md={6}>
-                                {/* --- 5. NUEVO INPUT GROUP DE TELÉFONO --- */}
                                 <Form.Group className="mb-3">
                                     <Form.Label>Teléfono</Form.Label>
                                     <InputGroup>

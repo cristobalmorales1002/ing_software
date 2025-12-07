@@ -85,35 +85,37 @@
 .offcanvas .form-control {
     color: var(--text-main) !important;
 }
-/* --- NUEVO: Arreglos para Gestión de Usuarios --- */
 
-/* 1. Borde más visible para el buscador en MODO CLARO */
+/* --- Arreglos para Gestión de Usuarios --- */
+
+/* Borde más visible para el buscador en MODO CLARO */
 [data-theme="light"] .search-bar-custom .input-group-text,
 [data-theme="light"] .search-bar-custom .form-control {
-    border-color: #9ca3af !important; /* Un gris más oscuro que el default */
+    border-color: #9ca3af !important;
 }
 
-/* 2. Badges de Roles Uniformes */
+/* Badges de Roles Uniformes */
 .badge-rol {
-    min-width: 110px; /* Ancho fijo suficiente para "Administrador" */
+    min-width: 110px;
     display: inline-block;
     text-align: center;
-    padding: 8px 0; /* Un poco más de aire vertical */
+    padding: 8px 0;
 }
 
-/* 3. Badges de Estado Uniformes */
+/* Badges de Estado Uniformes */
 .badge-estado {
-    min-width: 80px; /* Ancho fijo */
+    min-width: 80px;
     display: inline-block;
     text-align: center;
     padding: 6px 0;
 }
+
 /* --- FIX FORMULARIOS Y MODALES EN MODO OSCURO --- */
 
-/* 1. Inputs Oscuros (Para bajar el contraste) */
+/* Inputs Oscuros */
 [data-theme="dark"] .form-control,
 [data-theme="dark"] .form-select {
-    background-color: #1e293b !important; /* Gris azulado oscuro */
+    background-color: #1e293b !important;
     border-color: var(--border-color) !important;
     color: var(--text-main) !important;
 }
@@ -125,20 +127,20 @@
     box-shadow: 0 0 0 4px rgba(77, 168, 218, 0.15) !important;
 }
 
-/* 2. Etiquetas (Labels) legibles */
+/* Etiquetas (Labels) legibles */
 [data-theme="dark"] .form-label,
 [data-theme="dark"] .modal-title {
     color: var(--text-main) !important;
 }
 
-/* 3. Input Groups (Iconos junto a inputs, como la lupa) */
+/* Input Groups */
 [data-theme="dark"] .input-group-text {
     background-color: #1e293b !important;
     border-color: var(--border-color) !important;
     color: var(--text-muted) !important;
 }
 
-/* 4. Parche para el Auto-completar de Chrome (que se pone blanco feo) */
+/* Parche para el Auto-completar de Chrome */
 [data-theme="dark"] input:-webkit-autofill,
 [data-theme="dark"] input:-webkit-autofill:hover,
 [data-theme="dark"] input:-webkit-autofill:focus {
@@ -146,25 +148,26 @@
     -webkit-box-shadow: 0 0 0px 1000px #1e293b inset !important;
     transition: background-color 5000s ease-in-out 0s;
 }
+
 /* --- ESTILOS PARA BADGES (Roles y Estados) --- */
 
-/* 1. Roles (Color Turquesa/Cyan vibrante como tu foto) */
+/* Roles */
 .badge-rol {
-    background-color: #06b6d4 !important; /* Turquesa vibrante */
-    color: #ffffff !important;             /* Texto blanco */
-    min-width: 130px;                      /* Ancho fijo para todos */
+    background-color: #06b6d4 !important;
+    color: #ffffff !important;
+    min-width: 130px;
     display: inline-block;
-    text-align: center;                    /* Centrado */
-    padding: 8px 0;                        /* Alto uniforme */
+    text-align: center;
+    padding: 8px 0;
     font-size: 0.9rem;
-    border-radius: 6px;                    /* Bordes redondeados suaves */
+    border-radius: 6px;
     font-weight: 600;
-    box-shadow: 0 2px 4px rgba(6, 182, 212, 0.2); /* Sombra sutil del mismo color */
+    box-shadow: 0 2px 4px rgba(6, 182, 212, 0.2);
 }
 
-/* 2. Estados (Activo/Inactivo) */
+/* Estados */
 .badge-estado {
-    min-width: 100px; /* Ancho fijo para que Activo e Inactivo midan lo mismo */
+    min-width: 100px;
     display: inline-block;
     text-align: center;
     padding: 8px 0;
@@ -172,21 +175,18 @@
     border-radius: 6px;
 }
 
-/* Ajuste específico para el verde de "Activo" */
 .badge-estado.bg-success {
-    background-color: #10b981 !important; /* Verde esmeralda más bonito */
+    background-color: #10b981 !important;
 }
 
-/* Ajuste para el gris de "Inactivo" */
 .badge-estado.bg-secondary {
-    background-color: #64748b !important; /* Gris azulado */
+    background-color: #64748b !important;
 }
 
 /* --- BADGES DE AUDITORÍA --- */
 
-/* 1. Tamaño y Alineación (Para que todos midan lo mismo) */
 .badge-audit-fixed {
-    min-width: 160px; /* Ancho fijo suficiente para "CREAR_RESPUESTA" */
+    min-width: 160px;
     display: inline-block;
     text-align: center;
     padding: 8px 0;
@@ -195,32 +195,32 @@
     border-radius: 6px;
 }
 
-/* 2. Color para acciones de CREAR (Bimodal) */
 .badge-audit-create {
     color: white !important;
 }
 
-/* MODO CLARO: Celeste Claro (Lo que pediste) */
+/* Color Audit Create en Claro */
 [data-theme="light"] .badge-audit-create {
-    background-color: #0ea5e9 !important; /* Celeste Sky vibrante */
+    background-color: #0ea5e9 !important;
     box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
 }
 
-/* MODO OSCURO: Verde (Lo que te gustaba) */
+/* Color Audit Create en Oscuro */
 [data-theme="dark"] .badge-audit-create {
-    background-color: #10b981 !important; /* Verde Esmeralda */
+    background-color: #10b981 !important;
     box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
+
 /* --- DATE PICKER UNIFICADO --- */
 
 .date-picker-unified .form-control {
     border-left: none !important;
     border-right: none !important;
-    background-color: transparent !important; /* Fondo transparente para integrarse */
+    background-color: transparent !important;
 }
 
 .date-picker-unified .form-control:focus {
-    box-shadow: none !important; /* Quitar brillo azul al escribir */
+    box-shadow: none !important;
     background-color: transparent !important;
 }
 
@@ -231,15 +231,13 @@
     color: var(--text-muted);
 }
 
-/* Borde externo unificado */
 .date-picker-unified {
-    background-color: var(--bg-input); /* Color de fondo del input según tema */
+    background-color: var(--bg-input);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    overflow: hidden; /* Para que el color de fondo del icono no se salga */
+    overflow: hidden;
 }
 
-/* Icono principal con color sólido */
 .date-picker-icon {
     background-color: var(--accent-color) !important;
     color: white !important;
@@ -247,41 +245,33 @@
     padding-left: 15px;
     padding-right: 15px;
 }
-/* --- OCULTAR ICONO NATIVO DE FECHA --- */
-/* Esto borra el calendario pequeño que pone Chrome/Edge dentro del input */
+
+/* Ocultar icono nativo de fecha */
 input[type="date"]::-webkit-inner-spin-button,
 input[type="date"]::-webkit-calendar-picker-indicator {
     display: none;
     -webkit-appearance: none;
 }
 
-/* Ajuste para que el texto del date ocupe todo el espacio */
 input[type="date"] {
     -moz-appearance: textfield;
 }
-/* =========================================================
-   FIX VISIBILIDAD MODO OSCURO (Reportes y Documentos)
-   ========================================================= */
 
-/* 1. Arreglar texto gris (text-muted) que no se lee en fondo oscuro */
+/* --- FIX VISIBILIDAD REPORTES MODO OSCURO --- */
+
 [data-theme="dark"] .text-muted {
-    color: #a6b0cf !important; /* Un gris perla mucho más claro y legible */
+    color: #a6b0cf !important;
 }
 
-/* 2. Botón "Base Completa" (Verde) */
-/* En modo oscuro, el verde original es muy oscuro. Lo cambiamos a verde neón. */
 [data-theme="dark"] .btn-outline-success {
     color: #4ade80 !important;
     border-color: #4ade80 !important;
 }
 [data-theme="dark"] .btn-outline-success:hover {
     background-color: #4ade80 !important;
-    color: #000 !important; /* Texto negro al pasar el mouse */
+    color: #000 !important;
 }
 
-/* 3. Botón "Base Dicotomizada" (Dark) */
-/* CRÍTICO: El btn-outline-dark es texto negro. En fondo negro NO SE VE.
-   Lo cambiamos a blanco/gris claro. */
 [data-theme="dark"] .btn-outline-dark {
     color: #f1f5f9 !important;
     border-color: #f1f5f9 !important;
@@ -291,8 +281,7 @@ input[type="date"] {
     color: #000 !important;
 }
 
-/* 4. Botón "PDF" (Rojo) */
-/* Aclaramos el rojo para que no vibre tanto y se lea bien */
+/* Botón PDF */
 [data-theme="dark"] .btn-outline-danger {
     color: #f87171 !important;
     border-color: #f87171 !important;
@@ -302,8 +291,6 @@ input[type="date"] {
     color: #000 !important;
 }
 
-/* 5. Botón "Base Anonimizada" (Primary/Azul) */
-/* Aclaramos el azul */
 [data-theme="dark"] .btn-outline-primary {
     color: #60a5fa !important;
     border-color: #60a5fa !important;
@@ -313,43 +300,38 @@ input[type="date"] {
     color: #000 !important;
 }
 
-/*_____________________________CAMBIOS DE ESTILOS 28-11-2025----------------------------*/
-/* --- FIX: Subtítulo negro al hacer hover en el botón rojo (Modo Oscuro) --- */
-/* Usamos 'body' para ganar especificidad sobre la regla general */
 body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     color: #000000 !important;
     opacity: 1 !important;
 }
 
-/* 1. El contenedor del ítem (el bloque principal) */
+/* MODO OSCURO --- */
+
 [data-theme="dark"] .accordion-item {
-    background-color: var(--bg-card) !important; /* Fondo oscuro */
-    border-color: var(--border-color) !important; /* Borde sutil */
+    background-color: var(--bg-card) !important;
+    border-color: var(--border-color) !important;
     color: var(--text-main) !important;
 }
 
-/* 2. El botón/cabecera (lo que se ve blanco en tu foto) */
 [data-theme="dark"] .accordion-button {
     background-color: var(--bg-card) !important;
     color: var(--text-main) !important;
-    box-shadow: none !important; /* Quita el brillo azul por defecto al hacer click */
+    box-shadow: none !important;
 }
 
-/* 3. El botón cuando está ABIERTO (Desplegado) */
 [data-theme="dark"] .accordion-button:not(.collapsed) {
-    background-color: var(--hover-bg) !important; /* Un tono ligeramente distinto para indicar activo */
-    color: var(--accent-color) !important;        /* Texto en tu color de acento (celeste/azul) */
-    box-shadow: inset 0 -1px 0 var(--border-color) !important; /* Pequeña línea divisoria */
+    background-color: var(--hover-bg) !important;
+    color: var(--accent-color) !important;
+    box-shadow: inset 0 -1px 0 var(--border-color) !important;
 }
 
-/* 4. La flecha (Chevron) del acordeón */
-/* Por defecto es negra (SVG), así que la invertimos para que sea blanca */
 [data-theme="dark"] .accordion-button::after {
     filter: invert(1) grayscale(100%) brightness(200%);
 }
 
+/*-------------------BOTONES FORMULARIO MODO CLARO--------------- */
 
-/*-----------------REFORMA DE BOTONES DE FORMULARIO EN MODO CLARO----------------------------*/
+/* Botón +Pregunta */
 [data-theme="light"] .btn-outline-info {
     background-color: #17a2b8 !important;
     color: #ffffff !important;
@@ -357,19 +339,21 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
 }
 
 [data-theme="light"] .btn-outline-info:hover {
-    background-color: #138496 !important; /
+    background-color: #138496 !important;
     border-color: #117a8b !important;
     color: #ffffff !important;
     transform: translateY(-1px);
     box-shadow: 0 2px 5px rgba(23, 162, 184, 0.4);
 }
-[data-theme="light"] .btn-outline-secondary {
+
+/* Botón Editar */
+[data-theme="light"] .accordion-body .btn-outline-secondary {
     background-color: #6c757d !important;
     color: #ffffff !important;
     border-color: #6c757d !important;
 }
 
-[data-theme="light"] .btn-outline-secondary:hover {
+[data-theme="light"] .accordion-body .btn-outline-secondary:hover {
     background-color: #5a6268 !important;
     border-color: #545b62 !important;
     color: #ffffff !important;
@@ -377,14 +361,14 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     box-shadow: 0 2px 5px rgba(108, 117, 125, 0.4);
 }
 
-/* 2. Botón Eliminar */
-[data-theme="light"] .btn-outline-danger {
+/* Botón Eliminar */
+[data-theme="light"] .accordion-body .btn-outline-danger {
     background-color: #dc3545 !important;
     color: #ffffff !important;
     border-color: #dc3545 !important;
 }
 
-[data-theme="light"] .btn-outline-danger:hover {
+[data-theme="light"] .accordion-body .btn-outline-danger:hover {
     background-color: #bb2d3b !important;
     border-color: #b02a37 !important;
     color: #ffffff !important;
@@ -392,45 +376,43 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     box-shadow: 0 2px 5px rgba(220, 53, 69, 0.4);
 }
 
-/*-----------------REFORMA DE BOTONES DE FORMULARIO EN MODO OSCURO----------------------------*/
-/* 1. Botón + Pregunta*/
+/* ------------------BOTONES FORMULARIO MODO OSCURO------------------*/
+
+/* Botón +Pregunta */
 [data-theme="dark"] .btn-outline-info {
     background-color: #0ea5e9 !important;
     color: #e2e8f0 !important;
-
     border-color: #0ea5e9 !important;
 }
 
 [data-theme="dark"] .btn-outline-info:hover {
     background-color: #38bdf8 !important;
     border-color: #38bdf8 !important;
-
     color: #000000 !important;
-
     box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
 }
 
-/* 2. Botón Editar*/
-[data-theme="dark"] .btn-outline-secondary {
+/* Botón Editar*/
+[data-theme="dark"] .accordion-body .btn-outline-secondary {
     background-color: #475569 !important;
     color: #f1f5f9 !important;
     border-color: #475569 !important;
 }
 
-[data-theme="dark"] .btn-outline-secondary:hover {
+[data-theme="dark"] .accordion-body .btn-outline-secondary:hover {
     background-color: #64748b !important;
     border-color: #64748b !important;
     color: #ffffff !important;
 }
 
-/* 3. Botón Eliminar */
-[data-theme="dark"] .btn-outline-danger {
+/* Botón Eliminar */
+[data-theme="dark"] .accordion-body .btn-outline-danger {
     background-color: #be123c !important;
     color: #ffffff !important;
     border-color: #be123c !important;
 }
 
-[data-theme="dark"] .btn-outline-danger:hover {
+[data-theme="dark"] .accordion-body .btn-outline-danger:hover {
     background-color: #f43f5e !important;
     border-color: #f43f5e !important;
     color: #ffffff !important;

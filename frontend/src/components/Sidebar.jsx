@@ -51,6 +51,18 @@ const Sidebar = () => {
         fetchUserRole();
         fetchUnreadCount();
 
+        // 1. EXPOSICIÓN GLOBAL: La página Messages.jsx llamará a esta función.
+        window.refreshSidebarMessageCount = fetchUnreadCount;
+
+        // 2. POLLING: Revisa si hay mensajes nuevos cada 30 segundos.
+        const interval = setInterval(fetchUnreadCount, 30000);
+
+        return () => {
+            // Limpieza: Detiene el polling y elimina la función global al desmontar.
+            clearInterval(interval);
+            delete window.refreshSidebarMessageCount;
+        };
+
     }, []);
 
     const handleLogout = () => {

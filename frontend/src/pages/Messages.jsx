@@ -237,6 +237,12 @@ const Messages = () => {
                 await api.post(`/api/mensajes/leer/${msg.id}`);
                 setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, leido: true } : m));
                 setUnreadCount(prev => Math.max(0, prev - 1));
+
+                // LLAMADA CLAVE: Sincronización inmediata con el Sidebar
+                if (window.refreshSidebarMessageCount) {
+                    window.refreshSidebarMessageCount();
+                }
+
             } catch (error) {
                 console.error("Error marcando como leído", error);
             }
@@ -276,7 +282,7 @@ const Messages = () => {
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
-    // --- HELPER PARA RENDERIZAR EL ESTADO EN LA LISTA ---
+    // --- HELPER PARA RENDERIZAR EL ESTADO EN LA LISTA (COMO BLOQUE DE TEXTO) ---
     const renderDeliveryStatusInList = (msg) => {
         if (activeTab !== 'sent' || !msg.destinatariosDetalle || msg.destinatariosDetalle.length === 0) return null;
 
@@ -347,7 +353,7 @@ const Messages = () => {
             return msg.destinatariosResumen || "Varios destinatarios";
         }
 
-        // Listamos los nombres de los destinatarios sin el estado.
+        // Solo listamos los nombres de los destinatarios sin el estado.
         return (
             <>
                 {msg.destinatariosDetalle.map((d, index) => (
@@ -467,10 +473,8 @@ const Messages = () => {
                                             {renderListAvatar()}
                                         </div>
 
-                                        {/* INICIO NUEVA ESTRUCTURA DE ALINEACIÓN */}
                                         <div className="d-flex justify-content-between flex-grow-1" style={{ minWidth: 0 }}>
 
-                                            {/* LEFT BLOCK: Header and Subject (para que el asunto baje) */}
                                             <div className="d-flex flex-column overflow-hidden me-2">
                                                 <span className="fw-medium text-truncate" style={{ color: 'var(--text-main)' }}>
                                                     {renderListHeader(msg)}
@@ -482,14 +486,14 @@ const Messages = () => {
                                                 </div>
                                             </div>
 
-                                            {/* RIGHT BLOCK: Date and Status (Alineado al fondo) */}
                                             <div className="d-flex flex-column align-items-end justify-content-end" style={{ flexShrink: 0, minWidth: '100px' }}>
+                                                {/* Fecha arriba */}
                                                 <small style={{ color: 'var(--text-muted)' }}>{formatDate(msg.fechaEnvio)}</small>
+                                                {/* Estado abajo, alineado con el asunto */}
                                                 {renderDeliveryStatusInList(msg)}
                                             </div>
 
                                         </div>
-                                        {/* FIN NUEVA ESTRUCTURA DE ALINEACIÓN */}
                                     </ListGroup.Item>
                                 ))
                             )}

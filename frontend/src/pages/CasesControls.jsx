@@ -338,7 +338,12 @@ const CasesControls = () => {
     const progress = Math.round(((currentStep + 1) / surveyStructure.length) * 100);
 
     return (
-        <Container fluid className="p-0 page-container-fixed d-flex flex-column">
+        /* CAMBIO AQUÍ: Altura fija y overflow hidden al contenedor padre */
+        <Container
+            fluid
+            className="p-0 page-container-fixed d-flex flex-column"
+            style={{ height: 'calc(100vh - 60px)', overflow: 'hidden' }}
+        >
             <style type="text/css">{`
                 .btn-delete-custom { color: #6c757d; border-color: #6c757d; transition: all 0.2s ease; }
                 .btn-delete-custom:hover { color: #fff; background-color: #dc3545; border-color: #dc3545; }

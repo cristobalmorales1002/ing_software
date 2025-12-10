@@ -146,6 +146,7 @@ public class MensajeriaServicio {
                         .fechaEnvio(dm.getMensaje().getFechaEnvio())
                         .nombreEmisor(dm.getMensaje().getEmisor().getNombres() + " " + dm.getMensaje().getEmisor().getApellidos())
                         .emailEmisor(dm.getMensaje().getEmisor().getEmail())
+                        .idEmisor(dm.getMensaje().getEmisor().getIdUsuario())
                         .leido(dm.isLeido())
                         .build())
                 .collect(Collectors.toList());

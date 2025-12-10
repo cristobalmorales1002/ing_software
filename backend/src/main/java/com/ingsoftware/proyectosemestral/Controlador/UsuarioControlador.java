@@ -37,7 +37,6 @@ public class UsuarioControlador {
         return ResponseEntity.ok(usuarioServicio.getAll());
     }
 
-    // --- CORRECCIÓN AQUÍ ---
     // Antes decía @PreAuthorize("hasRole('ADMIN')")
     // Lo cambiamos a isAuthenticated() para que Médicos, Investigadores, etc. puedan ver perfiles.
     @GetMapping("/{id}")
@@ -45,7 +44,6 @@ public class UsuarioControlador {
     public ResponseEntity<UsuarioResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(usuarioServicio.getById(id));
     }
-    // -----------------------
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")

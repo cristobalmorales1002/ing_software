@@ -424,6 +424,10 @@ public class InicializadorAdmin implements CommandLineRunner {
                 .orElseGet(() -> categoriaRepositorio.save(new Categoria(null, nombre, orden, new HashSet<>())));
     }
 
+    private Pregunta crearPregunta(Categoria cat, String etiqueta, String codigoStata, TipoDato tipo, int orden,
+                                   boolean exportable, boolean estadistica, Double... cortesManuales) {
+        return crearPregunta(cat, etiqueta, codigoStata, tipo, orden, exportable, estadistica, null, cortesManuales);
+    }
 
     // Sobrecarga 2: Base completa
     private Pregunta crearPregunta(Categoria cat, String etiqueta, String codigoStata, TipoDato tipo, int orden,

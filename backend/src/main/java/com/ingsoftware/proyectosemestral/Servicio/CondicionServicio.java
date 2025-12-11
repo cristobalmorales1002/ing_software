@@ -18,6 +18,16 @@ public class CondicionServicio {
         String accion = pregunta.getAccionSiNoCumple();
 
         String valorActual = respuestasActuales.get(idControladora);
+
+        if (valorActual == null || valorActual.isBlank()) {
+            if ("OCULTAR".equalsIgnoreCase(accion)) {
+                return "OCULTA";
+            } else if ("BLOQUEAR".equalsIgnoreCase(accion)) {
+                return "BLOQUEADA";
+            }
+            return "VISIBLE";
+        }
+
         return "VISIBLE";
     }
 }

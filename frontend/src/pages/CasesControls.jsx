@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Container, Row, Col, Form, InputGroup, Button, Card, ListGroup, Badge, Spinner, Modal, ProgressBar, Table, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import {
+    Container, Row, Col, Form, InputGroup, Button, Card, ListGroup,
+    Badge, Spinner, Modal, ProgressBar, Table, OverlayTrigger, Tooltip,
+    Tabs, Tab, Accordion
+} from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import {
     Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft,
@@ -9,6 +13,7 @@ import {
 import api from '../api/axios';
 import { formatRut } from '../utils/rutUtils';
 import { getPhoneConfig, COUNTRY_PHONE_DATA } from '../utils/phoneUtils';
+import './CasesControls.css';
 
 const CasesControls = () => {
     const [items, setItems] = useState([]);
@@ -338,7 +343,7 @@ const CasesControls = () => {
     const progress = Math.round(((currentStep + 1) / surveyStructure.length) * 100);
 
     return (
-        /* CAMBIO AQUÍ: Altura fija y overflow hidden al contenedor padre */
+        /* Altura fija y overflow hidden al contenedor padre */
         <Container
             fluid
             className="p-0 page-container-fixed d-flex flex-column"
@@ -412,6 +417,7 @@ const CasesControls = () => {
                     {selectedItem ? (
                         <Card className="h-100 shadow-sm border-0 overflow-hidden">
                             <Card.Header className="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary border-opacity-25 bg-transparent">
+                                {/* --- HEADER --- */}
                                 <div>
                                     <h4 className="mb-0 d-flex align-items-center gap-2 text-primary"><PersonVcard /> {selectedItem.id}</h4>
                                     <div className="text-muted small">
@@ -432,30 +438,77 @@ const CasesControls = () => {
                                     <Badge bg={selectedItem.tipo === 'CASO' ? 'danger' : 'success'} className="fs-6 px-3 py-2 ms-2">{selectedItem.tipo}</Badge>
                                 </div>
                             </Card.Header>
-                            <Card.Body className="p-0 overflow-auto bg-light bg-opacity-10">
-                                {surveyStructure.map((cat) => (
-                                    <div key={cat.id_cat} className="mb-4 shadow-sm mx-3 mt-3 rounded border border-secondary border-opacity-25" style={{ backgroundColor: 'var(--bg-card)' }}>
-                                        <div className="px-4 py-2 bg-secondary bg-opacity-10 border-bottom fw-bold text-uppercase small text-muted d-flex align-items-center"><ClipboardPulse className="me-2"/> {cat.nombre}</div>
-                                        <Table hover className="mb-0 align-middle">
-                                            <tbody>
-                                            {cat.preguntas?.map((pregunta) => {
-                                                const respuesta = selectedItem.respuestas?.find(r => r.preguntaId === pregunta.pregunta_id || r.pregunta_id === pregunta.pregunta_id);
-                                                let cellContent = respuesta && respuesta.valor ? <span className="text-primary fw-medium">{respuesta.valor}</span> : <span className="text-danger d-flex align-items-center gap-2 small bg-danger bg-opacity-10 px-2 py-1 rounded fit-content"><ExclamationTriangle /><span className="fst-italic">No registrado</span></span>;
-                                                return (
-                                                    <tr key={pregunta.pregunta_id}>
-                                                        <td className="ps-4 py-3" style={{width: '60%'}}>
-                                                            <div className="fw-bold d-flex align-items-center">{pregunta.etiqueta} {pregunta.descripcion && <OverlayTrigger placement="top" overlay={<Tooltip id={`t-${pregunta.pregunta_id}`}>{pregunta.codigoStata}: {pregunta.descripcion}</Tooltip>}><QuestionCircle className="ms-2 text-info" style={{ cursor: 'help', fontSize: '0.9em' }} /></OverlayTrigger>}</div>
-                                                            {pregunta.dato_sensible && <Badge bg="warning" text="dark" style={{fontSize:'0.6em'}}>SENSIBLE</Badge>}
-                                                        </td>
-                                                        <td className="py-3">{cellContent}</td>
-                                                    </tr>
-                                                );
-                                            })}
-                                            </tbody>
-                                        </Table>
-                                    </div>
-                                ))}
-                                {surveyStructure.length === 0 && <div className="text-center p-5 text-muted">No se ha cargado la estructura.</div>}
+
+                            {/* --- BODY --- */}
+                            <Card.Body className="p-0 overflow-hidden d-flex flex-column bg-light bg-opacity-10">
+                                <Tabs
+                                    defaultActiveKey="ficha"
+                                    id="patient-details-tabs"
+                                    className="px-3 pt-3 border-bottom"
+                                    key={selectedItem.dbId}
+                                >
+                                    {/* TAB 1: Dinámico (Caso o Control) */}
+                                    <Tab
+                                        eventKey="ficha"
+                                        title={selectedItem.tipo === 'CASO' ? 'Caso' : 'Control'}
+                                        className="h-100 overflow-hidden"
+                                    >
+                                        {/* MODIFICACI�"N: Eliminado d-flex row y el menú lateral (Scrollspy).
+                                            Se mantiene solo el contenedor de contenido con overflow-auto */}
+                                        <div className="h-100 overflow-auto p-3 position-relative accordion-scroll-container" style={{ scrollBehavior: 'smooth' }}>
+                                            {surveyStructure.length === 0 ? (
+                                                <div className="text-center p-5 text-muted">No se ha cargado la estructura.</div>
+                                            ) : (
+                                                <Accordion defaultActiveKey={['0']} alwaysOpen flush className="border rounded shadow-sm bg-card">
+                                                    {surveyStructure.map((cat, index) => (
+                                                        <div id={`cat-${cat.id_cat}`} key={cat.id_cat} className="accordion-wrapper">
+                                                            <Accordion.Item eventKey={index.toString()}>
+                                                                <Accordion.Header>
+                                                                    <ClipboardPulse className="me-2 text-primary opacity-75"/>
+                                                                    <span className="fw-bold text-uppercase small">{cat.nombre}</span>
+                                                                </Accordion.Header>
+                                                                <Accordion.Body className="p-0">
+                                                                    <Table hover className="mb-0 align-middle">
+                                                                        <tbody>
+                                                                        {cat.preguntas?.map((pregunta) => {
+                                                                            const respuesta = selectedItem.respuestas?.find(r => r.preguntaId === pregunta.pregunta_id || r.pregunta_id === pregunta.pregunta_id);
+                                                                            let cellContent = respuesta && respuesta.valor ?
+                                                                                <span className="text-primary fw-medium">{respuesta.valor}</span> :
+                                                                                <span className="text-danger d-flex align-items-center gap-2 small bg-danger bg-opacity-10 px-2 py-1 rounded fit-content"><ExclamationTriangle /><span className="fst-italic">No registrado</span></span>;
+
+                                                                            return (
+                                                                                <tr key={pregunta.pregunta_id}>
+                                                                                    <td className="ps-4 py-3" style={{width: '60%'}}>
+                                                                                        <div className="fw-bold d-flex align-items-center">
+                                                                                            {pregunta.etiqueta}
+                                                                                            {pregunta.descripcion && <OverlayTrigger placement="top" overlay={<Tooltip id={`t-${pregunta.pregunta_id}`}>{pregunta.codigoStata}: {pregunta.descripcion}</Tooltip>}><QuestionCircle className="ms-2 text-info" style={{ cursor: 'help', fontSize: '0.9em' }} /></OverlayTrigger>}
+                                                                                        </div>
+                                                                                        {pregunta.dato_sensible && <Badge bg="warning" text="dark" style={{fontSize:'0.6em'}}>SENSIBLE</Badge>}
+                                                                                    </td>
+                                                                                    <td className="py-3">{cellContent}</td>
+                                                                                </tr>
+                                                                            );
+                                                                        })}
+                                                                        </tbody>
+                                                                    </Table>
+                                                                </Accordion.Body>
+                                                            </Accordion.Item>
+                                                        </div>
+                                                    ))}
+                                                </Accordion>
+                                            )}
+                                        </div>
+                                    </Tab>
+
+                                    {/* TAB 2: Muestra (Sin cambios) */}
+                                    <Tab eventKey="muestra" title="Muestra">
+                                        <div className="d-flex flex-column align-items-center justify-content-center p-5 text-muted opacity-50">
+                                            <ClipboardPulse size={40} className="mb-3"/>
+                                            <h5>Información de Muestras</h5>
+                                            <p>Funcionalidad en desarrollo...</p>
+                                        </div>
+                                    </Tab>
+                                </Tabs>
                             </Card.Body>
                         </Card>
                     ) : (

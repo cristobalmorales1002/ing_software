@@ -167,34 +167,51 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                     />
                 </Form.Group>
 
-                {/* SECCIÓN OPCIONES (Solo ENUM) */}
                 {form.tipo_dato === 'ENUM' && (
-                    <div className="border border-secondary border-opacity-25 rounded p-3 bg-dark bg-opacity-10 mb-3">
-                        <label className="mb-2 text-info small fw-bold"><ListCheck /> OPCIONES DE SELECCIÓN</label>
+                    <div className="enum-box">
+                        <label className="mb-2 text-info small fw-bold">
+                            <ListCheck /> OPCIONES DE SELECCIÓN
+                        </label>
+
                         <InputGroup className="mb-3">
                             <Form.Control
                                 placeholder="Nueva opción..."
                                 value={newOptionText}
                                 onChange={e => setNewOptionText(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && addOption()}
-                                className="bg-transparent text-white border-secondary"
+                                className="bg-transparent border-secondary"
+                                /* Nota: bg-transparent aquí está bien porque el input tomará el color del enum-box */
                             />
                             <Button variant="outline-primary" onClick={addOption}>Agregar</Button>
                         </InputGroup>
-                        <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                            <Table size="sm" borderless className="mb-0" style={{ backgroundColor: 'transparent' }}>
-                                <tbody style={{ backgroundColor: 'transparent' }}>
+
+                        {/* Aquí aplicamos el contenedor con el estilo de fondo diferenciado */}
+                        <div className="enum-list-container">
+                            <Table size="sm" borderless className="mb-0">
+                                <tbody>
                                 {form.opciones.map((opt, idx) => (
                                     <tr key={idx}>
-                                        <td className="text-white">{opt}</td>
-                                        <td className="text-end">
-                                            <Trash className="text-danger cursor-pointer" onClick={() => removeOption(idx)} />
+                                        {/* Sin clases de color hardcodeadas */}
+                                        <td className="fw-medium">{opt}</td>
+                                        <td className="text-end" style={{ width: '50px' }}>
+                                            <Trash
+                                                className="text-danger cursor-pointer opacity-75 hover-opacity-100"
+                                                onClick={() => removeOption(idx)}
+                                                title="Eliminar opción"
+                                            />
                                         </td>
                                     </tr>
                                 ))}
                                 </tbody>
                             </Table>
                         </div>
+
+                        {/* Mensaje sutil si no hay opciones */}
+                        {form.opciones.length === 0 && (
+                            <div className="text-muted small mt-1 ps-1 fst-italic">
+                                No hay opciones agregadas aún.
+                            </div>
+                        )}
                         <Form.Check
                             type="switch"
                             name="generarEstadistica"

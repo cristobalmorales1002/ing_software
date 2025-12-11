@@ -433,3 +433,62 @@ body[data-theme="dark"] .btn-outline-danger:hover .text-muted {
     text-decoration-thickness: 2px !important;
     cursor: pointer;
 }
+
+/* --- SECCIÓN ENUM PERSONALIZADA --- */
+
+.enum-box {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+    /* Fondo sutil para agrupar todo el bloque */
+    background-color: rgba(127, 127, 127, 0.025);
+}
+
+/* Contenedor de la lista con scroll */
+.enum-list-container {
+    max-height: 160px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    /* Fondo base de la lista: usamos la variable de input que suele contrastar bien */
+    background-color: var(--bg-input);
+}
+
+/* Estilo de la tabla interna para que resalte y separe filas */
+.enum-box .table {
+    margin-bottom: 0;
+    border-collapse: collapse; /* Asegura bordes limpios */
+}
+
+/* Celdas individuales: Sobrescribimos el !important global para dar nuestro propio color */
+.enum-box .table tbody td {
+    /* Color de texto adaptativo */
+    color: var(--text-main) !important;
+    /* Fondo transparente para tomar el color del contenedor padre (.enum-list-container) */
+    background-color: transparent !important;
+    /* Separación visible: Borde inferior sólido */
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 10px 15px;
+}
+
+/* Efecto Hover para resaltar la fila donde está el mouse */
+.enum-box .table tbody tr:hover td {
+    background-color: var(--hover-bg) !important;
+    transition: background-color 0.2s ease;
+}
+
+/* Quitar el borde a la última fila para que se vea limpio */
+.enum-box .table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+/* Ajuste visual específico para Modo Oscuro (Opcional, para mayor contraste) */
+[data-theme="dark"] .enum-list-container {
+    /* Un poco más claro que el fondo negro para que parezca una "caja" */
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+[data-theme="light"] .enum-list-container {
+    /* Un gris muy suave para diferenciar del blanco puro */
+    background-color: #f8f9fa !important;
+}

@@ -43,4 +43,8 @@ public class Pregunta {
 
     @OneToMany(mappedBy = "pregunta", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OpcionPregunta> opciones;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pregunta_controladora_id")
+    private Pregunta preguntaControladora;
 }

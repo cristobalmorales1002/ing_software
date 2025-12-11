@@ -18,7 +18,7 @@ const api = axios.create({
 api.interceptors.response.use(
     response => response,
     error => {
-        // Si el servidor devuelve 401 (No autorizado) o 403 (Prohibido)
+
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
 
             // 1. Limpiamos la "memoria" del navegador

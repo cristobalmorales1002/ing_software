@@ -109,7 +109,6 @@ public class VariableServicio {
         return preguntaRepositorio.save(p);
     }
 
-    // --- HELPERS ---
     private void mapearDatosBasicos(Pregunta p, PreguntaDto dto) {
         p.setEtiqueta(dto.getEtiqueta());
         p.setCodigoStata(dto.getCodigoStata());
@@ -120,6 +119,15 @@ public class VariableServicio {
         p.setExportable(dto.isExportable());
         if(dto.getOrden() > 0) p.setOrden(dto.getOrden());
         p.setGenerarEstadistica(dto.isGenerarEstadistica());
+
+        if (dto.getPreguntaControladoraId() != null) {
+            Pregunta controladora = preguntaRepositorio.findById(dto.getPreguntaControladoraId())
+                    .orElseThrow(() -> new IllegalArgumentException("Pregunta controladora no encontrada"));
+            p.setPreguntaControladora(controladora);
+        } else {
+            p.setPreguntaControladora(null);
+        }
+
     }
 
     private void guardarOpciones(Pregunta p, PreguntaDto dto) {

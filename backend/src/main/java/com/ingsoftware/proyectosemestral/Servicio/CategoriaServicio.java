@@ -139,6 +139,7 @@ public class CategoriaServicio {
             dto.setPreguntaControladoraId(entidad.getPreguntaControladora().getPregunta_id());
         }
         dto.setValorEsperadoControladora(entidad.getValorEsperadoControladora());
+        dto.setAccionSiNoCumple(entidad.getAccionSiNoCumple());
 
 
         dto.setExportable(entidad.isExportable());

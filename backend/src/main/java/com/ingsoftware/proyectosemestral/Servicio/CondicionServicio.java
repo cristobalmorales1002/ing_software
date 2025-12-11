@@ -28,6 +28,15 @@ public class CondicionServicio {
             return "VISIBLE";
         }
 
+        boolean cumpleCondicion = valorActual.trim().equalsIgnoreCase(valorEsperado.trim());
+
+        if (!cumpleCondicion) {
+            if ("OCULTAR".equalsIgnoreCase(accion)) {
+                return "OCULTA";
+            } else if ("BLOQUEAR".equalsIgnoreCase(accion)) {
+                return "BLOQUEADA";
+            }
+        }
         return "VISIBLE";
     }
 }

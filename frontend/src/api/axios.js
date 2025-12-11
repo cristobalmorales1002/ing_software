@@ -21,13 +21,10 @@ api.interceptors.response.use(
 
         if (error.response && (error.response.status === 401 || error.response.status === 403)) {
 
-            // 1. Limpiamos la "memoria" del navegador
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('user');
             localStorage.removeItem('token');
 
-            // 2. Redirigimos forzosamente al login
-            // Usamos window.location en vez de navigate para asegurar un refresco total
             if (window.location.pathname !== '/') {
                 window.location.href = '/';
             }

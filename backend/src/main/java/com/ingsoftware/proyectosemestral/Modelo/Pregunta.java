@@ -47,4 +47,7 @@ public class Pregunta {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pregunta_controladora_id")
     private Pregunta preguntaControladora;
+
+    @Column(length = 500)
+    private String valorEsperadoControladora;
 }

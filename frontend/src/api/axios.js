@@ -15,4 +15,25 @@ const api = axios.create({
     withCredentials: true // Importante si usas cookies/sesiones
 });
 
+api.interceptors.response.use(
+    response => response,
+    error => {
+        // Si el servidor devuelve 401 (No autorizado) o 403 (Prohibido)
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+
+            // 1. Limpiamos la "memoria" del navegador
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+
+            // 2. Redirigimos forzosamente al login
+            // Usamos window.location en vez de navigate para asegurar un refresco total
+            if (window.location.pathname !== '/') {
+                window.location.href = '/';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default api;

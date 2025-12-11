@@ -127,7 +127,6 @@ public class CategoriaServicio {
             dto.setDicotomizaciones(listaDic);
         }
 
-        // --- MAPEO LISTA OPCIONES (CORRECCIÓN APLICADA AQUÍ) ---
         if (entidad.getTipo_dato() == TipoDato.ENUM && entidad.getOpciones() != null) {
             List<String> listaOpciones = entidad.getOpciones().stream()
                     .sorted(Comparator.comparingInt(OpcionPregunta::getOrden))
@@ -135,7 +134,11 @@ public class CategoriaServicio {
                     .collect(Collectors.toList());
             dto.setOpciones(listaOpciones);
         }
-        // --------------------------------------------------------
+
+        if (entidad.getPreguntaControladora() != null) {
+            dto.setPreguntaControladoraId(entidad.getPreguntaControladora().getPregunta_id());
+        }
+
 
         dto.setExportable(entidad.isExportable());
         dto.setTipoCorte(entidad.getTipoCorte());

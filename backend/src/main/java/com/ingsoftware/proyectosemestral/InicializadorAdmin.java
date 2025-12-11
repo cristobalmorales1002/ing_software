@@ -516,5 +516,14 @@ public class InicializadorAdmin implements CommandLineRunner {
         }
         return p;
     }
+    private void addRes(List<RespuestaDto> lista, String etiqueta, String valor) {
+        Optional<Pregunta> op = preguntaRepositorio.findByEtiqueta(etiqueta);
+        if (op.isPresent()) {
+            RespuestaDto r = new RespuestaDto();
+            r.setPregunta_id(op.get().getPregunta_id());
+            r.setValor(valor);
+            lista.add(r);
+        }
+    }
 
 }

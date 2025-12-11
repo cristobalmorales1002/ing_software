@@ -138,6 +138,7 @@ public class CategoriaServicio {
         if (entidad.getPreguntaControladora() != null) {
             dto.setPreguntaControladoraId(entidad.getPreguntaControladora().getPregunta_id());
         }
+        dto.setValorEsperadoControladora(entidad.getValorEsperadoControladora());
 
 
         dto.setExportable(entidad.isExportable());

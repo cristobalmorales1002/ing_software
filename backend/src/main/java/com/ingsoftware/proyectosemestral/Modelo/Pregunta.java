@@ -50,4 +50,7 @@ public class Pregunta {
 
     @Column(length = 500)
     private String valorEsperadoControladora;
+
+    @Column(length = 20)
+    private String accionSiNoCumple;
 }

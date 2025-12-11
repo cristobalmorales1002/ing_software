@@ -127,7 +127,7 @@ public class VariableServicio {
         } else {
             p.setPreguntaControladora(null);
         }
-
+        p.setValorEsperadoControladora(dto.getValorEsperadoControladora());
     }
 
     private void guardarOpciones(Pregunta p, PreguntaDto dto) {

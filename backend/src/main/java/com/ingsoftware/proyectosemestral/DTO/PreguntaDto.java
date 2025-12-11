@@ -35,4 +35,6 @@ public class PreguntaDto {
     private boolean generarEstadistica;
 
     private Long preguntaControladoraId;
+    private String valorEsperadoControladora;
+    private String accionSiNoCumple;
 }

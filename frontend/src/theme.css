@@ -8,7 +8,7 @@
     --text-main: #e0e6ed;
     --text-muted: #94a3b8;
     --border-color: #2c3e50;
-    --accent-color: #4da8da;
+    --accent-color: #4da8da; /* Tu Celeste Brillante */
     --sidebar-bg: linear-gradient(180deg, #0f1923 0%, #080c11 100%);
     --hover-bg: rgba(77, 168, 218, 0.1);
     --bg-form: #1e293b;
@@ -71,6 +71,19 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%230b1219'/%3e%3c/svg%3e");
 }
 
+/* Checkboxes NO SELECCIONADOS en Modo Oscuro */
+[data-theme="dark"] .form-check-input {
+    background-color: var(--bg-input) !important;
+    border-color: var(--text-muted) !important;
+    opacity: 0.8;
+}
+
+/* --- FIX GLOBAL: TEXT-INFO en Modo Oscuro --- */
+/* Esto arregla los títulos de "Opciones de Selección" y las Categorías del Formulario */
+[data-theme="dark"] .text-info {
+    color: var(--accent-color) !important; /* Forzamos tu celeste */
+}
+
 /* Listas en Modales */
 .theme-option-list {
     background-color: var(--bg-form) !important;
@@ -93,12 +106,12 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     --bs-table-hover-bg: transparent !important;
 }
 
-/* --- NUEVO: CORRECCIÓN BOTONES Y LISTAS EN MODO OSCURO (Mensajes, Sidebar, etc) --- */
+/* --- CORRECCIÓN BOTONES Y LISTAS EN MODO OSCURO (Mensajes, Sidebar, etc) --- */
 
-/* 1. Items de lista (Recibidos, Enviados, etc) */
+/* 1. Items de lista */
 [data-theme="dark"] .list-group-item {
-    background-color: var(--bg-card) !important; /* Fondo oscuro (del color de la tarjeta) */
-    color: var(--text-main) !important;          /* Texto claro */
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
     border-color: var(--border-color) !important;
 }
 
@@ -108,14 +121,14 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     color: var(--text-main) !important;
 }
 
-/* 3. Item Activo (El seleccionado, ej: Recibidos azul) */
+/* 3. Item Activo (El seleccionado) */
 [data-theme="dark"] .list-group-item.active {
-    background-color: var(--accent-color) !important;
+    background-color: rgba(77, 168, 218, 0.2) !important; /* Fondo transparente suave */
     border-color: var(--accent-color) !important;
-    color: #ffffff !important; /* Texto blanco para contraste con azul */
+    color: var(--accent-color) !important; /* Texto celeste */
 }
 
-/* 4. Botones Primarios (Redactar, Guardar, etc) */
+/* 4. Botones Primarios */
 [data-theme="dark"] .btn-primary {
     background-color: var(--accent-color) !important;
     border-color: var(--accent-color) !important;
@@ -123,10 +136,10 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
 }
 
 [data-theme="dark"] .btn-primary:hover {
-    filter: brightness(1.1); /* Un poco más brillante al pasar el mouse */
+    filter: brightness(1.1);
 }
 
-/* 5. Botones Outline (Cancelar, Volver) */
+/* 5. Botones Outline */
 [data-theme="dark"] .btn-outline-secondary {
     color: var(--text-muted) !important;
     border-color: var(--border-color) !important;
@@ -137,45 +150,54 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     color: var(--text-main) !important;
 }
 
-/*Estilo "Botón" para Acordeones en Formularios (Modo Oscuro)*/
+/* ==========================================================================
+   CORRECCIÓN DEFINITIVA: ACORDEONES (MODO OSCURO)
+   ========================================================================== */
 
+/* 1. Estado Base (Cerrado) */
 [data-theme="dark"] .accordion-button {
-    border: 1px solid var(--border-color) !important; /* Borde SIEMPRE visible */
-    border-radius: 6px !important;
-    color: var(--text-main) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--accent-color) !important; /* AHORA EL TEXTO ES CELESTE SIEMPRE */
     box-shadow: none !important;
-    padding: 0.75rem 1rem;
-    margin-bottom: 0.5rem; /* Separación visual entre acordeones */
+    border-radius: 6px !important;
+    margin-bottom: 0.5rem;
 }
 
-/* 2. Estilo cuando está ABIERTO */
+/* Forzar que los elementos internos (iconos, spans muted) también sean celestes */
+[data-theme="dark"] .accordion-button span,
+[data-theme="dark"] .accordion-button svg,
+[data-theme="dark"] .accordion-button .text-muted {
+    color: var(--accent-color) !important;
+}
+
+/* 2. Estado ABIERTO */
 [data-theme="dark"] .accordion-button:not(.collapsed) {
-    background-color: var(--bg-form) !important; /* Fondo más sólido al abrir */
+    background-color: rgba(77, 168, 218, 0.15) !important;
+    color: var(--accent-color) !important;
+    box-shadow: inset 0 -1px 0 var(--border-color) !important;
 }
 
-/* 3. Estilo cuando está CERRADO */
-[data-theme="dark"] .accordion-button.collapsed {
-    background-color: rgba(255, 255, 255, 0.03) !important; /* Fondo transparente/sutil */
-    /* El borde se hereda del bloque 1, así que ahora SÍ se verá */
-}
-
-/* 4. Corregir flecha (blanca) */
+/* 3. Flecha (Icono) - AHORA ES CELESTE */
 [data-theme="dark"] .accordion-button::after {
-    filter: invert(1) grayscale(100%) brightness(200%);
+    filter: none !important; /* Quitamos el invert */
+    /* Usamos el SVG original de Bootstrap pero cambiamos fill='%234da8da' (Tu celeste) */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%234da8da'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e") !important;
 }
 
-/* 5. FIX EXTRA: Eliminar bordes dobles del contenedor padre si existen */
-/* Esto asegura que el borde sea solo del botón y no del contenedor del acordeón */
+/* 4. Fix contenedor padre */
 [data-theme="dark"] .accordion-item {
     border: none !important;
     background-color: transparent !important;
 }
 
-/* Estilo "Botón" para Acordeones en Formularios (Modo CLARO)*/
+/* ==========================================================================
+   NUEVO: Estilo "Botón" para Acordeones en Formularios (Modo CLARO)
+   ========================================================================== */
 
 /* 1. Estilo General */
 [data-theme="light"] .accordion-button {
-    border: 1px solid var(--border-color) !important; /* Borde gris suave */
+    border: 1px solid var(--border-color) !important;
     border-radius: 6px !important;
     color: var(--text-main) !important;
     box-shadow: none !important;
@@ -185,14 +207,14 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
 
 /* 2. Estilo cuando está ABIERTO */
 [data-theme="light"] .accordion-button:not(.collapsed) {
-    background-color: #e8f0fe !important; /* Azul muy pálido para resaltar */
-    color: var(--accent-color) !important; /* Texto azul */
-    border-color: var(--accent-color) !important; /* Borde azul */
+    background-color: #e8f0fe !important;
+    color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
 }
 
 /* 3. Estilo cuando está CERRADO */
 [data-theme="light"] .accordion-button.collapsed {
-    background-color: #f8f9fa !important; /* Gris muy suave (casi blanco) */
+    background-color: #f8f9fa !important;
     color: var(--text-main) !important;
 }
 
@@ -200,4 +222,39 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
 [data-theme="light"] .accordion-item {
     border: none !important;
     background-color: transparent !important;
+}
+
+/* ==========================================================================
+   NUEVO: Estilos para Pestañas (Tabs) en Modo Oscuro y Claro
+   ========================================================================== */
+
+/* --- MODO OSCURO --- */
+
+[data-theme="dark"] .nav-tabs {
+    border-bottom-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .nav-tabs .nav-link {
+    color: var(--text-muted) !important;
+    background-color: transparent !important;
+    border: 1px solid transparent;
+}
+
+[data-theme="dark"] .nav-tabs .nav-link:hover {
+    color: var(--text-main) !important;
+    background-color: var(--hover-bg) !important;
+    border-color: transparent;
+}
+
+[data-theme="dark"] .nav-tabs .nav-link.active {
+    color: var(--accent-color) !important;
+    background-color: rgba(77, 168, 218, 0.15) !important;
+    border-color: var(--accent-color) var(--accent-color) transparent !important;
+}
+
+/* --- MODO CLARO --- */
+
+[data-theme="light"] .nav-tabs .nav-link.active {
+    color: var(--accent-color) !important;
+    font-weight: 600;
 }

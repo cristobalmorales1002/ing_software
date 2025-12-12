@@ -387,24 +387,16 @@ const CasesControls = () => {
         }
     };
 
-    // --- AQUÍ ESTÁ EL CAMBIO SOLICITADO ---
+    // --- MANEJO PAÍS (CELULAR) ---
     const handleCountryChange = (preguntaId, code) => {
-        // 1. Actualizamos el código de país visualmente
         setCountryCodes(prev => ({...prev, [preguntaId]: code}));
-
-        // 2. Obtenemos la configuración del nuevo país seleccionado
         const config = getPhoneConfig(code);
-
-        // 3. Obtenemos el valor actual que el usuario ya escribió
         const currentVal = formData[preguntaId] || '';
-
-        // 4. Si el número es más largo de lo permitido por el nuevo país, lo recortamos
         if (currentVal.length > config.maxLength) {
             const truncated = currentVal.slice(0, config.maxLength);
             setFormData(prev => ({ ...prev, [preguntaId]: truncated }));
         }
     };
-    // ----------------------------------------
 
     // --- NUEVO HANDLE NEXT CON VALIDACIÓN ---
     const handleNext = () => {
@@ -587,7 +579,8 @@ const CasesControls = () => {
                             </Card.Header>
 
                             {/* --- BODY --- */}
-                            <Card.Body className="p-0 overflow-hidden d-flex flex-column bg-light bg-opacity-10">
+                            {/* CORRECCIÓN: Quitamos bg-light bg-opacity-10, dejamos transparente */}
+                            <Card.Body className="p-0 overflow-hidden d-flex flex-column bg-transparent">
                                 <Tabs
                                     defaultActiveKey="ficha"
                                     id="patient-details-tabs"
@@ -600,13 +593,14 @@ const CasesControls = () => {
                                         title={selectedItem.tipo === 'CASO' ? 'Caso' : 'Control'}
                                         className="h-100 overflow-hidden"
                                     >
-                                        {/* CAMBIO AQUÍ: Usamos maxHeight con cálculo de viewport (vh) o píxeles fijos */}
+                                        {/* CORRECCIÓN: Quitamos bg-card que no existe, dejamos transparente */}
                                         <div
-                                            className="overflow-auto p-3 position-relative accordion-scroll-container border rounded shadow-sm bg-card"
+                                            className="overflow-auto p-3 position-relative accordion-scroll-container border rounded shadow-sm"
                                             style={{
-                                                maxHeight: 'calc(100vh - 250px)', // Ajusta el 250px según el tamaño de tu cabecera/menú
+                                                maxHeight: 'calc(100vh - 250px)',
                                                 overflowY: 'auto',
-                                                scrollBehavior: 'smooth'
+                                                scrollBehavior: 'smooth',
+                                                backgroundColor: 'transparent'
                                             }}
                                         >
                                             {surveyStructure.length === 0 ? (
@@ -620,7 +614,6 @@ const CasesControls = () => {
                                                                     <ClipboardPulse className="me-2 text-primary opacity-75"/>
                                                                     <span className="fw-bold text-uppercase small">{cat.nombre}</span>
                                                                 </Accordion.Header>
-                                                                {/* Asegúrate de que aquí NO haya maxHeight ni overflow */}
                                                                 <Accordion.Body className="p-0">
                                                                     <Table hover className="mb-0 align-middle">
                                                                         <tbody>
@@ -675,11 +668,11 @@ const CasesControls = () => {
 
                                                                     {hasRole(['ROLE_ADMIN']) && (
                                                                         <Button
-                                                                            size="sm" // Le puse 'sm' para que tenga el mismo porte del otro
+                                                                            size="sm"
                                                                             variant="secondary"
                                                                             onClick={() => setShowConfigModal(true)}
                                                                             title="Configurar Genes"
-                                                                            className="ms-2" // Margen a la izquierda para separarlo del botón de editar
+                                                                            className="ms-2"
                                                                         >
                                                                             <Gear />
                                                                         </Button>
@@ -688,7 +681,8 @@ const CasesControls = () => {
                                                             </div>
                                                             <Card className="border-0 shadow-sm">
                                                                 <Table responsive hover className="mb-0 align-middle">
-                                                                    <thead className="bg-light text-muted small text-uppercase">
+                                                                    {/* CORRECCIÓN: Quitamos bg-light, usamos border-bottom */}
+                                                                    <thead className="text-muted small text-uppercase border-bottom">
                                                                     <tr>
                                                                         <th className="ps-4 py-3 border-0">Gen</th>
                                                                         <th className="py-3 border-0 text-center">Genotipo</th>
@@ -701,16 +695,15 @@ const CasesControls = () => {
                                                                         <tr key={idx}>
                                                                             <td className="ps-4 fw-bold text-secondary">{row.nombreGen}</td>
                                                                             <td className="text-center">
-                                                                                <Badge bg="light" text="dark" className="border px-3 py-2">{row.resultadoPaciente}</Badge>
+                                                                                {/* CORRECCIÓN: Badge neutral */}
+                                                                                <Badge bg="secondary" className="border border-secondary border-opacity-25 px-3 py-2">{row.resultadoPaciente}</Badge>
                                                                             </td>
                                                                             <td>
-                                                                                {/* CORRECCIÓN: Usamos startsWith para que "Referencia" no marque error */}
                                                                                 {row.interpretacionDominante && row.interpretacionDominante.startsWith("Grupo Riesgo") ?
                                                                                     <Badge bg="danger" className="bg-opacity-75">RIESGO (Portador)</Badge> :
                                                                                     <span className="text-muted small">{row.interpretacionDominante}</span>}
                                                                             </td>
                                                                             <td>
-                                                                                {/* CORRECCIÓN CRUCIAL: "No Riesgo" contiene la palabra Riesgo, así que usamos startsWith */}
                                                                                 {row.interpretacionRecesivo && row.interpretacionRecesivo.startsWith("Grupo Riesgo") ?
                                                                                     <Badge bg="danger">ALTO RIESGO</Badge> :
                                                                                     <span className="text-success small fw-bold">Bajo Riesgo</span>}
@@ -756,20 +749,12 @@ const CasesControls = () => {
                             <h5 className="mb-4 text-primary border-bottom pb-2">{currentCat?.nombre}</h5>
                             <Row>
                                 {currentCat?.preguntas.map(q => {
-                                    // --- NUEVA LÓGICA DE VISIBILIDAD ---
-
-                                    // 1. Si tiene una pregunta controladora (no es null)
                                     if (q.preguntaControladoraId) {
-                                        // 2. Obtenemos el valor actual de la respuesta de la pregunta padre
                                         const valorPadre = formData[q.preguntaControladoraId];
-
-                                        // 3. Si el valor del padre NO coincide con el esperado, no renderizamos nada (return null)
-                                        // Nota: Asegúrate de que los tipos de datos coincidan (String vs String)
                                         if (valorPadre == q.valorEsperadoControladora) {
                                             return null;
                                         }
                                     }
-                                    // -----------------------------------
 
                                     return (
                                         <Col md={12} key={q.pregunta_id} className="mb-3">
@@ -802,7 +787,6 @@ const CasesControls = () => {
 
                                                     if(q.tipo_dato === 'CELULAR') {
                                                         const currentCode = countryCodes[q.pregunta_id] || '+56';
-                                                        // A: Obtenemos la configuración del país actual (largo y ejemplo)
                                                         const phoneConfig = getPhoneConfig(currentCode);
 
                                                         return (
@@ -819,9 +803,7 @@ const CasesControls = () => {
                                                                 <Form.Control
                                                                     type="text"
                                                                     value={val}
-                                                                    // B: Añadimos el placeholder dinámico
                                                                     placeholder={phoneConfig.placeholder}
-                                                                    // C: Añadimos el límite de caracteres dinámico
                                                                     maxLength={phoneConfig.maxLength}
                                                                     onChange={e => handleInputChange(q.pregunta_id, e.target.value.replace(/\D/g, ''), 'CELULAR')}
                                                                 />
@@ -881,8 +863,9 @@ const CasesControls = () => {
             </Modal>
 
             {/* --- MODAL DE CONFIGURACIÓN (ADMIN) --- */}
+            {/* CORRECCIÓN: Header bg-transparent en lugar de bg-light */}
             <Modal show={showConfigModal} onHide={() => setShowConfigModal(false)} size="lg" centered>
-                <Modal.Header closeButton className="bg-light">
+                <Modal.Header closeButton className="bg-transparent">
                     <Modal.Title className="d-flex align-items-center gap-2">
                         <Gear /> Configuración de Riesgo Genético
                     </Modal.Title>
@@ -897,7 +880,8 @@ const CasesControls = () => {
                         </div>
                     </div>
                     <Table hover responsive className="mb-0 align-middle">
-                        <thead className="bg-light text-secondary small text-uppercase">
+                        {/* CORRECCIÓN: Header sin bg-light, solo border-bottom */}
+                        <thead className="text-secondary small text-uppercase border-bottom">
                         <tr>
                             <th className="ps-4 py-3 border-0">Gen / SNP</th>
                             <th className="py-3 border-0">Genotipos</th>
@@ -910,7 +894,6 @@ const CasesControls = () => {
                             <tr><td colSpan="4" className="text-center py-4 text-muted">No hay genes cargados.</td></tr>
                         ) : (
                             muestraGenesConfig.map(conf => {
-                                // Helper para obtener letras únicas (Ej: de "CC", "CT" saca C y T)
                                 const posibles = [...new Set((conf.opcion1 + conf.opcion2 + conf.opcion3).split(''))].sort();
                                 const seleccionado = conf.aleloRiesgo || "";
                                 return (
@@ -950,7 +933,8 @@ const CasesControls = () => {
                         </tbody>
                     </Table>
                 </Modal.Body>
-                <Modal.Footer className="bg-light border-top-0">
+                {/* CORRECCIÓN: Footer bg-transparent */}
+                <Modal.Footer className="bg-transparent border-top-0">
                     <Button variant="primary" onClick={() => setShowConfigModal(false)}>Cerrar</Button>
                 </Modal.Footer>
             </Modal>

@@ -136,3 +136,68 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     background-color: var(--border-color) !important;
     color: var(--text-main) !important;
 }
+
+/*Estilo "Botón" para Acordeones en Formularios (Modo Oscuro)*/
+
+[data-theme="dark"] .accordion-button {
+    border: 1px solid var(--border-color) !important; /* Borde SIEMPRE visible */
+    border-radius: 6px !important;
+    color: var(--text-main) !important;
+    box-shadow: none !important;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem; /* Separación visual entre acordeones */
+}
+
+/* 2. Estilo cuando está ABIERTO */
+[data-theme="dark"] .accordion-button:not(.collapsed) {
+    background-color: var(--bg-form) !important; /* Fondo más sólido al abrir */
+}
+
+/* 3. Estilo cuando está CERRADO */
+[data-theme="dark"] .accordion-button.collapsed {
+    background-color: rgba(255, 255, 255, 0.03) !important; /* Fondo transparente/sutil */
+    /* El borde se hereda del bloque 1, así que ahora SÍ se verá */
+}
+
+/* 4. Corregir flecha (blanca) */
+[data-theme="dark"] .accordion-button::after {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* 5. FIX EXTRA: Eliminar bordes dobles del contenedor padre si existen */
+/* Esto asegura que el borde sea solo del botón y no del contenedor del acordeón */
+[data-theme="dark"] .accordion-item {
+    border: none !important;
+    background-color: transparent !important;
+}
+
+/* Estilo "Botón" para Acordeones en Formularios (Modo CLARO)*/
+
+/* 1. Estilo General */
+[data-theme="light"] .accordion-button {
+    border: 1px solid var(--border-color) !important; /* Borde gris suave */
+    border-radius: 6px !important;
+    color: var(--text-main) !important;
+    box-shadow: none !important;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+/* 2. Estilo cuando está ABIERTO */
+[data-theme="light"] .accordion-button:not(.collapsed) {
+    background-color: #e8f0fe !important; /* Azul muy pálido para resaltar */
+    color: var(--accent-color) !important; /* Texto azul */
+    border-color: var(--accent-color) !important; /* Borde azul */
+}
+
+/* 3. Estilo cuando está CERRADO */
+[data-theme="light"] .accordion-button.collapsed {
+    background-color: #f8f9fa !important; /* Gris muy suave (casi blanco) */
+    color: var(--text-main) !important;
+}
+
+/* 4. Fix contenedor padre */
+[data-theme="light"] .accordion-item {
+    border: none !important;
+    background-color: transparent !important;
+}

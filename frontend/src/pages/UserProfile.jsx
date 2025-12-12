@@ -268,13 +268,13 @@ const UserProfile = () => {
                 </Col>
                 <Col md={8}>
                     <Card className="shadow-sm border-0 h-100">
-                        <Card.Header className="bg-transparent py-3"><h5 className="mb-0">Editar Información</h5></Card.Header>
+                        <Card.Header className="bg-transparent py-3"><h5 className="mb-0">Editar información</h5></Card.Header>
                         <Card.Body className="p-4">
                             <Form onSubmit={handleSubmit}>
                                 <Row>
                                     <Col md={6}>
                                         <Form.Group className="mb-3">
-                                            <Form.Label className="fw-bold"><Envelope className="me-2"/>Correo Electrónico</Form.Label>
+                                            <Form.Label className="fw-bold"><Envelope className="me-2"/>Correo electrónico</Form.Label>
                                             <InputGroup>
                                                 <Form.Control type="email" value={currentUser.email} disabled style={{backgroundColor: 'var(--hover-bg)'}} />
                                                 <Button variant="outline-primary" onClick={openEmailModal}><PencilSquare /> Cambiar</Button>
@@ -311,10 +311,10 @@ const UserProfile = () => {
                                     </Col>
                                 </Row>
                                 <hr className="my-4 opacity-25"/>
-                                <h6 className="text-primary mb-3 fw-bold">Seguridad (Cambiar Contraseña)</h6>
+                                <h6 className="text-primary mb-3 fw-bold">Cambiar contraseña</h6>
                                 <Row>
                                     <Col md={6}>
-                                        <Form.Group className="mb-3"><Form.Label>Nueva Contraseña</Form.Label>
+                                        <Form.Group className="mb-3"><Form.Label>Nueva contraseña</Form.Label>
                                             <InputGroup>
                                                 <Form.Control type={showNewPass ? "text" : "password"} name="password" value={formData.password} onChange={handleInputChange} placeholder="Dejar en blanco para mantener" style={inputStyle}/>
                                                 <Button variant="outline-secondary" onClick={() => setShowNewPass(!showNewPass)} style={eyeButtonStyle} tabIndex="-1">{showNewPass ? <EyeSlash/> : <Eye/>}</Button>
@@ -322,7 +322,7 @@ const UserProfile = () => {
                                         </Form.Group>
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Group className="mb-3"><Form.Label>Repetir Nueva Contraseña</Form.Label>
+                                        <Form.Group className="mb-3"><Form.Label>Repetir nueva contraseña</Form.Label>
                                             <InputGroup>
                                                 <Form.Control type={showConfirmPass ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Confirmar contraseña" disabled={!formData.password} style={inputStyle}/>
                                                 <Button variant="outline-secondary" onClick={() => setShowConfirmPass(!showConfirmPass)} style={eyeButtonStyle} disabled={!formData.password} tabIndex="-1">{showConfirmPass ? <EyeSlash/> : <Eye/>}</Button>
@@ -330,7 +330,7 @@ const UserProfile = () => {
                                         </Form.Group>
                                     </Col>
                                 </Row>
-                                <div className="d-flex justify-content-end mt-4"><Button variant="primary" type="submit" size="lg" disabled={isLoading}>{isLoading ? <Spinner animation="border" size="sm"/> : <><Save className="me-2"/> Guardar Cambios</>}</Button></div>
+                                <div className="d-flex justify-content-end mt-4"><Button variant="primary" type="submit" size="lg" disabled={isLoading}>{isLoading ? <Spinner animation="border" size="sm"/> : <><Save className="me-2"/> Guardar cambios</>}</Button></div>
                             </Form>
                         </Card.Body>
                     </Card>

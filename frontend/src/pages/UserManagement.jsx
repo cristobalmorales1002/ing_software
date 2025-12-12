@@ -35,7 +35,7 @@ const UserManagement = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
     const showNotification = (message, variant = 'success') => {
         setToastConfig({ show: true, message, variant });
@@ -236,7 +236,7 @@ const UserManagement = () => {
     return (
         <Container fluid className="p-0 page-container-fixed d-flex flex-column">
 
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-3 border-bottom flex-shrink-0 gap-3">
+            <div>
                 <h2 className="mb-0">GESTIÓN DE USUARIOS</h2>
                 <div className="d-flex gap-3 w-100 w-md-auto justify-content-end">
                     <InputGroup style={{ maxWidth: '300px' }} className="search-bar-custom">

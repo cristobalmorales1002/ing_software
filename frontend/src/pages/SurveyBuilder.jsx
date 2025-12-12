@@ -214,7 +214,7 @@ const SurveyBuilder = () => {
                     <h2 className="mb-0">FORMULARIO</h2>
                 </div>
                 <Button variant="primary" onClick={() => openCatModal()} className="d-flex align-items-center gap-2">
-                    <PlusLg /> Nueva Categoría
+                    <PlusLg /> Nueva categoría
                 </Button>
             </div>
 

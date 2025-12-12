@@ -107,13 +107,13 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
     return (
         <Modal show={show} onHide={onHide} backdrop="static" size="lg" centered>
             <Modal.Header closeButton>
-                <Modal.Title>{isEditing ? 'Editar Pregunta' : 'Nueva Pregunta'}</Modal.Title>
+                <Modal.Title>{isEditing ? 'Editar Pregunta' : 'Nueva pregunta'}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <Row>
                     <Col md={12} className="mb-3">
                         <Form.Group>
-                            <Form.Label className="fw-bold"><QuestionCircle /> Pregunta (Texto Visible)</Form.Label>
+                            <Form.Label className="fw-bold"><QuestionCircle /> Pregunta</Form.Label>
                             <Form.Control
                                 type="text"
                                 name="etiqueta"
@@ -127,7 +127,7 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
 
                     <Col md={8}>
                         <Form.Group className="mb-3">
-                            <Form.Label className="fw-bold text-muted small"><Tag /> Etiqueta (Nombre Interno/Variable)</Form.Label>
+                            <Form.Label className="fw-bold text-muted small"><Tag /> Etiqueta (Nombre interno/Variable)</Form.Label>
                             <Form.Control
                                 type="text"
                                 name="codigoStata"
@@ -143,21 +143,21 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                     </Col>
                     <Col md={4}>
                         <Form.Group className="mb-3">
-                            <Form.Label className="fw-bold text-muted small">Tipo de Dato</Form.Label>
+                            <Form.Label className="fw-bold text-muted small">Tipo de dato</Form.Label>
                             <Form.Select name="tipo_dato" value={form.tipo_dato} onChange={handleChange}>
-                                <option value="TEXTO">Texto Libre</option>
+                                <option value="TEXTO">Texto libre</option>
                                 <option value="NUMERO">Numérico</option>
-                                <option value="RUT">RUT (Chileno)</option>
+                                <option value="RUT">RUT</option>
                                 <option value="CELULAR">Celular</option>
                                 <option value="EMAIL">Email</option>
-                                <option value="ENUM">Selección Múltiple (ENUM)</option>
+                                <option value="ENUM">Selección múltiple</option>
                             </Form.Select>
                         </Form.Group>
                     </Col>
                 </Row>
 
                 <Form.Group className="mb-3">
-                    <Form.Label className="fw-bold text-muted small">Descripción Detallada</Form.Label>
+                    <Form.Label className="fw-bold text-muted small">Descripción detallada</Form.Label>
                     <Form.Control
                         as="textarea"
                         rows={2}
@@ -212,29 +212,21 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                                 No hay opciones agregadas aún.
                             </div>
                         )}
-                        <Form.Check
-                            type="switch"
-                            name="generarEstadistica"
-                            label="Generar Estadística Automática"
-                            checked={form.generarEstadistica}
-                            onChange={handleChange}
-                            className="mt-2 text-muted"
-                        />
                     </div>
                 )}
 
                 <div className="d-flex gap-4 mt-3 p-2 border rounded border-secondary border-opacity-25 bg-secondary bg-opacity-10">
-                    <Form.Check type="switch" name="dato_sensible" label="Dato Sensible" checked={form.dato_sensible} onChange={handleChange} />
+                    <Form.Check type="switch" name="dato_sensible" label="Dato sensible" checked={form.dato_sensible} onChange={handleChange} />
                 </div>
 
                 {/* SECCIÓN DICOTOMIZACIÓN */}
                 <Accordion className="mt-3 border-0">
                     <Accordion.Item eventKey="0" className="bg-transparent border-0">
-                        <Accordion.Header><span className="small text-muted fw-bold"><Scissors className="me-2" /> Dicotomización (Cortes)</span></Accordion.Header>
+                        <Accordion.Header><span className="small text-muted fw-bold"><Scissors className="me-2" /> Dicotomización</span></Accordion.Header>
                         <Accordion.Body className="bg-dark bg-opacity-10 border border-secondary border-opacity-25 rounded">
                             <Row className="align-items-end mb-3">
                                 <Col>
-                                    <Form.Label className="small">Valor de Corte</Form.Label>
+                                    <Form.Label className="small">Valor de corte</Form.Label>
                                     <Form.Control type="number" placeholder="Ej: 4.5" value={newDicValue} onChange={e => setNewDicValue(e.target.value)} size="sm" />
                                 </Col>
                                 <Col>
@@ -301,7 +293,7 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={onHide}>Cancelar</Button>
-                <Button variant="primary" onClick={handleSubmit}>Guardar Pregunta</Button>
+                <Button variant="primary" onClick={handleSubmit}>Guardar pregunta</Button>
             </Modal.Footer>
         </Modal>
     );

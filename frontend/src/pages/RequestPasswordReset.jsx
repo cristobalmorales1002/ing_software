@@ -52,13 +52,13 @@ function RequestPasswordReset() {
                     <Card className="login-card shadow-sm">
                         <Card.Body className="p-4">
                             <div className="login-header text-center mb-4">
-                                <h3>Recuperar Contraseña</h3>
+                                <h3>Recuperar contraseña</h3>
                                 <p className="text-muted">Ingresa tu correo para recibir el código de verificación</p>
                             </div>
 
                             <Form onSubmit={handleSubmit}>
                                 <Form.Group className="mb-4" controlId="email">
-                                    <Form.Label>Correo Electrónico</Form.Label>
+                                    <Form.Label>Correo electrónico</Form.Label>
                                     <Form.Control
                                         type="email"
                                         placeholder="ejemplo@cancer.cl"

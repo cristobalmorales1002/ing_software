@@ -406,7 +406,7 @@ const Messages = () => {
 
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 flex-shrink-0">
                         <h4 className="mb-0 text-secondary">
-                            {activeTab === 'inbox' ? 'Bandeja de Entrada' : 'Mensajes Enviados'}
+                            {activeTab === 'inbox' ? 'BANDEJA DE ENTRADA' : 'MENSAJES ENVIADOS'}
                         </h4>
                         <div className="d-flex flex-wrap gap-3 align-items-center justify-content-end">
                             <div style={{zIndex: 1050}}>
@@ -605,7 +605,7 @@ const Messages = () => {
                     `}
                 </style>
                 <Modal.Header closeButton>
-                    <Modal.Title>Nuevo Mensaje</Modal.Title>
+                    <Modal.Title>Nuevo mensaje</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
@@ -682,7 +682,7 @@ const Messages = () => {
                     <Button variant="outline-secondary" className="btn-trash-custom" onClick={() => setShowCompose(false)}><Trash/></Button>
                     <Button variant="primary" onClick={handleSendMessage} disabled={selectedRecipients.length === 0 || !newMessage.subject || isSending}>
                         {isSending ? <Spinner size="sm" animation="border" className="me-2"/> : <Send className="me-2"/>}
-                        Enviar Mensaje
+                        Enviar mensaje
                     </Button>
                 </Modal.Footer>
             </Modal>

@@ -110,7 +110,7 @@ function ResetPasswordCombined() {
                     <Card className="shadow-sm">
                         <Card.Body className="p-4">
                             <div className="text-center mb-4">
-                                <h4>Restablecer Contraseña</h4>
+                                <h4>Restablecer contraseña</h4>
                                 <p className="text-muted small">Ingresa el código enviado a {email}</p>
                             </div>
 
@@ -138,7 +138,7 @@ function ResetPasswordCombined() {
 
                                 {/* Sección Nueva Contraseña */}
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Nueva Contraseña</Form.Label>
+                                    <Form.Label>Nueva contraseña</Form.Label>
                                     <Form.Control
                                         type="password"
                                         required

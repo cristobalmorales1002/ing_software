@@ -89,7 +89,7 @@ function VerifyCode() {
                     <Card className="shadow-sm">
                         <Card.Body className="p-4">
                             <div className="text-center mb-4">
-                                <h4>Verificación de Seguridad</h4>
+                                <h4>Verificación de seguridad</h4>
                                 <p className="text-muted small">
                                     Ingresa el código de 6 dígitos enviado a <br/><strong>{email}</strong>
                                 </p>
@@ -118,7 +118,7 @@ function VerifyCode() {
 
                                 <div className="d-grid mb-3">
                                     <Button variant="primary" type="submit" size="lg" disabled={isLoading}>
-                                        {isLoading ? <Spinner animation="border" size="sm"/> : 'Verificar Código'}
+                                        {isLoading ? <Spinner animation="border" size="sm"/> : 'Verificar código'}
                                     </Button>
                                 </div>
 

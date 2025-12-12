@@ -75,13 +75,13 @@ function NewPassword() {
                     <Card className="shadow-sm">
                         <Card.Body className="p-4">
                             <div className="text-center mb-4">
-                                <h4>Nueva Contraseña</h4>
+                                <h4>Nueva contraseña</h4>
                                 <p className="text-muted small">Establece la nueva contraseña para <strong>{email}</strong></p>
                             </div>
 
                             <Form onSubmit={handleSubmit}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Nueva Contraseña</Form.Label>
+                                    <Form.Label>Nueva contraseña</Form.Label>
                                     <Form.Control
                                         type="password"
                                         required
@@ -93,7 +93,7 @@ function NewPassword() {
                                 </Form.Group>
 
                                 <Form.Group className="mb-4">
-                                    <Form.Label>Confirmar Contraseña</Form.Label>
+                                    <Form.Label>Confirmar contraseña</Form.Label>
                                     <Form.Control
                                         type="password"
                                         required
@@ -109,7 +109,7 @@ function NewPassword() {
 
                                 <div className="d-grid">
                                     <Button variant="primary" type="submit" size="lg" disabled={isLoading || success}>
-                                        {isLoading ? <Spinner animation="border" size="sm"/> : 'Restablecer Contraseña'}
+                                        {isLoading ? <Spinner animation="border" size="sm"/> : 'Restablecer contraseña'}
                                     </Button>
                                 </div>
                             </Form>

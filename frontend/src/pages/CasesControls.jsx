@@ -358,10 +358,10 @@ const CasesControls = () => {
                 <h2 className="mb-0">CASOS Y CONTROLES</h2>
                 <div className="d-flex gap-2">
                     {hasRole(['ROLE_ESTUDIANTE', 'ROLE_MEDICO', 'ROLE_INVESTIGADOR', 'ROLE_ADMIN']) && (
-                        <Button variant="outline-primary" onClick={() => handleOpenModal(false)}><PlusLg /> Nuevo Control</Button>
+                        <Button variant="outline-primary" onClick={() => handleOpenModal(false)}><PlusLg /> Nuevo control</Button>
                     )}
                     {hasRole(['ROLE_MEDICO']) && (
-                        <Button variant="primary" onClick={() => handleOpenModal(true)}><PlusLg /> Nuevo Caso</Button>
+                        <Button variant="primary" onClick={() => handleOpenModal(true)}><PlusLg /> Nuevo caso</Button>
                     )}
                 </div>
             </div>
@@ -380,7 +380,7 @@ const CasesControls = () => {
                             </div>
                             {canDownload && (
                                 <div className="d-flex align-items-center justify-content-between bg-primary bg-opacity-10 p-2 rounded border border-primary border-opacity-25">
-                                    <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar Todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
+                                    <Form.Check type="checkbox" label={<span className="small fw-bold ms-1">Seleccionar todos</span>} checked={filteredItems.length > 0 && selectedIds.size === filteredItems.length} onChange={handleSelectAll} className="m-0 user-select-none"/>
                                     {selectedIds.size > 0 && (
                                         <Button size="sm" variant="primary" onClick={handleBulkDownload} disabled={isDownloading} className="py-0 px-2" style={{fontSize: '0.8rem'}}>
                                             {isDownloading ? <Spinner size="sm" animation="border"/> : <><Download className="me-1"/> Descargar ({selectedIds.size})</>}
@@ -453,7 +453,7 @@ const CasesControls = () => {
                                         title={selectedItem.tipo === 'CASO' ? 'Caso' : 'Control'}
                                         className="h-100 overflow-hidden"
                                     >
-                                        {/* MODIFICACI�"N: Eliminado d-flex row y el menú lateral (Scrollspy).
+                                        {/* MODIFICACI�"N: Eliminado d-flex row y el menú lateral (Scrollspy).
                                             Se mantiene solo el contenedor de contenido con overflow-auto */}
                                         <div className="h-100 overflow-auto p-3 position-relative accordion-scroll-container" style={{ scrollBehavior: 'smooth' }}>
                                             {surveyStructure.length === 0 ? (

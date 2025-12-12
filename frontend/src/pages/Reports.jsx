@@ -57,7 +57,7 @@ const Reports = () => {
                 <Col md={10} lg={isAdmin ? 6 : 10} xl={isAdmin ? 6 : 9}>
                     <Card className="h-100 shadow-sm border-0">
                         <Card.Header className="bg-success bg-opacity-10 text-success fw-bold d-flex align-items-center gap-2 justify-content-center">
-                            <FileEarmarkExcel size={20}/> Base de Datos (Excel)
+                            <FileEarmarkExcel size={20}/> Base de datos (Excel)
                         </Card.Header>
                         <Card.Body>
                             <p className="text-muted small mb-4 text-center">
@@ -72,7 +72,7 @@ const Reports = () => {
                                         onClick={() => handleDownload('/api/exportar/excel', 'Base_Completa.xlsx', { anonimo: false, dicotomizar: false })}
                                         disabled={loading}
                                     >
-                                        <span><Table className="me-2"/> Base Completa</span>
+                                        <span><Table className="me-2"/> Base completa</span>
                                         <Download />
                                     </Button>
                                 )}
@@ -83,7 +83,7 @@ const Reports = () => {
                                     onClick={() => handleDownload('/api/exportar/excel', 'Base_Anonima.xlsx', { anonimo: true, dicotomizar: false })}
                                     disabled={loading}
                                 >
-                                    <span><ShieldLock className="me-2"/> Base Anonimizada</span>
+                                    <span><ShieldLock className="me-2"/> Base anonimizada</span>
                                     <Download />
                                 </Button>
 
@@ -93,7 +93,7 @@ const Reports = () => {
                                     onClick={() => handleDownload('/api/exportar/excel', 'Base_Dicotomizada.xlsx', { anonimo: true, dicotomizar: true })}
                                     disabled={loading}
                                 >
-                                    <span><Table className="me-2"/> Base Dicotomizada</span>
+                                    <span><Table className="me-2"/> Base dicotomizada</span>
                                     <Download />
                                 </Button>
                             </div>
@@ -120,7 +120,7 @@ const Reports = () => {
                                         disabled={loading}
                                     >
                                         <div className="text-start">
-                                            <div className="fw-bold">CRF Plantilla Vacía</div>
+                                            <div className="fw-bold">CRF plantilla vacía</div>
                                             <div className="small text-muted" style={{fontSize:'0.75rem'}}>Formulario completo sin datos</div>
                                         </div>
                                         <Download />

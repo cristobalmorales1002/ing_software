@@ -93,8 +93,8 @@ function LoginPage() {
 
                             <div className="login-header text-center mb-4">
                                 <img src={logoCybergene} alt="Logo CyberGene" className="login-logo mb-6" />
-                                <h3>Plataforma Cáncer Gástrico</h3>
-                                <p className="text-muted">Sistema de Gestión de Datos de Investigación</p>
+                                <h3>Plataforma cáncer gástrico</h3>
+                                <p className="text-muted">Sistema de gestión de datos de investigación</p>
                             </div>
 
                             <Form onSubmit={handleSubmit} className="login-form">
@@ -141,7 +141,7 @@ function LoginPage() {
 
                                 <div className="d-grid mb-4">
                                     <Button variant="primary" type="submit" size="lg" disabled={isLoading}>
-                                        {isLoading ? (<><Spinner animation="border" size="sm" />&nbsp;Ingresando...</>) : 'Iniciar Sesión'}
+                                        {isLoading ? (<><Spinner animation="border" size="sm" />&nbsp;Ingresando...</>) : 'Iniciar sesión'}
                                     </Button>
                                 </div>
 

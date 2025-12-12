@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
@@ -78,7 +79,10 @@ public class MensajeriaServicio {
                     .build();
             destinatarioRepositorio.save(dm);
 
-            enviarNotificacionCorreo(emisor, destinatario, mensaje);
+            Mensaje finalMensaje = mensaje;
+            CompletableFuture.runAsync(() -> {
+                enviarNotificacionCorreo(emisor, destinatario, finalMensaje);
+            });
         }
     }
 
@@ -153,10 +157,8 @@ public class MensajeriaServicio {
     }
 
     public List<MensajeEnviadoDto> obtenerEnviados(Long idUsuario) {
-        // 1. Obtenemos las entidades desde la BD
         List<Mensaje> mensajes = mensajeRepositorio.findByEmisor_IdUsuarioOrderByFechaEnvioDesc(idUsuario);
 
-        // 2. Las convertimos a DTOs incluyendo el resumen de nombres
         return mensajes.stream()
                 .map(m -> MensajeEnviadoDto.builder()
                         .id(m.getId())
@@ -164,30 +166,21 @@ public class MensajeriaServicio {
                         .contenido(m.getContenido())
                         .fechaEnvio(m.getFechaEnvio())
                         .destinatariosResumen(
-                                m.getDestinatarios() == null ? "Sin destinatarios" : // Protección contra nulos
+                                m.getDestinatarios() == null ? "Sin destinatarios" :
                                         m.getDestinatarios().stream()
-                                                .map(dm -> dm.getDestinatario().getNombres()) // Obtenemos el nombre
-                                                .collect(Collectors.joining(", ")) // Los unimos con comas
+                                                .map(dm -> dm.getDestinatario().getNombres())
+                                                .collect(Collectors.joining(", "))
                         )
-                        //AGREGUE ESTO Y COMENTE LO QUE ESTABA ANTES PARA BORRARLO MAS FACILMENTE SI QUIEREN
                         .destinatariosDetalle(m.getDestinatarios().stream()
                                 .map(dm -> DestinatarioSimpleDto.builder()
                                         .id(dm.getDestinatario().getIdUsuario())
                                         .nombre(dm.getDestinatario().getNombres() + " " + dm.getDestinatario().getApellidos())
-                                        .leido(dm.isLeido()) // <--- Estado de lectura
-                                        .fechaLectura(dm.getFechaLectura()) // <--- Cuándo lo leyó
+                                        .leido(dm.isLeido())
+                                        .fechaLectura(dm.getFechaLectura())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
                 .collect(Collectors.toList());
-                        /*.destinatariosDetalle(m.getDestinatarios().stream()
-                                .map(dm -> DestinatarioSimpleDto.builder()
-                                        .id(dm.getDestinatario().getIdUsuario())
-                                        .nombre(dm.getDestinatario().getNombres() + " " + dm.getDestinatario().getApellidos())
-                                        .build())
-                                .collect(Collectors.toList()))
-                        .build())
-                .collect(Collectors.toList());*/
     }
 
     public long contarNoLeidos(Long idUsuario) {

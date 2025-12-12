@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Container, Row, Col, Card, Spinner, Alert, Button, Offcanvas, Form, InputGroup, ProgressBar } from 'react-bootstrap';
-import { People, GraphUp, PieChart as IconPieChart, GenderAmbiguous, FunnelFill, BarChartFill, PieChartFill, GearFill, ListUl, Search, Floppy, Calculator, Filter } from 'react-bootstrap-icons';
+import { Container, Row, Col, Card, Spinner, Alert, Button, Offcanvas, Form, InputGroup, ProgressBar, Toast, ToastContainer } from 'react-bootstrap';
+import { People, GraphUp, PieChart as IconPieChart, FunnelFill, BarChartFill, PieChartFill, GearFill, ListUl, Search, Floppy, Calculator, Filter, CheckCircle } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -17,6 +17,7 @@ const DashboardHome = () => {
     const [error, setError] = useState(null);
 
     const [showFilter, setShowFilter] = useState(false);
+    const [showToast, setShowToast] = useState(false);
     const [chartTypes, setChartTypes] = useState({});
     const [grouping, setGrouping] = useState({});
     const [filterSearch, setFilterSearch] = useState('');
@@ -26,7 +27,20 @@ const DashboardHome = () => {
         showControles: true
     });
 
-    const PIE_COLORS = ['#0d6efd', '#0dcaf0', '#20c997', '#ffc107', '#dc3545', '#6610f2'];
+    const PIE_COLORS = [
+        '#4da8da',
+        '#0d6efd',
+        '#6366f1',
+        '#0dcaf0',
+        '#6610f2',
+        '#3b82f6',
+        '#a855f7',
+        '#0ea5e9',
+        '#8b5cf6',
+        '#64748b',
+        '#d63384',
+        '#084298'
+    ];
 
     useEffect(() => {
         fetchInitialData();
@@ -35,21 +49,17 @@ const DashboardHome = () => {
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            // 1. Obtener Pacientes (Datos Crudos)
             const resPacientes = await api.get('/api/pacientes');
             const pacientes = resPacientes.data || [];
             setAllPatients(pacientes);
 
-            // KPIs
             const total = pacientes.length;
             const casos = pacientes.filter(p => p.esCaso).length;
             setKpis({ total, casos, controles: total - casos });
 
-            // 2. Opciones Disponibles
             const resOptions = await api.get('/api/estadisticas/opciones');
             setAvailableOptions(resOptions.data || []);
 
-            // 3. Configuración del Dashboard
             await refreshDashboardStats();
 
         } catch (err) {
@@ -73,7 +83,6 @@ const DashboardHome = () => {
                 data.forEach(stat => {
                     if (!newTypes[stat.preguntaId]) {
                         const titulo = stat.tituloPregunta.toLowerCase();
-                        // Asignar tipo de gráfico por defecto según el título
                         if (stat.preguntaId === 0 || titulo.includes('caso')) newTypes[stat.preguntaId] = 'pie';
                         else if (titulo.includes('sexo')) newTypes[stat.preguntaId] = 'pie';
                         else newTypes[stat.preguntaId] = 'bar';
@@ -91,19 +100,14 @@ const DashboardHome = () => {
         }
     };
 
-    // --- PROCESAMIENTO DE DATOS (CORREGIDO) ---
     const processedStats = useMemo(() => {
         return dashboardStats.map(stat => {
-            // 1. Filtrar pacientes según checkboxes (Casos / Controles)
             const filteredPatients = allPatients.filter(p => {
                 if (p.esCaso && !patientFilter.showCasos) return false;
                 if (!p.esCaso && !patientFilter.showControles) return false;
                 return true;
             });
 
-            // --- INICIO CORRECCIÓN ---
-            // Manejo especial para el gráfico de "Casos vs Controles" (ID 0)
-            // Este gráfico NO depende de 'respuestas', sino del campo booleano 'esCaso'.
             if (stat.preguntaId === 0) {
                 const countCasos = filteredPatients.filter(p => p.esCaso).length;
                 const countControles = filteredPatients.filter(p => !p.esCaso).length;
@@ -116,12 +120,9 @@ const DashboardHome = () => {
                     ]
                 };
             }
-            // --- FIN CORRECCIÓN ---
 
-            // 2. Calcular frecuencias para preguntas normales (Encuestas)
             const counts = {};
             filteredPatients.forEach(p => {
-                // Validación robusta de respuestas
                 if (!p.respuestas || !Array.isArray(p.respuestas)) return;
 
                 const respuesta = p.respuestas.find(r =>
@@ -135,24 +136,20 @@ const DashboardHome = () => {
                 }
             });
 
-            // 3. Formatear como espera Recharts [{etiqueta: "X", valor: 10}]
             const dynamicData = Object.entries(counts).map(([k, v]) => ({
                 etiqueta: k,
                 valor: v
             }));
 
-            // Retornar copia del stat con los datos recalculados
             return { ...stat, datos: dynamicData };
         });
     }, [dashboardStats, allPatients, patientFilter]);
 
 
     const isNumericStat = (stat) => {
-        // El gráfico de Casos vs Controles (ID 0) no es numérico continuo
         if (stat.preguntaId === 0) return false;
 
         if (stat.tipoDato === 'NUMERO' || stat.tipoDato === 'DECIMAL') return true;
-        // Revisar si los datos dinámicos parecen números
         if (!stat.datos || stat.datos.length === 0) return false;
         return !isNaN(parseFloat(stat.datos[0].etiqueta));
     };
@@ -179,7 +176,6 @@ const DashboardHome = () => {
         for (let i = 0; i < bins; i++) {
             const start = min + (i * step);
             const end = min + ((i + 1) * step);
-            // Formateo para evitar decimales infinitos
             const labelStart = Number.isInteger(start) ? start : start.toFixed(1);
             const labelEnd = Number.isInteger(end) ? end : end.toFixed(1);
             const label = `${labelStart} - ${labelEnd}`;
@@ -196,7 +192,6 @@ const DashboardHome = () => {
         return groups;
     };
 
-    // --- HANDLERS ---
     const handleFilterChange = (e) => {
         setPatientFilter({ ...patientFilter, [e.target.name]: e.target.checked });
     };
@@ -206,7 +201,7 @@ const DashboardHome = () => {
         try {
             const currentIds = dashboardStats.map(s => s.preguntaId).filter(id => id !== 0);
             await api.post('/api/estadisticas/preferencias', { preguntasIds: currentIds });
-            alert("¡Preferencias guardadas exitosamente!");
+            setShowToast(true);
         } catch (err) {
             console.error(err);
             alert("Error al guardar las preferencias.");
@@ -238,7 +233,6 @@ const DashboardHome = () => {
         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
         const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
         const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
-        // Solo mostramos etiqueta si el porcentaje es mayor a 0
         if (percent === 0) return null;
         return <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="12px" fontWeight="bold">{`${(percent * 100).toFixed(0)}%`}</text>;
     };
@@ -262,7 +256,7 @@ const DashboardHome = () => {
     if (loading) return <div className="text-center py-5"><Spinner animation="border" variant="primary"/></div>;
 
     return (
-        <Container fluid className="p-0">
+        <Container fluid className="p-0" style={{ minHeight: '100%' }}>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="mb-0">DASHBOARD GENERAL</h2>
                 {updating && <Spinner animation="border" size="sm" className="text-primary" />}
@@ -276,11 +270,9 @@ const DashboardHome = () => {
                 <Col md={4}><StatCard title="Controles (Sanos)" value={kpis.controles} icon={<IconPieChart size={24}/>} color="success" /></Col>
             </Row>
 
-            {/* BARRA DE HERRAMIENTAS (Filtros y Configuración) */}
             <Card className="mb-4 border-0 shadow-sm bg-light">
                 <Card.Body className="d-flex flex-wrap justify-content-between align-items-center py-2 gap-3">
 
-                    {/* ZONA 1: Filtros de Datos (Casos vs Controles) */}
                     <div className="d-flex align-items-center gap-3 border-end pe-3">
                         <div className="d-flex align-items-center text-secondary fw-bold small">
                             <Filter className="me-2"/> Datos:
@@ -305,7 +297,6 @@ const DashboardHome = () => {
                         />
                     </div>
 
-                    {/* ZONA 2: Información y Botones de Acción */}
                     <div className="d-flex align-items-center gap-3">
                         <div className="d-flex align-items-center gap-2 text-primary me-2 d-none d-md-flex">
                             <BarChartFill />
@@ -327,7 +318,6 @@ const DashboardHome = () => {
                     <Col><Alert variant="info" className="text-center">No hay gráficos configurados.</Alert></Col>
                 )}
 
-                {/* Usamos processedStats que tiene los datos filtrados en tiempo real */}
                 {processedStats.map((stat) => {
                     const type = chartTypes[stat.preguntaId] || 'bar';
                     const isNum = isNumericStat(stat);
@@ -343,7 +333,6 @@ const DashboardHome = () => {
                                     </h5>
                                     <div className="d-flex align-items-center gap-2">
 
-                                        {/* Botones de Agrupación Dinámica */}
                                         {isNum && (
                                             <div className="d-flex gap-1 bg-secondary bg-opacity-10 p-1 rounded me-2">
                                                 <span className="d-flex align-items-center px-2 text-muted small" title="Agrupar intervalos"><Calculator size={14}/></span>
@@ -367,7 +356,6 @@ const DashboardHome = () => {
                                             </div>
                                         )}
 
-                                        {/* Selector de Tipo de Gráfico */}
                                         <div className="d-flex gap-1 bg-secondary bg-opacity-10 p-1 rounded">
                                             <Button variant={type === 'bar' ? 'white' : 'transparent'} size="sm" className="border-0"
                                                     style={{ color: type === 'bar' ? 'var(--accent-color)' : 'var(--text-main)', opacity: type === 'bar' ? 1 : 0.5 }}
@@ -399,10 +387,7 @@ const DashboardHome = () => {
                                                         <XAxis dataKey="etiqueta" tick={{fill:'var(--text-muted)', fontSize:12}} axisLine={false} tickLine={false}/>
                                                         <YAxis tick={{fill:'var(--text-muted)', fontSize:12}} axisLine={false} tickLine={false}/>
                                                         <Tooltip contentStyle={{backgroundColor:'var(--bg-card)', borderColor:'var(--border-color)', color:'var(--text-main)'}} cursor={{fill: 'var(--hover-bg)'}} />
-
-                                                        {/* CAMBIO AQUÍ: Reemplazamos "var(--accent-color)" por el nuevo color índigo "#6366f1" */}
                                                         <Bar dataKey="valor" fill="#4dabf7" radius={[4,4,0,0]} name="Cantidad" />
-
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                             )}
@@ -414,7 +399,11 @@ const DashboardHome = () => {
                                                             {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
                                                         </Pie>
                                                         <Tooltip contentStyle={{backgroundColor:'var(--bg-card)', borderColor:'var(--border-color)', color:'var(--text-main)'}} itemStyle={{color: 'var(--text-main)'}} />
-                                                        <Legend wrapperStyle={{color: 'var(--text-main)'}} />
+                                                        <Legend
+                                                            wrapperStyle={{ paddingTop: '10px' }}
+                                                            iconType="circle"
+                                                            formatter={(value) => <span style={{ color: 'var(--text-main)', fontSize: '11px', fontWeight: 500 }}>{value}</span>}
+                                                        />
                                                     </PieChart>
                                                 </ResponsiveContainer>
                                             )}
@@ -498,6 +487,16 @@ const DashboardHome = () => {
                     )}
                 </Offcanvas.Body>
             </Offcanvas>
+
+            {/* AQUI ESTABA EL CAMBIO: Agregué 'position-fixed' para que flote sobre todo */}
+            <ToastContainer className="p-3 position-fixed" position="bottom-end" style={{ zIndex: 9999 }}>
+                <Toast onClose={() => setShowToast(false)} show={showToast} delay={3000} autohide bg="success">
+                    <Toast.Body className="text-white d-flex align-items-center">
+                        <CheckCircle className="me-2" size={24}/>
+                        <strong>¡Preferencias guardadas!</strong>
+                    </Toast.Body>
+                </Toast>
+            </ToastContainer>
         </Container>
     );
 };

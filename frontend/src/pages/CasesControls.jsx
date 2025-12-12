@@ -245,9 +245,41 @@ const CasesControls = () => {
         let val = value;
         if (tipo === 'RUT') val = formatRut(value);
 
-        setFormData(prev => ({ ...prev, [preguntaId]: val }));
+        setFormData(prev => {
+            // 1. Creamos una copia del formulario con el nuevo valor
+            const newFormData = { ...prev, [preguntaId]: val };
 
-        // Limpiar error al escribir
+            // 2. Definimos la función recursiva para limpiar datos "huerfanos"
+            const cleanDependencies = (parentId, parentValue, dataState) => {
+                // Buscamos en la categoría actual qué preguntas dependen de este 'parentId'
+                // Nota: Si 'currentCat' no está disponible aquí, asegúrate de tener acceso a la lista de preguntas
+                const dependentQuestions = currentCat?.preguntas?.filter(q => q.preguntaControladoraId === parentId) || [];
+
+                dependentQuestions.forEach(child => {
+                    // Verificamos: ¿El valor nuevo del padre cumple la condición del hijo?
+                    // Si NO la cumple (child.valorEsperadoControladora !== parentValue)...
+                    if (child.valorEsperadoControladora !== parentValue) {
+
+                        // ... y si el hijo tenía una respuesta guardada ...
+                        if (dataState[child.pregunta_id]) {
+                            // ¡La borramos!
+                            delete dataState[child.pregunta_id];
+
+                            // Recursividad: Como borramos al hijo, revisamos si este tenía "nietos"
+                            // Pasamos '' (vacío) como valor actual del hijo porque lo acabamos de borrar
+                            cleanDependencies(child.pregunta_id, '', dataState);
+                        }
+                    }
+                });
+            };
+
+            // 3. Ejecutamos la limpieza iniciando desde la pregunta que se acaba de modificar
+            cleanDependencies(preguntaId, val, newFormData);
+
+            return newFormData;
+        });
+
+        // Limpiar error al escribir (tu lógica original)
         if (validationErrors[preguntaId]) {
             setValidationErrors(prev => {
                 const newErrs = { ...prev };
@@ -459,7 +491,7 @@ const CasesControls = () => {
                                             {surveyStructure.length === 0 ? (
                                                 <div className="text-center p-5 text-muted">No se ha cargado la estructura.</div>
                                             ) : (
-                                                <Accordion defaultActiveKey={['0']} alwaysOpen flush className="border rounded shadow-sm bg-card">
+                                                <Accordion  alwaysOpen flush className="border rounded shadow-sm bg-card">
                                                     {surveyStructure.map((cat, index) => (
                                                         <div id={`cat-${cat.id_cat}`} key={cat.id_cat} className="accordion-wrapper">
                                                             <Accordion.Item eventKey={index.toString()}>
@@ -522,7 +554,7 @@ const CasesControls = () => {
             <Modal show={showModal} onHide={() => setShowModal(false)} backdrop="static" keyboard={false} size="lg" centered>
                 <Modal.Header closeButton>
                     <div className="w-100 me-3">
-                        <Modal.Title className="mb-2 fs-5">{editingId ? "Editar " : "Ingresar Nuevo "} {isCase ? <span className="text-danger">Caso</span> : <span className="text-success">Control</span>}</Modal.Title>
+                        <Modal.Title className="mb-2 fs-5">{editingId ? "Editar " : "Ingresar nuevo "} {isCase ? <span className="text-danger">CASO</span> : <span className="text-success">CONTROL</span>}</Modal.Title>
                         {surveyStructure.length > 0 && <div className="d-flex align-items-center gap-2 small"><ProgressBar now={progress} variant={isCase ? "danger" : "success"} style={{height: '6px', flexGrow: 1}} /><span className="text-muted text-nowrap">Paso {currentStep + 1}/{surveyStructure.length}</span></div>}
                     </div>
                 </Modal.Header>
@@ -531,39 +563,62 @@ const CasesControls = () => {
                         <div>
                             <h5 className="mb-4 text-primary border-bottom pb-2">{currentCat?.nombre}</h5>
                             <Row>
-                                {currentCat?.preguntas.map(q => (
-                                    <Col md={12} key={q.pregunta_id} className="mb-3">
-                                        <Form.Group>
-                                            <Form.Label className="d-flex justify-content-between w-100"><div>{q.etiqueta}</div>{q.dato_sensible && <Badge bg="warning" text="dark">SENSIBLE</Badge>}</Form.Label>
-                                            {(() => {
-                                                const val = formData[q.pregunta_id] || '';
+                                {currentCat?.preguntas.map(q => {
+                                    // --- NUEVA LÓGICA DE VISIBILIDAD ---
 
-                                                if(q.tipo_dato === 'EMAIL') {
-                                                    return (
-                                                        <>
-                                                            <Form.Control
-                                                                type="email"
-                                                                value={val}
-                                                                onChange={e => handleInputChange(q.pregunta_id, e.target.value, 'EMAIL')}
-                                                                isInvalid={!!validationErrors[q.pregunta_id]}
-                                                                placeholder="nombre@ejemplo.com"
-                                                            />
-                                                            <Form.Control.Feedback type="invalid">{validationErrors[q.pregunta_id]}</Form.Control.Feedback>
-                                                        </>
-                                                    );
-                                                }
+                                    // 1. Si tiene una pregunta controladora (no es null)
+                                    if (q.preguntaControladoraId) {
+                                        // 2. Obtenemos el valor actual de la respuesta de la pregunta padre
+                                        const valorPadre = formData[q.preguntaControladoraId];
 
-                                                if(q.tipo_dato === 'ENUM') return <Form.Select value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, 'ENUM')}><option value="">Seleccione...</option>{q.opciones && q.opciones.map((opt, idx) => <option key={idx} value={opt}>{opt}</option>)}</Form.Select>;
-                                                if(q.tipo_dato === 'RUT') return <Form.Control value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, 'RUT')} maxLength={12} />;
-                                                if(q.tipo_dato === 'CELULAR') {
-                                                    const currentCode = countryCodes[q.pregunta_id] || '+56';
-                                                    return <InputGroup><Form.Select style={{maxWidth:'90px'}} value={currentCode} onChange={(e) => handleCountryChange(q.pregunta_id, e.target.value)}>{COUNTRY_PHONE_DATA.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}</Form.Select><Form.Control type="text" value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value.replace(/\D/g, ''), 'CELULAR')} maxLength={15} /></InputGroup>
-                                                }
-                                                return <Form.Control type={q.tipo_dato === 'NUMERO' ? 'number' : 'text'} value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, q.tipo_dato === 'RUT' ? 'RUT' : 'TEXTO')} maxLength={q.tipo_dato === 'RUT' ? 12 : undefined} />;
-                                            })()}
-                                        </Form.Group>
-                                    </Col>
-                                ))}
+                                        // 3. Si el valor del padre NO coincide con el esperado, no renderizamos nada (return null)
+                                        // Nota: Asegúrate de que los tipos de datos coincidan (String vs String)
+                                        if (valorPadre == q.valorEsperadoControladora) {
+                                            return null;
+                                        }
+                                    }
+                                    // -----------------------------------
+
+                                    return (
+                                        <Col md={12} key={q.pregunta_id} className="mb-3">
+                                            <Form.Group>
+                                                <Form.Label className="d-flex justify-content-between w-100">
+                                                    <div>{q.etiqueta}</div>
+                                                    {q.dato_sensible && <Badge bg="warning" text="dark">SENSIBLE</Badge>}
+                                                </Form.Label>
+                                                {(() => {
+                                                    const val = formData[q.pregunta_id] || '';
+
+                                                    if(q.tipo_dato === 'EMAIL') {
+                                                        return (
+                                                            <>
+                                                                <Form.Control
+                                                                    type="email"
+                                                                    value={val}
+                                                                    onChange={e => handleInputChange(q.pregunta_id, e.target.value, 'EMAIL')}
+                                                                    isInvalid={!!validationErrors[q.pregunta_id]}
+                                                                    placeholder="nombre@ejemplo.com"
+                                                                />
+                                                                <Form.Control.Feedback type="invalid">{validationErrors[q.pregunta_id]}</Form.Control.Feedback>
+                                                            </>
+                                                        );
+                                                    }
+
+                                                    if(q.tipo_dato === 'ENUM') return <Form.Select value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, 'ENUM')}><option value="">Seleccione...</option>{q.opciones && q.opciones.map((opt, idx) => <option key={idx} value={opt}>{opt}</option>)}</Form.Select>;
+
+                                                    if(q.tipo_dato === 'RUT') return <Form.Control value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, 'RUT')} maxLength={12} />;
+
+                                                    if(q.tipo_dato === 'CELULAR') {
+                                                        const currentCode = countryCodes[q.pregunta_id] || '+56';
+                                                        return <InputGroup><Form.Select style={{maxWidth:'90px'}} value={currentCode} onChange={(e) => handleCountryChange(q.pregunta_id, e.target.value)}>{COUNTRY_PHONE_DATA.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}</Form.Select><Form.Control type="text" value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value.replace(/\D/g, ''), 'CELULAR')} maxLength={15} /></InputGroup>
+                                                    }
+
+                                                    return <Form.Control type={q.tipo_dato === 'NUMERO' ? 'number' : 'text'} value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, q.tipo_dato === 'RUT' ? 'RUT' : 'TEXTO')} maxLength={q.tipo_dato === 'RUT' ? 12 : undefined} />;
+                                                })()}
+                                            </Form.Group>
+                                        </Col>
+                                    );
+                                })}
                             </Row>
                         </div>
                     )}
@@ -575,7 +630,7 @@ const CasesControls = () => {
             </Modal>
 
             <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-                <Modal.Header closeButton className="border-0 pb-0"><Modal.Title className="text-danger d-flex align-items-center gap-2"><ExclamationCircle /> Confirmar Eliminación</Modal.Title></Modal.Header>
+                <Modal.Header closeButton className="border-0 pb-0"><Modal.Title className="text-danger d-flex align-items-center gap-2"><ExclamationCircle /> Confirmar eliminación</Modal.Title></Modal.Header>
                 <Modal.Body className="text-center pt-4 pb-4 px-5"><p className="mb-1 fw-bold fs-5">¿Estás seguro de que deseas eliminar este registro?</p><p className="text-muted small">Esta acción no se puede deshacer y eliminará todos los datos asociados al paciente.</p></Modal.Body>
                 <Modal.Footer className="border-0 justify-content-center pb-4 gap-3"><Button variant="light" onClick={() => setShowDeleteModal(false)}>Cancelar</Button><Button variant="danger" onClick={confirmDelete}>Eliminar</Button></Modal.Footer>
             </Modal>

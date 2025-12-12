@@ -308,6 +308,7 @@ const SurveyBuilder = () => {
                 question={editingQuestion}
                 onSave={handleSaveQuestion}
                 isEditing={!!editingQuestion}
+                allQuestions={categories.flatMap(cat => cat.preguntas || [])}
             />
         </Container>
     );

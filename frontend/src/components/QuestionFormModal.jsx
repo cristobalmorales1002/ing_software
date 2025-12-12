@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Modal, Button, Form, Row, Col, InputGroup, Table, Accordion, Badge } from 'react-bootstrap';
-import { Trash, ListCheck, Scissors, Tag, QuestionCircle } from 'react-bootstrap-icons';
+// --- CAMBIO: Agregamos Diagram3 para el ícono de dependencia
+import { Trash, ListCheck, Scissors, Tag, QuestionCircle, Diagram3 } from 'react-bootstrap-icons';
 
-const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
+// --- CAMBIO: Agregamos allQuestions a las props para tener la lista de preguntas controladoras
+const QuestionFormModal = ({ show, onHide, question, onSave, isEditing, allQuestions = [] }) => {
     // Estado inicial limpio
     const initialState = {
-        etiqueta: '',        // Pregunta visible
-        codigoStata: '',     // Variable interna
+        etiqueta: '',
+        codigoStata: '',
         descripcion: '',
         tipo_dato: 'TEXTO',
         orden: 0,
@@ -15,7 +17,10 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
         dicotomizaciones: [],
         exportable: true,
         generarEstadistica: false,
-        opciones: []         // Strings
+        opciones: [],
+        // --- CAMBIO: Campos para lógica de dependencia
+        preguntaControladoraId: '',
+        valorEsperadoControladora: ''
     };
 
     const [form, setForm] = useState(initialState);
@@ -32,14 +37,15 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                 setForm({
                     ...initialState,
                     ...question,
-                    // Asegurar arrays
                     dicotomizaciones: question.dicotomizaciones || [],
-                    opciones: question.opciones ? question.opciones.map(o => o.etiqueta || o) : [] // Manejar si vienen como objetos o strings
+                    opciones: question.opciones ? question.opciones.map(o => o.etiqueta || o) : [],
+                    // --- CAMBIO: Asegurar carga de datos de dependencia
+                    preguntaControladoraId: question.preguntaControladoraId || '',
+                    valorEsperadoControladora: question.valorEsperadoControladora || ''
                 });
             } else {
                 setForm(initialState);
             }
-            // Limpiar inputs temporales
             setNewOptionText('');
             setNewDicValue('');
             setNewDicSentido('MAYOR');
@@ -55,8 +61,18 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
         }));
     };
 
+    // --- CAMBIO: Handler específico para cambio de pregunta controladora
+    // Resetea el valor esperado si cambia la pregunta padre
+    const handleParentChange = (e) => {
+        const val = e.target.value;
+        setForm(prev => ({
+            ...prev,
+            preguntaControladoraId: val ? Number(val) : '', // Convertir a número si no es vacío
+            valorEsperadoControladora: '' // Resetear respuesta esperada al cambiar de padre
+        }));
+    };
+
     const handleCodigoChange = (e) => {
-        // Reemplaza espacios por guion bajo automáticamente
         const val = e.target.value.replace(/\s+/g, '_');
         setForm(prev => ({ ...prev, codigoStata: val }));
     };
@@ -82,7 +98,7 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
     const addDicotomizacion = () => {
         if (!newDicValue) return;
         const newDic = {
-            id_dicotomizacion: null, // Backend lo genera
+            id_dicotomizacion: null,
             valor: parseFloat(newDicValue),
             sentido: newDicSentido
         };
@@ -103,6 +119,17 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
     const handleSubmit = () => {
         onSave(form);
     };
+
+    // --- CAMBIO: Lógica auxiliar para buscar la pregunta padre seleccionada y sus opciones
+    // Filtramos para que solo muestre ENUMS y no se muestre a sí misma
+    const possibleParents = allQuestions.filter(q =>
+        q.tipo_dato === 'ENUM' &&
+        q.pregunta_id !== form.pregunta_id // Evitar depender de sí misma (si ya tiene ID)
+    );
+
+    const selectedParentQuestion = form.preguntaControladoraId
+        ? possibleParents.find(q => q.pregunta_id === Number(form.preguntaControladoraId))
+        : null;
 
     return (
         <Modal show={show} onHide={onHide} backdrop="static" size="lg" centered>
@@ -180,18 +207,15 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                                 onChange={e => setNewOptionText(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && addOption()}
                                 className="bg-transparent border-secondary"
-                                /* Nota: bg-transparent aquí está bien porque el input tomará el color del enum-box */
                             />
                             <Button variant="outline-primary" onClick={addOption}>Agregar</Button>
                         </InputGroup>
 
-                        {/* Aquí aplicamos el contenedor con el estilo de fondo diferenciado */}
                         <div className="enum-list-container">
                             <Table size="sm" borderless className="mb-0">
                                 <tbody>
                                 {form.opciones.map((opt, idx) => (
                                     <tr key={idx}>
-                                        {/* Sin clases de color hardcodeadas */}
                                         <td className="fw-medium">{opt}</td>
                                         <td className="text-end" style={{ width: '50px' }}>
                                             <Trash
@@ -205,8 +229,6 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                                 </tbody>
                             </Table>
                         </div>
-
-                        {/* Mensaje sutil si no hay opciones */}
                         {form.opciones.length === 0 && (
                             <div className="text-muted small mt-1 ps-1 fst-italic">
                                 No hay opciones agregadas aún.
@@ -218,6 +240,57 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                 <div className="d-flex gap-4 mt-3 p-2 border rounded border-secondary border-opacity-25 bg-secondary bg-opacity-10">
                     <Form.Check type="switch" name="dato_sensible" label="Dato sensible" checked={form.dato_sensible} onChange={handleChange} />
                 </div>
+
+                {/* --- CAMBIO PRINCIPAL: SECCIÓN DEPENDENCIA (Arriba de dicotomización) --- */}
+                <Accordion className="mt-3 border-0">
+                    <Accordion.Item eventKey="0" className="bg-transparent border-0">
+                        <Accordion.Header>
+                            <span className="small text-muted fw-bold"><Diagram3 className="me-2" /> Lógica de Dependencia</span>
+                        </Accordion.Header>
+                        <Accordion.Body className="bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded">
+                            <Row>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label className="small text-primary fw-bold">Mostrar solo si...</Form.Label>
+                                        <Form.Select
+                                            value={form.preguntaControladoraId || ''}
+                                            onChange={handleParentChange}
+                                            size="sm"
+                                        >
+                                            <option value="">-- Siempre visible --</option>
+                                            {possibleParents.map(p => (
+                                                <option key={p.pregunta_id} value={p.pregunta_id}>
+                                                    {p.etiqueta.length > 40 ? p.etiqueta.substring(0,40)+'...' : p.etiqueta}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                        <Form.Text className="text-muted small" style={{fontSize: '0.7rem'}}>
+                                            Seleccione una pregunta tipo "Selección" anterior.
+                                        </Form.Text>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label className="small text-primary fw-bold">La respuesta es...</Form.Label>
+                                        <Form.Select
+                                            name="valorEsperadoControladora"
+                                            value={form.valorEsperadoControladora}
+                                            onChange={handleChange}
+                                            size="sm"
+                                            disabled={!form.preguntaControladoraId}
+                                        >
+                                            <option value="">-- Seleccione valor --</option>
+                                            {selectedParentQuestion?.opciones?.map((opt, idx) => (
+                                                <option key={idx} value={opt}>{opt}</option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                        </Accordion.Body>
+                    </Accordion.Item>
+                </Accordion>
+                {/* ------------------------------------------------------------- */}
 
                 {/* SECCIÓN DICOTOMIZACIÓN */}
                 <Accordion className="mt-3 border-0">
@@ -254,15 +327,10 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                                     hover
                                     className="mb-0 small rounded overflow-hidden"
                                     style={{
-                                        /* 1. Usamos la nueva variable para igualar a los inputs */
                                         backgroundColor: 'var(--bg-form)',
-
-                                        /* 2. IMPORTANTE: Forzamos el color del texto a la variable principal */
                                         color: 'var(--text-main)',
-
-                                        /* 3. Ajustes de Bootstrap */
                                         '--bs-table-bg': 'var(--bg-form)',
-                                        '--bs-table-color': 'var(--text-main)', /* Esto arregla el texto negro de las filas */
+                                        '--bs-table-color': 'var(--text-main)',
                                         '--bs-table-accent-bg': 'transparent'
                                     }}
                                 >
@@ -277,7 +345,6 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing }) => {
                                     {form.dicotomizaciones.map((dic, idx) => (
                                         <tr key={idx}>
                                             <td className="text-info">{dic.sentido}</td>
-                                            {/* Quitamos clases de color fijo si las hubiera, dejamos que herede de la tabla */}
                                             <td className="fw-bold">{dic.valor}</td>
                                             <td className="text-end">
                                                 <Trash className="text-danger cursor-pointer" onClick={() => removeDicotomizacion(idx)} />

@@ -313,7 +313,7 @@ const DashboardHome = () => {
                         </div>
 
                         <Button variant="success" size="sm" onClick={handleForceSave} disabled={savingManual}>
-                            {savingManual ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : <><Floppy className="me-2"/> Guardar Gráficos Seleccionados</>}
+                            {savingManual ? <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> : <><Floppy className="me-2"/> Guardar gráficos seleccionados</>}
                         </Button>
                         <Button variant="primary" size="sm" onClick={() => setShowFilter(true)}>
                             <FunnelFill className="me-2"/> Configurar
@@ -449,7 +449,7 @@ const DashboardHome = () => {
 
             <Offcanvas show={showFilter} onHide={() => setShowFilter(false)} placement="end" style={{backgroundColor: 'var(--bg-card)', color: 'var(--text-main)'}}>
                 <Offcanvas.Header closeButton>
-                    <Offcanvas.Title><GearFill className="me-2"/> Mis Gráficos</Offcanvas.Title>
+                    <Offcanvas.Title><GearFill className="me-2"/> Mis gráficos</Offcanvas.Title>
                 </Offcanvas.Header>
                 <Offcanvas.Body>
                     <p className="small mb-3" style={{color: 'var(--text-muted)'}}>

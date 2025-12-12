@@ -583,13 +583,19 @@ const CasesControls = () => {
                                         title={selectedItem.tipo === 'CASO' ? 'Caso' : 'Control'}
                                         className="h-100 overflow-hidden"
                                     >
-                                        {/* MODIFICACI�"N: Eliminado d-flex row y el menú lateral (Scrollspy).
-                                            Se mantiene solo el contenedor de contenido con overflow-auto */}
-                                        <div className="h-100 overflow-auto p-3 position-relative accordion-scroll-container" style={{ scrollBehavior: 'smooth' }}>
+                                        {/* CAMBIO AQUÍ: Usamos maxHeight con cálculo de viewport (vh) o píxeles fijos */}
+                                        <div
+                                            className="overflow-auto p-3 position-relative accordion-scroll-container border rounded shadow-sm bg-card"
+                                            style={{
+                                                maxHeight: 'calc(100vh - 250px)', // Ajusta el 250px según el tamaño de tu cabecera/menú
+                                                overflowY: 'auto',
+                                                scrollBehavior: 'smooth'
+                                            }}
+                                        >
                                             {surveyStructure.length === 0 ? (
                                                 <div className="text-center p-5 text-muted">No se ha cargado la estructura.</div>
                                             ) : (
-                                                <Accordion  alwaysOpen flush className="border rounded shadow-sm bg-card">
+                                                <Accordion alwaysOpen flush className="bg-transparent">
                                                     {surveyStructure.map((cat, index) => (
                                                         <div id={`cat-${cat.id_cat}`} key={cat.id_cat} className="accordion-wrapper">
                                                             <Accordion.Item eventKey={index.toString()}>
@@ -597,6 +603,7 @@ const CasesControls = () => {
                                                                     <ClipboardPulse className="me-2 text-primary opacity-75"/>
                                                                     <span className="fw-bold text-uppercase small">{cat.nombre}</span>
                                                                 </Accordion.Header>
+                                                                {/* Asegúrate de que aquí NO haya maxHeight ni overflow */}
                                                                 <Accordion.Body className="p-0">
                                                                     <Table hover className="mb-0 align-middle">
                                                                         <tbody>

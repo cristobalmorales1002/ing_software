@@ -387,7 +387,24 @@ const CasesControls = () => {
         }
     };
 
-    const handleCountryChange = (preguntaId, code) => setCountryCodes(prev => ({...prev, [preguntaId]: code}));
+    // --- AQUÍ ESTÁ EL CAMBIO SOLICITADO ---
+    const handleCountryChange = (preguntaId, code) => {
+        // 1. Actualizamos el código de país visualmente
+        setCountryCodes(prev => ({...prev, [preguntaId]: code}));
+
+        // 2. Obtenemos la configuración del nuevo país seleccionado
+        const config = getPhoneConfig(code);
+
+        // 3. Obtenemos el valor actual que el usuario ya escribió
+        const currentVal = formData[preguntaId] || '';
+
+        // 4. Si el número es más largo de lo permitido por el nuevo país, lo recortamos
+        if (currentVal.length > config.maxLength) {
+            const truncated = currentVal.slice(0, config.maxLength);
+            setFormData(prev => ({ ...prev, [preguntaId]: truncated }));
+        }
+    };
+    // ----------------------------------------
 
     // --- NUEVO HANDLE NEXT CON VALIDACIÓN ---
     const handleNext = () => {
@@ -785,7 +802,31 @@ const CasesControls = () => {
 
                                                     if(q.tipo_dato === 'CELULAR') {
                                                         const currentCode = countryCodes[q.pregunta_id] || '+56';
-                                                        return <InputGroup><Form.Select style={{maxWidth:'90px'}} value={currentCode} onChange={(e) => handleCountryChange(q.pregunta_id, e.target.value)}>{COUNTRY_PHONE_DATA.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}</Form.Select><Form.Control type="text" value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value.replace(/\D/g, ''), 'CELULAR')} maxLength={15} /></InputGroup>
+                                                        // A: Obtenemos la configuración del país actual (largo y ejemplo)
+                                                        const phoneConfig = getPhoneConfig(currentCode);
+
+                                                        return (
+                                                            <InputGroup>
+                                                                <Form.Select
+                                                                    style={{maxWidth:'90px'}}
+                                                                    value={currentCode}
+                                                                    onChange={(e) => handleCountryChange(q.pregunta_id, e.target.value)}
+                                                                >
+                                                                    {COUNTRY_PHONE_DATA.map(c => (
+                                                                        <option key={c.code} value={c.code}>{c.code}</option>
+                                                                    ))}
+                                                                </Form.Select>
+                                                                <Form.Control
+                                                                    type="text"
+                                                                    value={val}
+                                                                    // B: Añadimos el placeholder dinámico
+                                                                    placeholder={phoneConfig.placeholder}
+                                                                    // C: Añadimos el límite de caracteres dinámico
+                                                                    maxLength={phoneConfig.maxLength}
+                                                                    onChange={e => handleInputChange(q.pregunta_id, e.target.value.replace(/\D/g, ''), 'CELULAR')}
+                                                                />
+                                                            </InputGroup>
+                                                        );
                                                     }
 
                                                     return <Form.Control type={q.tipo_dato === 'NUMERO' ? 'number' : 'text'} value={val} onChange={e => handleInputChange(q.pregunta_id, e.target.value, q.tipo_dato === 'RUT' ? 'RUT' : 'TEXTO')} maxLength={q.tipo_dato === 'RUT' ? 12 : undefined} />;

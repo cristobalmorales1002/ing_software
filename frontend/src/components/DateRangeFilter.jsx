@@ -2,6 +2,9 @@ import React, { forwardRef } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { Calendar3, XCircleFill } from 'react-bootstrap-icons';
 import { es } from 'date-fns/locale/es';
+// 1. IMPORTAR FORMAT DE DATE-FNS
+import { format } from 'date-fns';
+
 import "react-datepicker/dist/react-datepicker.css";
 import "./DateRangeFilter.css";
 
@@ -42,15 +45,23 @@ const CustomInput = forwardRef(({ value, onClick, onClear }, ref) => (
 const DateRangeFilter = ({ startDate, endDate, onChange }) => {
     const handleChange = (dates) => {
         const [start, end] = dates;
-        const format = (date) => date ? date.toISOString().split('T')[0] : '';
+
+        // 2. CAMBIO AQUÍ: Usar format() en lugar de toISOString() para evitar cambios de zona horaria
+        const formatStr = (date) => date ? format(date, 'yyyy-MM-dd') : '';
 
         onChange({
-            inicio: format(start),
-            fin: format(end)
+            inicio: formatStr(start),
+            fin: formatStr(end)
         });
     };
 
-    const parseDate = (dateStr) => dateStr ? new Date(dateStr + 'T00:00:00') : null;
+    // Parseo seguro para evitar errores de zona horaria al visualizar lo seleccionado
+    const parseDate = (dateStr) => {
+        if (!dateStr) return null;
+        // Crear fecha tratando la cadena como local (reemplazando guiones por slashes ayuda en algunos navegadores,
+        // pero agregar T00:00:00 es lo estándar para ISO local)
+        return new Date(dateStr + 'T00:00:00');
+    };
 
     return (
         <DatePicker

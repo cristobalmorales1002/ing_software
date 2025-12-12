@@ -120,10 +120,17 @@ const Messages = () => {
 
         let matchesDate = true;
         if (dateFilters.inicio || dateFilters.fin) {
-            const msgDate = new Date(msg.fechaEnvio);
+            // CORRECCIÓN DE FILTRO: Parsear como UTC para que reste horas
+            const rawDate = msg.fechaEnvio;
+            // Si no trae Z, se la agregamos para forzar la conversión a hora local
+            const utcDateStr = rawDate.endsWith('Z') ? rawDate : rawDate + 'Z';
+
+            const msgDate = new Date(utcDateStr);
+            // Normalizamos a medianoche local para comparar solo fechas
             msgDate.setHours(0, 0, 0, 0);
 
             if (dateFilters.inicio) {
+                // dateFilters.inicio ya viene como "YYYY-MM-DD" local
                 const startDate = new Date(dateFilters.inicio + 'T00:00:00');
                 if (msgDate < startDate) matchesDate = false;
             }
@@ -238,7 +245,7 @@ const Messages = () => {
                 setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, leido: true } : m));
                 setUnreadCount(prev => Math.max(0, prev - 1));
 
-                // LLAMADA CLAVE: Sincronización inmediata con el Sidebar
+                // Sincronización inmediata con el Sidebar
                 if (window.refreshSidebarMessageCount) {
                     window.refreshSidebarMessageCount();
                 }
@@ -275,14 +282,16 @@ const Messages = () => {
         setShowCompose(true);
     };
 
+    // --- CORRECCIÓN DE VISUALIZACIÓN DE FECHA ---
     const formatDate = (dateString) => {
         if (!dateString) return '';
+        // Forzamos la interpretación como UTC para que se convierta a hora local
         const fechaUTC = dateString.endsWith('Z') ? dateString : dateString + 'Z';
-        const date = new Date(fechaUTC);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Usamos es-CL para formato local correcto
+        return new Date(fechaUTC).toLocaleString('es-CL');
     };
 
-    // --- HELPER PARA RENDERIZAR EL ESTADO EN LA LISTA (COMO BLOQUE DE TEXTO) ---
     const renderDeliveryStatusInList = (msg) => {
         if (activeTab !== 'sent' || !msg.destinatariosDetalle || msg.destinatariosDetalle.length === 0) return null;
 
@@ -292,7 +301,7 @@ const Messages = () => {
 
         if (total === 0) return null;
 
-        // 1. Caso: Leído (Por al menos uno)
+        // 1. Caso: Leído
         if (readCount > 0) {
             const latestReadTime = readList.sort((a, b) => new Date(b.fechaLectura) - new Date(a.fechaLectura))[0];
             const timeStr = formatDate(latestReadTime.fechaLectura).split(' ')[1] || '';
@@ -306,7 +315,7 @@ const Messages = () => {
                     style={{
                         fontSize: '0.7rem',
                         minWidth: '90px',
-                        backgroundColor: '#10b981', // Verde esmeralda (Visto)
+                        backgroundColor: '#10b981',
                         boxShadow: '0 1px 3px rgba(16, 185, 129, 0.4)'
                     }}
                     title={`Visto por ${readCount} de ${total}`}
@@ -316,7 +325,7 @@ const Messages = () => {
             );
         }
 
-        // 2. Caso: Entregado (Nadie leyó)
+        // 2. Caso: Entregado
         return (
             <Badge
                 bg="secondary"
@@ -324,7 +333,7 @@ const Messages = () => {
                 style={{
                     fontSize: '0.7rem',
                     minWidth: '90px',
-                    backgroundColor: '#ADB5BD', // Gris claro (Entregado)
+                    backgroundColor: '#ADB5BD',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                 }}
                 title="Mensaje entregado, pero no leído."
@@ -347,13 +356,11 @@ const Messages = () => {
         }
     };
 
-    // LÓGICA DEL MODAL: ELIMINAMOS STATUS DE DESTINATARIOS
     const renderModalRecipients = (msg) => {
         if (!msg.destinatariosDetalle || msg.destinatariosDetalle.length === 0) {
             return msg.destinatariosResumen || "Varios destinatarios";
         }
 
-        // Solo listamos los nombres de los destinatarios sin el estado.
         return (
             <>
                 {msg.destinatariosDetalle.map((d, index) => (

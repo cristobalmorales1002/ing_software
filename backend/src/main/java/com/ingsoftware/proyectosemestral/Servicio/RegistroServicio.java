@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @Service
 public class RegistroServicio {
@@ -38,17 +40,22 @@ public class RegistroServicio {
         this.registrarAccion(usuario, accion, detalles, null);
     }
 
-    // AHORA SÍ FUNCIONA EL READONLY PARA CARGA PEREZOSA (LAZY LOADING)
     @Transactional(readOnly = true)
     public Page<RegistroResponseDto> obtenerLogsPaginados(LocalDate fechaInicio, LocalDate fechaFin, Pageable pageable) {
 
         Page<Registro> paginaRegistros;
 
         if (fechaInicio != null && fechaFin != null) {
-            LocalDateTime inicio = fechaInicio.atStartOfDay();
-            LocalDateTime fin = fechaFin.atTime(LocalTime.MAX);
+            ZoneId zonaChile = ZoneId.of("America/Santiago");
+            ZoneId zonaUTC = ZoneId.of("UTC");
 
-            paginaRegistros = registroRepositorio.findByRegistroFechaBetween(inicio, fin, pageable);
+            ZonedDateTime inicioChile = fechaInicio.atStartOfDay(zonaChile);
+            LocalDateTime inicioUTC = inicioChile.withZoneSameInstant(zonaUTC).toLocalDateTime();
+
+            ZonedDateTime finChile = fechaFin.atTime(LocalTime.MAX).atZone(zonaChile);
+            LocalDateTime finUTC = finChile.withZoneSameInstant(zonaUTC).toLocalDateTime();
+
+            paginaRegistros = registroRepositorio.findByRegistroFechaBetween(inicioUTC, finUTC, pageable);
         } else {
             paginaRegistros = registroRepositorio.findAll(pageable);
         }

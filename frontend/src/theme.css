@@ -258,3 +258,21 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     color: var(--accent-color) !important;
     font-weight: 600;
 }
+
+/* ==========================================================================
+   CORRECCIÓN ESPECÍFICA: Switches apagados en Dashboard (Modo Oscuro)
+   ========================================================================== */
+
+/* Fondo del riel cuando está APAGADO en modo oscuro */
+[data-theme="dark"] .offcanvas-body .form-check-input:not(:checked) {
+    background-color: #94a3b8 !important; /* Gris azulado medio (visible pero apagado) */
+    border-color: #64748b !important;     /* Borde un poco más oscuro para definir */
+
+    /* Pelotita: Azul marino oscuro (casi negro) para contraste fuerte */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%230f172a'/%3e%3c/svg%3e") !important;
+}
+
+/* Hover suave cuando está apagado */
+[data-theme="dark"] .offcanvas-body .form-check-input:not(:checked):hover {
+    background-color: #cbd5e1 !important; /* Se ilumina un poco el gris al pasar el mouse */
+}

@@ -338,20 +338,19 @@ const DashboardHome = () => {
                         <Col lg={6} key={stat.preguntaId} className="mb-4">
                             <Card className="h-100 border-0 shadow-sm" style={{minHeight:'400px'}}>
                                 <Card.Header className="bg-transparent border-0 pt-4 px-4 d-flex justify-content-between align-items-start">
-                                    <h5 className="mb-0 text-primary d-flex align-items-center gap-2 text-truncate" style={{maxWidth: '50%'}}>
-                                        <GenderAmbiguous /> {stat.tituloPregunta}
+                                    <h5 className="mb-0 d-flex align-items-center gap-2 text-truncate" style={{ maxWidth: '50%', color: 'var(--text-main)' }}>
+                                        {stat.tituloPregunta}
                                     </h5>
-
                                     <div className="d-flex align-items-center gap-2">
 
                                         {/* Botones de Agrupación Dinámica */}
                                         {isNum && (
-                                            <div className="d-flex gap-1 bg-warning bg-opacity-10 p-1 rounded me-2">
+                                            <div className="d-flex gap-1 bg-secondary bg-opacity-10 p-1 rounded me-2">
                                                 <span className="d-flex align-items-center px-2 text-muted small" title="Agrupar intervalos"><Calculator size={14}/></span>
                                                 {[5, 10, 15, 20].map(num => (
                                                     <Button
                                                         key={num}
-                                                        variant={currentGroups === num ? 'warning' : 'transparent'}
+                                                        variant={currentGroups === num ? 'primary' : 'transparent'}
                                                         size="sm"
                                                         className="border-0 px-2 py-0"
                                                         style={{
@@ -400,7 +399,10 @@ const DashboardHome = () => {
                                                         <XAxis dataKey="etiqueta" tick={{fill:'var(--text-muted)', fontSize:12}} axisLine={false} tickLine={false}/>
                                                         <YAxis tick={{fill:'var(--text-muted)', fontSize:12}} axisLine={false} tickLine={false}/>
                                                         <Tooltip contentStyle={{backgroundColor:'var(--bg-card)', borderColor:'var(--border-color)', color:'var(--text-main)'}} cursor={{fill: 'var(--hover-bg)'}} />
-                                                        <Bar dataKey="valor" fill="var(--accent-color)" radius={[4,4,0,0]} name="Cantidad" />
+
+                                                        {/* CAMBIO AQUÍ: Reemplazamos "var(--accent-color)" por el nuevo color índigo "#6366f1" */}
+                                                        <Bar dataKey="valor" fill="#4dabf7" radius={[4,4,0,0]} name="Cantidad" />
+
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                             )}

@@ -92,3 +92,47 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     --bs-table-color: var(--text-main) !important;
     --bs-table-hover-bg: transparent !important;
 }
+
+/* --- NUEVO: CORRECCIÓN BOTONES Y LISTAS EN MODO OSCURO (Mensajes, Sidebar, etc) --- */
+
+/* 1. Items de lista (Recibidos, Enviados, etc) */
+[data-theme="dark"] .list-group-item {
+    background-color: var(--bg-card) !important; /* Fondo oscuro (del color de la tarjeta) */
+    color: var(--text-main) !important;          /* Texto claro */
+    border-color: var(--border-color) !important;
+}
+
+/* 2. Hover en items de lista */
+[data-theme="dark"] .list-group-item:hover {
+    background-color: var(--hover-bg) !important;
+    color: var(--text-main) !important;
+}
+
+/* 3. Item Activo (El seleccionado, ej: Recibidos azul) */
+[data-theme="dark"] .list-group-item.active {
+    background-color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+    color: #ffffff !important; /* Texto blanco para contraste con azul */
+}
+
+/* 4. Botones Primarios (Redactar, Guardar, etc) */
+[data-theme="dark"] .btn-primary {
+    background-color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+    filter: brightness(1.1); /* Un poco más brillante al pasar el mouse */
+}
+
+/* 5. Botones Outline (Cancelar, Volver) */
+[data-theme="dark"] .btn-outline-secondary {
+    color: var(--text-muted) !important;
+    border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] .btn-outline-secondary:hover {
+    background-color: var(--border-color) !important;
+    color: var(--text-main) !important;
+}

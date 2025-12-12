@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import {
     Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft,
     Save, FileEarmarkPdf, Download,
-    ExclamationTriangle, QuestionCircle, Pencil, Trash, ExclamationCircle, Activity
+    ExclamationTriangle, QuestionCircle, Pencil, Trash, ExclamationCircle, Activity, Gear
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut } from '../utils/rutUtils';
@@ -43,6 +43,40 @@ const CasesControls = () => {
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
+
+    // --- ESTADOS CONFIGURACIÓN ADMIN ---
+    const [showConfigModal, setShowConfigModal] = useState(false);
+    const [savingConfigId, setSavingConfigId] = useState(null);
+
+    // Helper para deducir letras (Ej: de "CC", "CT", "TT" saca "C" y "T")
+    const getAlelosPosibles = (conf) => {
+        const raw = (conf.opcion1 + conf.opcion2 + conf.opcion3).split('');
+        return [...new Set(raw)].sort();
+    };
+
+    // Función para guardar el alelo de riesgo
+    const handleSaveConfig = async (id, nuevoAlelo) => {
+        setSavingConfigId(id);
+        try {
+            await api.put(`/api/genetica/configuracion/${id}`, nuevoAlelo, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            // Actualizamos la lista localmente
+            setMuestraGenesConfig(prev => prev.map(c =>
+                c.id_snp === id ? { ...c, aleloRiesgo: nuevoAlelo } : c
+            ));
+
+            // Si hay un paciente seleccionado, recargamos su análisis para ver el impacto inmediato
+            if (selectedItem) fetchAnalisisGenetico(selectedItem.dbId);
+
+        } catch (err) {
+            console.error(err);
+            alert("Error al guardar configuración.");
+        } finally {
+            setSavingConfigId(null);
+        }
+    };
 
     // --- ESTADOS PARA GENÉTICA (MUESTRAS) ---
     const [muestraGenesConfig, setMuestraGenesConfig] = useState([]);
@@ -604,8 +638,29 @@ const CasesControls = () => {
                                                     {analisisGenetico.length > 0 ? (
                                                         <>
                                                             <div className="d-flex justify-content-between align-items-center mb-4">
-                                                                <h5 className="mb-0 text-primary"><Activity className="me-2"/>Análisis Genético</h5>
-                                                                <Button size="sm" variant="outline-primary" onClick={handleOpenMuestraModal}><Pencil className="me-1"/> Editar</Button>
+                                                                {/* Izquierda: Título */}
+                                                                <h5 className="mb-0 text-primary">
+                                                                    <Activity className="me-2"/>Análisis Genético
+                                                                </h5>
+
+                                                                {/* Derecha: Grupo de Botones */}
+                                                                <div>
+                                                                    <Button size="sm" variant="outline-primary" onClick={handleOpenMuestraModal}>
+                                                                        <Pencil className="me-1"/> Editar
+                                                                    </Button>
+
+                                                                    {hasRole(['ROLE_ADMIN']) && (
+                                                                        <Button
+                                                                            size="sm" // Le puse 'sm' para que tenga el mismo porte del otro
+                                                                            variant="secondary"
+                                                                            onClick={() => setShowConfigModal(true)}
+                                                                            title="Configurar Genes"
+                                                                            className="ms-2" // Margen a la izquierda para separarlo del botón de editar
+                                                                        >
+                                                                            <Gear />
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                             <Card className="border-0 shadow-sm">
                                                                 <Table responsive hover className="mb-0 align-middle">
@@ -621,9 +676,21 @@ const CasesControls = () => {
                                                                     {analisisGenetico.map((row, idx) => (
                                                                         <tr key={idx}>
                                                                             <td className="ps-4 fw-bold text-secondary">{row.nombreGen}</td>
-                                                                            <td className="text-center"><Badge bg="light" text="dark" className="border px-3 py-2">{row.resultadoPaciente}</Badge></td>
-                                                                            <td>{row.interpretacionDominante.includes("Riesgo") ? <Badge bg="danger" className="bg-opacity-75">RIESGO</Badge> : <span className="text-muted small">{row.interpretacionDominante}</span>}</td>
-                                                                            <td>{row.interpretacionRecesivo.includes("Riesgo") ? <Badge bg="danger">ALTO RIESGO</Badge> : <span className="text-muted small">{row.interpretacionRecesivo}</span>}</td>
+                                                                            <td className="text-center">
+                                                                                <Badge bg="light" text="dark" className="border px-3 py-2">{row.resultadoPaciente}</Badge>
+                                                                            </td>
+                                                                            <td>
+                                                                                {/* CORRECCIÓN: Usamos startsWith para que "Referencia" no marque error */}
+                                                                                {row.interpretacionDominante && row.interpretacionDominante.startsWith("Grupo Riesgo") ?
+                                                                                    <Badge bg="danger" className="bg-opacity-75">RIESGO (Portador)</Badge> :
+                                                                                    <span className="text-muted small">{row.interpretacionDominante}</span>}
+                                                                            </td>
+                                                                            <td>
+                                                                                {/* CORRECCIÓN CRUCIAL: "No Riesgo" contiene la palabra Riesgo, así que usamos startsWith */}
+                                                                                {row.interpretacionRecesivo && row.interpretacionRecesivo.startsWith("Grupo Riesgo") ?
+                                                                                    <Badge bg="danger">ALTO RIESGO</Badge> :
+                                                                                    <span className="text-success small fw-bold">Bajo Riesgo</span>}
+                                                                            </td>
                                                                         </tr>
                                                                     ))}
                                                                     </tbody>
@@ -764,6 +831,82 @@ const CasesControls = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
+
+            {/* --- MODAL DE CONFIGURACIÓN (ADMIN) --- */}
+            <Modal show={showConfigModal} onHide={() => setShowConfigModal(false)} size="lg" centered>
+                <Modal.Header closeButton className="bg-light">
+                    <Modal.Title className="d-flex align-items-center gap-2">
+                        <Gear /> Configuración de Riesgo Genético
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="p-0">
+                    <div className="p-3">
+                        <div className="alert alert-info border-0 d-flex align-items-center small m-0">
+                            <ExclamationCircle className="me-2 fs-5"/>
+                            <div>
+                                Defina el <strong>Alelo de Riesgo</strong> (la variante "mala"). El sistema usará esto para calcular automáticamente los grupos Dominante y Recesivo.
+                            </div>
+                        </div>
+                    </div>
+                    <Table hover responsive className="mb-0 align-middle">
+                        <thead className="bg-light text-secondary small text-uppercase">
+                        <tr>
+                            <th className="ps-4 py-3 border-0">Gen / SNP</th>
+                            <th className="py-3 border-0">Genotipos</th>
+                            <th className="py-3 border-0" style={{width:'30%'}}>Alelo de Riesgo</th>
+                            <th className="pe-4 py-3 border-0 text-end">Estado</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {muestraGenesConfig.length === 0 ? (
+                            <tr><td colSpan="4" className="text-center py-4 text-muted">No hay genes cargados.</td></tr>
+                        ) : (
+                            muestraGenesConfig.map(conf => {
+                                // Helper para obtener letras únicas (Ej: de "CC", "CT" saca C y T)
+                                const posibles = [...new Set((conf.opcion1 + conf.opcion2 + conf.opcion3).split(''))].sort();
+                                const seleccionado = conf.aleloRiesgo || "";
+                                return (
+                                    <tr key={conf.id_snp}>
+                                        <td className="ps-4 fw-bold text-secondary">{conf.nombreGen}</td>
+                                        <td>
+                                            <div className="d-flex gap-1">
+                                                {[conf.opcion1, conf.opcion2, conf.opcion3].filter(Boolean).map(op => (
+                                                    <Badge key={op} bg="light" text="dark" className="border fw-normal">{op}</Badge>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <Form.Select
+                                                size="sm"
+                                                value={seleccionado}
+                                                onChange={(e) => handleSaveConfig(conf.id_snp, e.target.value)}
+                                                disabled={savingConfigId === conf.id_snp}
+                                                className={seleccionado ? "border-success text-success fw-bold" : "border-warning text-dark"}
+                                            >
+                                                <option value="">-- Seleccionar --</option>
+                                                {posibles.map(letra => (
+                                                    <option key={letra} value={letra}>Alelo "{letra}"</option>
+                                                ))}
+                                            </Form.Select>
+                                        </td>
+                                        <td className="text-end pe-4">
+                                            {savingConfigId === conf.id_snp ?
+                                                <Spinner size="sm" animation="border" variant="primary"/> :
+                                                (seleccionado ? <Badge bg="success" className="opacity-75">OK</Badge> : <Badge bg="warning" text="dark">Pendiente</Badge>)
+                                            }
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
+                        </tbody>
+                    </Table>
+                </Modal.Body>
+                <Modal.Footer className="bg-light border-top-0">
+                    <Button variant="primary" onClick={() => setShowConfigModal(false)}>Cerrar</Button>
+                </Modal.Footer>
+            </Modal>
+
         </Container>
     );
 };

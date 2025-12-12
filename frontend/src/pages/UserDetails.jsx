@@ -93,7 +93,8 @@ const UserDetails = () => {
 
             <Row className="g-4">
                 {/* COLUMNA IZQUIERDA: TARJETA DE IDENTIDAD */}
-                <Col md={4} lg={3}>
+                {/* CAMBIO AQUÍ: Aumenté el ancho a md={5} lg={4} para dar más espacio al nombre */}
+                <Col md={5} lg={4}>
                     <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: 'var(--bg-card)' }}>
                         <Card.Body className="text-center p-4 d-flex flex-column align-items-center justify-content-center">
 
@@ -104,26 +105,28 @@ const UserDetails = () => {
                                          width: '150px',
                                          height: '150px',
                                          border: `5px solid var(--bg-main)`,
-                                         backgroundColor: 'var(--bg-input)' /* Fondo estándar del input */
+                                         backgroundColor: 'var(--bg-input)'
                                      }}>
                                     {user.fotoBase64 ? (
                                         <img src={`data:image/jpeg;base64,${user.fotoBase64}`} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                        /* Icono gris medio para buen contraste */
                                         <PersonCircle size={150} style={{ color: 'var(--text-main)', opacity: 0.3 }} />
                                     )}
                                 </div>
                             </div>
 
-                            {/* ELIMINADO EL NOMBRE DE AQUÍ (Ya está a la derecha) */}
+                            {/* NOMBRE (Debajo de la foto) */}
+                            <h4 className="fw-bold mb-3 text-center" style={{color: 'var(--text-main)'}}>
+                                {user.nombres} {user.apellidos}
+                            </h4>
 
-                            {/* Badge de Rol (Color Cyan #06b6d4) */}
+                            {/* Badge de Rol */}
                             <div className="mb-4">
                                 <Badge
                                     className="px-3 py-2 rounded-pill text-uppercase d-inline-flex align-items-center gap-2 shadow-sm"
                                     style={{
                                         backgroundColor: roleInfo.colorVar,
-                                        color: 'var(--role-text-color)', /* Blanco */
+                                        color: 'var(--role-text-color)',
                                         letterSpacing: '1px',
                                         fontWeight: '600'
                                     }}
@@ -144,31 +147,18 @@ const UserDetails = () => {
                     </Card>
                 </Col>
 
-                {/* COLUMNA DERECHA: INFORMACIÓN */}
-                <Col md={8} lg={9}>
+                {/* COLUMNA DERECHA: INFORMACIÓN DE CONTACTO */}
+                {/* CAMBIO AQUÍ: Reduje el ancho a md={7} lg={8} para compensar */}
+                <Col md={7} lg={8}>
                     <Card className="shadow-sm border-0 h-100" style={{ backgroundColor: 'var(--bg-card)' }}>
                         <Card.Header className="py-3 bg-transparent border-bottom" style={{ borderColor: 'var(--border-color)' }}>
-                            <h5 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Información Personal y de Contacto</h5>
+                            <h5 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Información de Contacto</h5>
                         </Card.Header>
                         <Card.Body className="p-4">
                             <Form>
-                                <Row className="g-3">
-                                    <Col md={6}>
-                                        <Form.Group>
-                                            <Form.Label className="small text-muted text-uppercase fw-bold">Nombres</Form.Label>
-                                            <Form.Control type="text" value={user.nombres} readOnly disabled style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }} />
-                                        </Form.Group>
-                                    </Col>
-                                    <Col md={6}>
-                                        <Form.Group>
-                                            <Form.Label className="small text-muted text-uppercase fw-bold">Apellidos</Form.Label>
-                                            <Form.Control type="text" value={user.apellidos} readOnly disabled style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }} />
-                                        </Form.Group>
-                                    </Col>
-
-                                    <Col xs={12}><hr className="my-2" style={{ borderColor: 'var(--border-color)', opacity: 0.5 }}/></Col>
-
-                                    <Col md={6}>
+                                <Row className="g-4">
+                                    {/* Correo Electrónico (Arriba) */}
+                                    <Col md={12}>
                                         <Form.Group>
                                             <Form.Label className="small text-muted text-uppercase fw-bold">Correo Electrónico</Form.Label>
                                             <InputGroup>
@@ -190,7 +180,8 @@ const UserDetails = () => {
                                         </Form.Group>
                                     </Col>
 
-                                    <Col md={6}>
+                                    {/* Teléfono (Abajo) */}
+                                    <Col md={12}>
                                         <Form.Group>
                                             <Form.Label className="small text-muted text-uppercase fw-bold">Teléfono</Form.Label>
                                             <InputGroup>

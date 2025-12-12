@@ -532,7 +532,15 @@ const CasesControls = () => {
                             <ListGroup variant="flush">
                                 {filteredItems.length === 0 ? <div className="text-center p-5 text-muted">No se encontraron registros.</div> : filteredItems.map(item => (
                                     <ListGroup.Item key={item.dbId} action active={selectedItem && selectedItem.dbId === item.dbId} className="d-flex align-items-center py-3 border-bottom border-secondary border-opacity-10 px-2"
-                                                    style={{ backgroundColor: selectedItem?.dbId === item.dbId ? 'var(--hover-bg)' : 'transparent', color: selectedItem?.dbId === item.dbId ? 'var(--accent-color)' : 'var(--text-main)', borderLeft: selectedItem?.dbId === item.dbId ? '4px solid var(--accent-color)' : '4px solid transparent', transition: 'all 0.2s', cursor: 'pointer' }}
+                                                    style={{
+                                                        backgroundColor: selectedItem?.dbId === item.dbId ? 'var(--hover-bg)' : 'transparent',
+                                                        /* CAMBIO: Usamos var(--text-main) para que sea Blanco(Oscuro) y Negro(Claro) */
+                                                        color: 'var(--text-main)',
+                                                        /* CAMBIO: Borde del mismo color del texto para consistencia */
+                                                        borderLeft: selectedItem?.dbId === item.dbId ? '4px solid var(--text-main)' : '4px solid transparent',
+                                                        transition: 'all 0.2s',
+                                                        cursor: 'pointer'
+                                                    }}
                                                     onClick={() => setSelectedItem(item)}
                                     >
                                         {canDownload && <div className="me-3" onClick={(e) => e.stopPropagation()}><Form.Check type="checkbox" checked={selectedIds.has(item.dbId)} onChange={() => handleToggleSelect(item.dbId)}/></div>}
@@ -558,7 +566,8 @@ const CasesControls = () => {
                             <Card.Header className="d-flex justify-content-between align-items-center py-3 border-bottom border-secondary border-opacity-25 bg-transparent">
                                 {/* --- HEADER --- */}
                                 <div>
-                                    <h4 className="mb-0 d-flex align-items-center gap-2 text-primary"><PersonVcard /> {selectedItem.id}</h4>
+                                    {/* CAMBIO: var(--text-main) */}
+                                    <h4 className="mb-0 d-flex align-items-center gap-2" style={{ color: 'var(--text-main)' }}><PersonVcard /> {selectedItem.id}</h4>
                                     <div className="text-muted small">
                                         <span>Ingreso: {selectedItem.fechaIngreso ? new Date(selectedItem.fechaIngreso + 'T00:00:00').toLocaleDateString() : '-'}</span>
                                         <span className="mx-2">•</span>
@@ -611,7 +620,8 @@ const CasesControls = () => {
                                                         <div id={`cat-${cat.id_cat}`} key={cat.id_cat} className="accordion-wrapper">
                                                             <Accordion.Item eventKey={index.toString()}>
                                                                 <Accordion.Header>
-                                                                    <ClipboardPulse className="me-2 text-primary opacity-75"/>
+                                                                    {/* CAMBIO: var(--text-main) */}
+                                                                    <ClipboardPulse className="me-2 opacity-75" style={{ color: 'var(--text-main)' }}/>
                                                                     <span className="fw-bold text-uppercase small">{cat.nombre}</span>
                                                                 </Accordion.Header>
                                                                 <Accordion.Body className="p-0">
@@ -620,7 +630,8 @@ const CasesControls = () => {
                                                                         {cat.preguntas?.map((pregunta) => {
                                                                             const respuesta = selectedItem.respuestas?.find(r => r.preguntaId === pregunta.pregunta_id || r.pregunta_id === pregunta.pregunta_id);
                                                                             let cellContent = respuesta && respuesta.valor ?
-                                                                                <span className="text-primary fw-medium">{respuesta.valor}</span> :
+                                                                                /* CAMBIO: var(--text-main) */
+                                                                                <span className="fw-medium" style={{ color: 'var(--text-main)' }}>{respuesta.valor}</span> :
                                                                                 <span className="text-danger d-flex align-items-center gap-2 small bg-danger bg-opacity-10 px-2 py-1 rounded fit-content"><ExclamationTriangle /><span className="fst-italic">No registrado</span></span>;
 
                                                                             return (
@@ -656,7 +667,8 @@ const CasesControls = () => {
                                                         <>
                                                             <div className="d-flex justify-content-between align-items-center mb-4">
                                                                 {/* Izquierda: Título */}
-                                                                <h5 className="mb-0 text-primary">
+                                                                {/* CAMBIO: var(--text-main) */}
+                                                                <h5 className="mb-0" style={{ color: 'var(--text-main)' }}>
                                                                     <Activity className="me-2"/>Análisis Genético
                                                                 </h5>
 
@@ -746,7 +758,8 @@ const CasesControls = () => {
                 <Modal.Body className="p-4" style={{ minHeight: '300px' }}>
                     {loadingSurvey ? <div className="text-center py-5"><Spinner animation="border" /></div> : (
                         <div>
-                            <h5 className="mb-4 text-primary border-bottom pb-2">{currentCat?.nombre}</h5>
+                            {/* CAMBIO: var(--text-main) */}
+                            <h5 className="mb-4 border-bottom pb-2" style={{ color: 'var(--text-main)' }}>{currentCat?.nombre}</h5>
                             <Row>
                                 {currentCat?.preguntas.map(q => {
                                     if (q.preguntaControladoraId) {

@@ -31,6 +31,7 @@ public class InicializadorAdmin implements CommandLineRunner {
     @Autowired private PreguntaRepositorio preguntaRepositorio;
     @Autowired private OpcionPreguntaRepositorio opcionPreguntaRepositorio;
     @Autowired private PacienteServicio pacienteServicio;
+    @Autowired private SnpConfigRepositorio snpConfigRepositorio;
 
     @Override
     @Transactional
@@ -41,6 +42,8 @@ public class InicializadorAdmin implements CommandLineRunner {
         Usuario admin = crearUsuariosDePrueba();
         Usuario medico = usuarioRepositorio.findByRut("22.222.222-2")
                 .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
+
+        inicializarConfiguracionGenetica();
 
         if (pacienteServicio.getAllPacientes().isEmpty()) {
             crearEncuestaCRFConDependencias();
@@ -523,6 +526,58 @@ public class InicializadorAdmin implements CommandLineRunner {
             r.setPregunta_id(op.get().getPregunta_id());
             r.setValor(valor);
             lista.add(r);
+        }
+    }
+
+    // --- MÉTODOS PARA CARGA DE GENÉTICA (SNP) ---
+
+    private void inicializarConfiguracionGenetica() {
+        // Gen 1: TLR9 rs5743836 [cite: 64]
+        // Alelos base: T y C. Opciones: TT, TC, CC.
+        crearSnpConfig("TLR9 rs5743836", "TT", "TC", "CC", "T");
+
+        // Gen 2: TLR9 rs187084 [cite: 65]
+        // Alelos base: T y C. Opciones: TT, TC, CC.
+        crearSnpConfig("TLR9 rs187084", "TT", "TC", "CC", "T");
+
+        // Gen 3: miR-146a rs2910164 [cite: 66]
+        // Alelos base: G y C. Opciones: GG, GC, CC.
+        crearSnpConfig("miR-146a rs2910164", "GG", "GC", "CC", "G");
+
+        // Gen 4: miR-196a2 rs11614913 [cite: 67]
+        // Alelos base: C y T. Opciones: CC, CT, TT.
+        crearSnpConfig("miR-196a2 rs11614913", "CC", "CT", "TT", "C");
+
+        // Gen 5: MTHFR rs1801133 [cite: 68]
+        // Alelos base: C y T. Opciones: CC, CT, TT.
+        crearSnpConfig("MTHFR rs1801133", "CC", "CT", "TT", "C");
+
+        // Gen 6: DNMT3B rs1569686 [cite: 69]
+        // Alelos base: G y T. Opciones: GG, GT, TT.
+        crearSnpConfig("DNMT3B rs1569686", "GG", "GT", "TT", "G");
+
+        logger.info(">>> Configuración genética base cargada <<<");
+    }
+
+    private void crearSnpConfig(String nombre, String op1, String op2, String op3, String aleloRefPorDefecto) {
+        // Verificamos por nombre si ya existe para no duplicar
+        // Nota: Asume que agregaste un método findByNombreGen en SnpConfigRepositorio
+        // Si no lo tienes, puedes usar findAll y filtrar stream, o agregarlo al repo.
+        // Aquí usaré una lógica segura con stream si no quieres tocar el Repo todavía:
+        boolean existe = snpConfigRepositorio.findAll().stream()
+                .anyMatch(s -> s.getNombreGen().equals(nombre));
+
+        if (!existe) {
+            SnpConfig snp = new SnpConfig();
+            snp.setNombreGen(nombre);
+            snp.setOpcion1(op1);
+            snp.setOpcion2(op2);
+            snp.setOpcion3(op3);
+
+            snp.setAleloRef(aleloRefPorDefecto);
+            snp.setAleloRiesgo(null); // SE DEJA NULL INTENCIONALMENTE (Pendiente de configurar por Clienta)
+
+            snpConfigRepositorio.save(snp);
         }
     }
 

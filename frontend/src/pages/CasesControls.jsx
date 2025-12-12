@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import {
     Search, PlusLg, PersonVcard, ClipboardPulse, ArrowRight, ArrowLeft,
     Save, FileEarmarkPdf, Download,
-    ExclamationTriangle, QuestionCircle, Pencil, Trash, ExclamationCircle
+    ExclamationTriangle, QuestionCircle, Pencil, Trash, ExclamationCircle, Activity
 } from 'react-bootstrap-icons';
 import api from '../api/axios';
 import { formatRut } from '../utils/rutUtils';
@@ -44,7 +44,63 @@ const CasesControls = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
 
+    // --- ESTADOS PARA GENÉTICA (MUESTRAS) ---
+    const [muestraGenesConfig, setMuestraGenesConfig] = useState([]);
+    const [analisisGenetico, setAnalisisGenetico] = useState([]);
+    const [loadingAnalisis, setLoadingAnalisis] = useState(false);
+    const [showMuestraModal, setShowMuestraModal] = useState(false);
+    const [formMuestraData, setFormMuestraData] = useState({});
+
     const currentUserId = currentUser ? (currentUser.idUsuario || currentUser.id || currentUser.usuarioId) : null;
+
+    // --- FUNCIONES GENÉTICA ---
+    const fetchGenesConfig = async () => {
+        try {
+            const res = await api.get('/api/genetica/configuraciones');
+            setMuestraGenesConfig(res.data || []);
+        } catch (err) { console.error("Error config genética:", err); }
+    };
+
+    const fetchAnalisisGenetico = async (pacienteId) => {
+        if (!pacienteId) return;
+        setLoadingAnalisis(true);
+        try {
+            const res = await api.get(`/api/genetica/analisis/${pacienteId}`);
+            setAnalisisGenetico(res.data || []);
+        } catch (err) {
+            console.error(err);
+            setAnalisisGenetico([]);
+        } finally { setLoadingAnalisis(false); }
+    };
+
+    const handleOpenMuestraModal = () => {
+        setFormMuestraData({});
+        setShowMuestraModal(true);
+    };
+
+    const handleMuestraChange = (snpId, valor) => {
+        setFormMuestraData(prev => ({ ...prev, [snpId]: valor }));
+    };
+
+    const handleSaveMuestra = async () => {
+        if (!selectedItem) return;
+        setIsSaving(true);
+        try {
+            const promesas = Object.entries(formMuestraData).map(async ([snpId, resultado]) => {
+                if(!resultado) return;
+                return api.post('/api/genetica/muestra', {
+                    participanteId: selectedItem.dbId,
+                    snpConfigId: parseInt(snpId),
+                    resultado: resultado
+                });
+            });
+            await Promise.all(promesas);
+            setShowMuestraModal(false);
+            fetchAnalisisGenetico(selectedItem.dbId);
+            alert("Muestras guardadas.");
+        } catch (err) { alert("Error al guardar muestras."); } finally { setIsSaving(false); }
+    };
+
 
     const fetchUserRole = async () => {
         try {
@@ -125,7 +181,16 @@ const CasesControls = () => {
         fetchSurveyStructure();
         fetchUserRole();
         fetchUsers();
+        fetchGenesConfig();
     }, []);
+
+    useEffect(() => {
+        if (selectedItem) {
+            fetchAnalisisGenetico(selectedItem.dbId);
+        } else {
+            setAnalisisGenetico([]);
+        }
+    }, [selectedItem]);
 
     const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
@@ -532,11 +597,48 @@ const CasesControls = () => {
                                     </Tab>
 
                                     {/* TAB 2: Muestra (Sin cambios) */}
-                                    <Tab eventKey="muestra" title="Muestra">
-                                        <div className="d-flex flex-column align-items-center justify-content-center p-5 text-muted opacity-50">
-                                            <ClipboardPulse size={40} className="mb-3"/>
-                                            <h5>Información de Muestras</h5>
-                                            <p>Funcionalidad en desarrollo...</p>
+                                    <Tab eventKey="muestra" title="Muestras Biológicas" className="h-100 overflow-hidden">
+                                        <div className="h-100 overflow-auto p-4">
+                                            {loadingAnalisis ? <div className="text-center py-5"><Spinner animation="border" /></div> : (
+                                                <>
+                                                    {analisisGenetico.length > 0 ? (
+                                                        <>
+                                                            <div className="d-flex justify-content-between align-items-center mb-4">
+                                                                <h5 className="mb-0 text-primary"><Activity className="me-2"/>Análisis Genético</h5>
+                                                                <Button size="sm" variant="outline-primary" onClick={handleOpenMuestraModal}><Pencil className="me-1"/> Editar</Button>
+                                                            </div>
+                                                            <Card className="border-0 shadow-sm">
+                                                                <Table responsive hover className="mb-0 align-middle">
+                                                                    <thead className="bg-light text-muted small text-uppercase">
+                                                                    <tr>
+                                                                        <th className="ps-4 py-3 border-0">Gen</th>
+                                                                        <th className="py-3 border-0 text-center">Genotipo</th>
+                                                                        <th className="py-3 border-0">Modelo Dominante</th>
+                                                                        <th className="py-3 border-0">Modelo Recesivo</th>
+                                                                    </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    {analisisGenetico.map((row, idx) => (
+                                                                        <tr key={idx}>
+                                                                            <td className="ps-4 fw-bold text-secondary">{row.nombreGen}</td>
+                                                                            <td className="text-center"><Badge bg="light" text="dark" className="border px-3 py-2">{row.resultadoPaciente}</Badge></td>
+                                                                            <td>{row.interpretacionDominante.includes("Riesgo") ? <Badge bg="danger" className="bg-opacity-75">RIESGO</Badge> : <span className="text-muted small">{row.interpretacionDominante}</span>}</td>
+                                                                            <td>{row.interpretacionRecesivo.includes("Riesgo") ? <Badge bg="danger">ALTO RIESGO</Badge> : <span className="text-muted small">{row.interpretacionRecesivo}</span>}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                    </tbody>
+                                                                </Table>
+                                                            </Card>
+                                                        </>
+                                                    ) : (
+                                                        <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5 text-muted opacity-75">
+                                                            <Activity size={48} className="mb-3 text-secondary"/>
+                                                            <h5>No hay muestras registradas</h5>
+                                                            <Button variant="primary" className="mt-3" onClick={handleOpenMuestraModal}><PlusLg className="me-2"/> Registrar Muestra</Button>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
                                         </div>
                                     </Tab>
                                 </Tabs>
@@ -632,6 +734,35 @@ const CasesControls = () => {
                 <Modal.Header closeButton className="border-0 pb-0"><Modal.Title className="text-danger d-flex align-items-center gap-2"><ExclamationCircle /> Confirmar eliminación</Modal.Title></Modal.Header>
                 <Modal.Body className="text-center pt-4 pb-4 px-5"><p className="mb-1 fw-bold fs-5">¿Estás seguro de que deseas eliminar este registro?</p><p className="text-muted small">Esta acción no se puede deshacer y eliminará todos los datos asociados al paciente.</p></Modal.Body>
                 <Modal.Footer className="border-0 justify-content-center pb-4 gap-3"><Button variant="light" onClick={() => setShowDeleteModal(false)}>Cancelar</Button><Button variant="danger" onClick={confirmDelete}>Eliminar</Button></Modal.Footer>
+            </Modal>
+
+            {/* --- MODAL DE MUESTRAS --- */}
+            <Modal show={showMuestraModal} onHide={() => setShowMuestraModal(false)} centered backdrop="static">
+                <Modal.Header closeButton><Modal.Title><Activity className="me-2"/> Registro de Muestras</Modal.Title></Modal.Header>
+                <Modal.Body className="p-4">
+                    <Form>
+                        {muestraGenesConfig.map(gen => (
+                            <Form.Group key={gen.id_snp} className="mb-3 border-bottom pb-2">
+                                <Form.Label className="fw-bold text-secondary">{gen.nombreGen}</Form.Label>
+                                <div className="d-flex gap-3">
+                                    {[gen.opcion1, gen.opcion2, gen.opcion3].filter(Boolean).map(op => (
+                                        <Form.Check
+                                            key={op} type="radio" label={op} name={`gen-${gen.id_snp}`}
+                                            checked={formMuestraData[gen.id_snp] === op}
+                                            onChange={() => handleMuestraChange(gen.id_snp, op)}
+                                        />
+                                    ))}
+                                </div>
+                            </Form.Group>
+                        ))}
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="light" onClick={() => setShowMuestraModal(false)}>Cancelar</Button>
+                    <Button variant="primary" onClick={handleSaveMuestra} disabled={isSaving}>
+                        {isSaving ? <Spinner size="sm" animation="border"/> : "Guardar"}
+                    </Button>
+                </Modal.Footer>
             </Modal>
         </Container>
     );

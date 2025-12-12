@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Badge, Spinner, Alert, Button, Tooltip, OverlayTrigger } from 'react-bootstrap';
-import { PersonCircle, Envelope, Phone, ArrowLeft, Clipboard, Check, PersonVcard } from 'react-bootstrap-icons';
+import { Container, Row, Col, Card, Badge, Spinner, Alert, Button, Tooltip, OverlayTrigger, Form, InputGroup } from 'react-bootstrap';
+import { PersonCircle, Envelope, Phone, ArrowLeft, Clipboard, Check, PersonVcard, ShieldLock, HeartPulse, Search, Book, Eye, Person } from 'react-bootstrap-icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { formatRut } from '../utils/rutUtils';
@@ -17,13 +17,22 @@ const UserDetails = () => {
 
     // --- UTILS ---
     const getRoleLabel = (rol) => {
+        const iconMap = {
+            'ROLE_ADMIN': ShieldLock,
+            'ROLE_MEDICO': HeartPulse,
+            'ROLE_INVESTIGADOR': Search,
+            'ROLE_ESTUDIANTE': Book,
+            'ROLE_VISUALIZADOR': Eye
+        };
+        const IconComponent = iconMap[rol] || Person;
+
         switch (rol) {
-            case 'ROLE_ADMIN': return { label: 'Administrador', bg: 'danger', icon: 'shield-lock' };
-            case 'ROLE_MEDICO': return { label: 'Médico', bg: 'primary', icon: 'heart-pulse' };
-            case 'ROLE_INVESTIGADOR': return { label: 'Investigador', bg: 'info', icon: 'search' };
-            case 'ROLE_ESTUDIANTE': return { label: 'Estudiante', bg: 'success', icon: 'book' };
-            case 'ROLE_VISUALIZADOR': return { label: 'Visualizador', bg: 'secondary', icon: 'eye' };
-            default: return { label: rol ? rol.replace('ROLE_', '') : 'Usuario', bg: 'secondary', icon: 'person' };
+            case 'ROLE_ADMIN': return { label: 'Administrador', colorVar: 'var(--role-admin-bg)', icon: IconComponent };
+            case 'ROLE_MEDICO': return { label: 'Médico', colorVar: 'var(--role-medico-bg)', icon: IconComponent };
+            case 'ROLE_INVESTIGADOR': return { label: 'Investigador', colorVar: 'var(--role-investigador-bg)', icon: IconComponent };
+            case 'ROLE_ESTUDIANTE': return { label: 'Estudiante', colorVar: 'var(--role-estudiante-bg)', icon: IconComponent };
+            case 'ROLE_VISUALIZADOR': return { label: 'Visualizador', colorVar: 'var(--role-visualizador-bg)', icon: IconComponent };
+            default: return { label: rol ? rol.replace('ROLE_', '') : 'Usuario', colorVar: 'var(--role-visualizador-bg)', icon: IconComponent };
         }
     };
 
@@ -70,6 +79,7 @@ const UserDetails = () => {
     );
 
     const roleInfo = getRoleLabel(user.rol || user.role);
+    const RoleIcon = roleInfo.icon;
 
     return (
         <Container fluid className="p-0">
@@ -78,125 +88,131 @@ const UserDetails = () => {
                 <Button variant="link" className="p-0 text-secondary" onClick={() => navigate(-1)} title="Volver">
                     <ArrowLeft size={28}/>
                 </Button>
-                <h2 className="mb-0 fw-bold">PERFIL DE USUARIO</h2>
+                <h2 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Detalles del Usuario</h2>
             </div>
 
             <Row className="g-4">
                 {/* COLUMNA IZQUIERDA: TARJETA DE IDENTIDAD */}
-                <Col md={4}>
-                    <Card className="h-100 shadow-sm border-0 overflow-hidden">
-                        {/* Fondo decorativo superior */}
-                        <div className={`bg-${roleInfo.bg} bg-opacity-10`} style={{ height: '80px' }}></div>
+                <Col md={4} lg={3}>
+                    <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: 'var(--bg-card)' }}>
+                        <Card.Body className="text-center p-4 d-flex flex-column align-items-center justify-content-center">
 
-                        <Card.Body className="text-center pt-0 position-relative">
-                            {/* Foto de Perfil superpuesta */}
-                            <div className="d-inline-block position-relative mb-3" style={{ marginTop: '-60px' }}>
+                            {/* FOTO DE PERFIL */}
+                            <div className="mb-4 position-relative">
                                 <div className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center mx-auto shadow-sm"
                                      style={{
-                                         width: '130px',
-                                         height: '130px',
-                                         border: `4px solid var(--bg-card)`,
-                                         backgroundColor: 'var(--bg-main)'
+                                         width: '150px',
+                                         height: '150px',
+                                         border: `5px solid var(--bg-main)`,
+                                         backgroundColor: 'var(--bg-input)' /* Fondo estándar del input */
                                      }}>
                                     {user.fotoBase64 ? (
                                         <img src={`data:image/jpeg;base64,${user.fotoBase64}`} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                        <PersonCircle size={130} className="text-secondary opacity-50" />
+                                        /* Icono gris medio para buen contraste */
+                                        <PersonCircle size={150} style={{ color: 'var(--text-main)', opacity: 0.3 }} />
                                     )}
                                 </div>
                             </div>
 
-                            <h3 className="fw-bold mb-1" style={{color: 'var(--text-main)'}}>{user.nombres || user.nombre} {user.apellidos}</h3>
+                            {/* ELIMINADO EL NOMBRE DE AQUÍ (Ya está a la derecha) */}
 
+                            {/* Badge de Rol (Color Cyan #06b6d4) */}
                             <div className="mb-4">
-                                <Badge bg={roleInfo.bg} className="px-3 py-2 rounded-pill text-uppercase shadow-sm" style={{ letterSpacing: '1px', fontWeight: '500' }}>
+                                <Badge
+                                    className="px-3 py-2 rounded-pill text-uppercase d-inline-flex align-items-center gap-2 shadow-sm"
+                                    style={{
+                                        backgroundColor: roleInfo.colorVar,
+                                        color: 'var(--role-text-color)', /* Blanco */
+                                        letterSpacing: '1px',
+                                        fontWeight: '600'
+                                    }}
+                                >
+                                    <RoleIcon size={16}/>
                                     {roleInfo.label}
                                 </Badge>
                             </div>
 
-                            {/* AQUI ESTÁ EL CAMBIO: RUT EN VEZ DE ID */}
-                            <div className="d-flex justify-content-center">
-                                <div className="d-flex align-items-center gap-2 px-3 py-2 rounded-pill border" style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)' }}>
-                                    <PersonVcard className="text-primary"/>
-                                    <span className="fw-bold small" style={{ color: 'var(--text-main)' }}>
-                                        {user.rut ? formatRut(user.rut) : 'Sin RUT'}
-                                    </span>
-                                </div>
+                            {/* RUT */}
+                            <div className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill border" style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)' }}>
+                                <PersonVcard className="text-primary"/>
+                                <span className="fw-medium" style={{ color: 'var(--text-main)' }}>
+                                    {user.rut ? formatRut(user.rut) : 'Sin RUT'}
+                                </span>
                             </div>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                {/* COLUMNA DERECHA: CONTACTO (Diseño original mantenido) */}
-                <Col md={8}>
-                    <Card className="shadow-sm border-0 h-100">
-                        <Card.Header className="py-3 border-bottom-0" style={{backgroundColor: 'var(--hover-bg)'}}>
-                            <h5 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Información de Contacto</h5>
+                {/* COLUMNA DERECHA: INFORMACIÓN */}
+                <Col md={8} lg={9}>
+                    <Card className="shadow-sm border-0 h-100" style={{ backgroundColor: 'var(--bg-card)' }}>
+                        <Card.Header className="py-3 bg-transparent border-bottom" style={{ borderColor: 'var(--border-color)' }}>
+                            <h5 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Información Personal y de Contacto</h5>
                         </Card.Header>
-                        <Card.Body className="pt-4 pb-4 px-4 d-flex flex-column gap-4">
+                        <Card.Body className="p-4">
+                            <Form>
+                                <Row className="g-3">
+                                    <Col md={6}>
+                                        <Form.Group>
+                                            <Form.Label className="small text-muted text-uppercase fw-bold">Nombres</Form.Label>
+                                            <Form.Control type="text" value={user.nombres} readOnly disabled style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }} />
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Group>
+                                            <Form.Label className="small text-muted text-uppercase fw-bold">Apellidos</Form.Label>
+                                            <Form.Control type="text" value={user.apellidos} readOnly disabled style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }} />
+                                        </Form.Group>
+                                    </Col>
 
-                            {/* EMAIL SECTION */}
-                            <div className="p-3 border rounded transition-hover" style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)' }}>
-                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                    <div className="d-flex align-items-center gap-2">
-                                        <Envelope className="text-primary fs-5"/>
-                                        <span className="fw-bold text-uppercase small" style={{color: 'var(--text-muted)'}}>Correo Electrónico</span>
-                                    </div>
-                                </div>
+                                    <Col xs={12}><hr className="my-2" style={{ borderColor: 'var(--border-color)', opacity: 0.5 }}/></Col>
 
-                                <div className="d-flex align-items-center justify-content-between border rounded p-2 ps-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
-                                    <span className={`text-break fw-medium ${!user.email ? 'text-muted fst-italic' : ''}`} style={{ color: 'var(--text-main)' }}>
-                                        {user.email || 'No registrado'}
-                                    </span>
+                                    <Col md={6}>
+                                        <Form.Group>
+                                            <Form.Label className="small text-muted text-uppercase fw-bold">Correo Electrónico</Form.Label>
+                                            <InputGroup>
+                                                <InputGroup.Text style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)' }}>
+                                                    <Envelope className="text-primary"/>
+                                                </InputGroup.Text>
+                                                <Form.Control
+                                                    type="text"
+                                                    value={user.email || 'No registrado'}
+                                                    readOnly
+                                                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
+                                                />
+                                                <OverlayTrigger placement="top" overlay={<Tooltip>{copiedField === 'email' ? '¡Copiado!' : 'Copiar'}</Tooltip>}>
+                                                    <Button variant="outline-secondary" onClick={() => copyToClipboard(user.email, 'email')} disabled={!user.email} style={{ borderColor: 'var(--border-color)' }}>
+                                                        {copiedField === 'email' ? <Check className="text-success"/> : <Clipboard/>}
+                                                    </Button>
+                                                </OverlayTrigger>
+                                            </InputGroup>
+                                        </Form.Group>
+                                    </Col>
 
-                                    <OverlayTrigger
-                                        placement="top"
-                                        overlay={<Tooltip>{copiedField === 'email' ? '¡Copiado!' : 'Copiar correo'}</Tooltip>}
-                                    >
-                                        <Button
-                                            variant={copiedField === 'email' ? 'success' : 'outline-secondary'}
-                                            size="sm"
-                                            className="border-0 ms-2"
-                                            onClick={() => copyToClipboard(user.email, 'email')}
-                                            disabled={!user.email}
-                                        >
-                                            {copiedField === 'email' ? <Check size={20}/> : <Clipboard size={18}/>}
-                                        </Button>
-                                    </OverlayTrigger>
-                                </div>
-                            </div>
-
-                            {/* PHONE SECTION */}
-                            <div className="p-3 border rounded transition-hover" style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)' }}>
-                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                    <div className="d-flex align-items-center gap-2">
-                                        <Phone className="text-success fs-5"/>
-                                        <span className="fw-bold text-uppercase small" style={{color: 'var(--text-muted)'}}>Teléfono</span>
-                                    </div>
-                                </div>
-
-                                <div className="d-flex align-items-center justify-content-between border rounded p-2 ps-3" style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)' }}>
-                                    <span className={`fw-medium ${!user.telefono ? 'text-muted fst-italic' : ''}`} style={{ color: 'var(--text-main)' }}>
-                                        {formatPhone(user.telefono)}
-                                    </span>
-
-                                    <OverlayTrigger
-                                        placement="top"
-                                        overlay={<Tooltip>{copiedField === 'phone' ? '¡Copiado!' : 'Copiar teléfono'}</Tooltip>}
-                                    >
-                                        <Button
-                                            variant={copiedField === 'phone' ? 'success' : 'outline-secondary'}
-                                            size="sm"
-                                            className="border-0 ms-2"
-                                            onClick={() => copyToClipboard(user.telefono, 'phone')}
-                                            disabled={!user.telefono}
-                                        >
-                                            {copiedField === 'phone' ? <Check size={20}/> : <Clipboard size={18}/>}
-                                        </Button>
-                                    </OverlayTrigger>
-                                </div>
-                            </div>
-
+                                    <Col md={6}>
+                                        <Form.Group>
+                                            <Form.Label className="small text-muted text-uppercase fw-bold">Teléfono</Form.Label>
+                                            <InputGroup>
+                                                <InputGroup.Text style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)' }}>
+                                                    <Phone className="text-success"/>
+                                                </InputGroup.Text>
+                                                <Form.Control
+                                                    type="text"
+                                                    value={formatPhone(user.telefono)}
+                                                    readOnly
+                                                    style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' }}
+                                                />
+                                                <OverlayTrigger placement="top" overlay={<Tooltip>{copiedField === 'phone' ? '¡Copiado!' : 'Copiar'}</Tooltip>}>
+                                                    <Button variant="outline-secondary" onClick={() => copyToClipboard(user.telefono, 'phone')} disabled={!user.telefono} style={{ borderColor: 'var(--border-color)' }}>
+                                                        {copiedField === 'phone' ? <Check className="text-success"/> : <Clipboard/>}
+                                                    </Button>
+                                                </OverlayTrigger>
+                                            </InputGroup>
+                                        </Form.Group>
+                                    </Col>
+                                </Row>
+                            </Form>
                         </Card.Body>
                     </Card>
                 </Col>

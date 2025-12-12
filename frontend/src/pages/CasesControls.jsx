@@ -13,7 +13,6 @@ import {
 import api from '../api/axios';
 import { formatRut } from '../utils/rutUtils';
 import { getPhoneConfig, COUNTRY_PHONE_DATA } from '../utils/phoneUtils';
-import './CasesControls.css';
 
 const CasesControls = () => {
     const [items, setItems] = useState([]);

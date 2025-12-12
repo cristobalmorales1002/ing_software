@@ -13,9 +13,21 @@
     --hover-bg: rgba(77, 168, 218, 0.1);
     --bg-form: #1e293b;
 
-    /* --- NUEVAS VARIABLES PARA EL LOGO --- */
-    --logo-bg: rgba(0, 0, 0, 0.2);          /* El oscuro original */
-    --logo-border: rgba(255, 255, 255, 0.05); /* Borde casi invisible */
+    /* Logo */
+    --logo-bg: rgba(0, 0, 0, 0.2);
+    --logo-border: rgba(255, 255, 255, 0.05);
+
+    /* --- COLOR UNIFICADO DE ROL (Cyan #06b6d4) --- */
+    --role-unified-bg: #06b6d4;
+    --role-unified-text: #ffffff;    /* Letras blancas */
+
+    /* Asignamos variables */
+    --role-admin-bg: var(--role-unified-bg);
+    --role-medico-bg: var(--role-unified-bg);
+    --role-investigador-bg: var(--role-unified-bg);
+    --role-estudiante-bg: var(--role-unified-bg);
+    --role-visualizador-bg: var(--role-unified-bg);
+    --role-text-color: var(--role-unified-text);
 }
 
 /* 2. MODO CLARO */
@@ -31,31 +43,52 @@
     --hover-bg: rgba(13, 110, 253, 0.1);
     --bg-form: #ffffff;
 
-    /* --- NUEVAS VARIABLES PARA EL LOGO (MODO CLARO) --- */
-    --logo-bg: #ffffff;       /* Blanco puro y limpio */
-    --logo-border: #dee2e6;   /* Borde gris suave para separar */
+    /* Logo */
+    --logo-bg: #ffffff;
+    --logo-border: #dee2e6;
+
+    /* --- COLOR UNIFICADO (Igual al oscuro) --- */
+    --role-unified-bg: #06b6d4;
+    --role-unified-text: #ffffff;
+
+    --role-admin-bg: var(--role-unified-bg);
+    --role-medico-bg: var(--role-unified-bg);
+    --role-investigador-bg: var(--role-unified-bg);
+    --role-estudiante-bg: var(--role-unified-bg);
+    --role-visualizador-bg: var(--role-unified-bg);
+    --role-text-color: var(--role-unified-text);
 }
 
 /* Transiciones suaves */
-body, .card, .sidebar, .form-control, table, .logo-container {
+body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* --- FIX PARA INTERRUPTORES (SWITCHES) EN MODO OSCURO --- */
+/* Switches */
 [data-theme="dark"] .form-check-input:checked {
-    background-color: var(--accent-color) !important; /* Celeste brillante */
+    background-color: var(--accent-color) !important;
     border-color: var(--accent-color) !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%230b1219'/%3e%3c/svg%3e") !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%230b1219'/%3e%3c/svg%3e");
 }
 
-[data-theme="dark"] .form-check-input:not(:checked) {
+/* Listas en Modales */
+.theme-option-list {
+    background-color: var(--bg-form) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px;
+    padding: 5px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.theme-option-list table,
+.theme-option-list tbody,
+.theme-option-list tr,
+.theme-option-list td {
     background-color: transparent !important;
-    border-color: var(--text-muted) !important; /* Borde gris claro visible */
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba(255,255,255,0.5)'/%3e%3c/svg%3e") !important;
-}
-
-/* Texto de los labels en el Offcanvas */
-[data-theme="dark"] .offcanvas-title,
-[data-theme="dark"] .offcanvas-body {
     color: var(--text-main) !important;
+    border: none !important;
+    --bs-table-bg: transparent !important;
+    --bs-table-color: var(--text-main) !important;
+    --bs-table-hover-bg: transparent !important;
 }

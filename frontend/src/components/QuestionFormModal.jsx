@@ -96,7 +96,8 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing, allQuest
 
     // --- Lógica Dicotomizaciones ---
     const addDicotomizacion = () => {
-        if (!newDicValue) return;
+        if (newDicValue === '' || newDicValue === null || newDicValue === undefined) return;
+
         const newDic = {
             id_dicotomizacion: null,
             valor: parseFloat(newDicValue),
@@ -247,7 +248,7 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing, allQuest
                         <Accordion.Header>
                             <span className="small text-muted fw-bold"><Diagram3 className="me-2" /> Lógica de Dependencia</span>
                         </Accordion.Header>
-                        <Accordion.Body className="bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded">
+                        <Accordion.Body className="bg-da bg-opacity-10 border border-secondary border-opacity-25 rounded">
                             <Row>
                                 <Col md={6}>
                                     <Form.Group>
@@ -295,12 +296,38 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing, allQuest
                 {/* SECCIÓN DICOTOMIZACIÓN */}
                 <Accordion className="mt-3 border-0">
                     <Accordion.Item eventKey="0" className="bg-transparent border-0">
-                        <Accordion.Header><span className="small text-muted fw-bold"><Scissors className="me-2" /> Dicotomización</span></Accordion.Header>
+                        <Accordion.Header>
+                            <span className="small text-muted fw-bold"><Scissors className="me-2" /> Dicotomización</span>
+                        </Accordion.Header>
                         <Accordion.Body className="bg-dark bg-opacity-10 border border-secondary border-opacity-25 rounded">
                             <Row className="align-items-end mb-3">
                                 <Col>
                                     <Form.Label className="small">Valor de corte</Form.Label>
-                                    <Form.Control type="number" placeholder="Ej: 4.5" value={newDicValue} onChange={e => setNewDicValue(e.target.value)} size="sm" />
+                                    {/* --- CAMBIO: Renderizado condicional según tipo de dato --- */}
+                                    {form.tipo_dato === 'ENUM' ? (
+                                        <Form.Select
+                                            value={newDicValue}
+                                            onChange={e => setNewDicValue(e.target.value)}
+                                            size="sm"
+                                            disabled={form.opciones.length === 0}
+                                        >
+                                            <option value="">-- Seleccione opción --</option>
+                                            {form.opciones.map((opt, idx) => (
+                                                // El value será el índice (0, 1, 2...) que representa el valor numérico
+                                                <option key={idx} value={idx}>
+                                                    {opt}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    ) : (
+                                        <Form.Control
+                                            type="number"
+                                            placeholder="Ej: 4.5"
+                                            value={newDicValue}
+                                            onChange={e => setNewDicValue(e.target.value)}
+                                            size="sm"
+                                        />
+                                    )}
                                 </Col>
                                 <Col>
                                     <Form.Label className="small">Condición</Form.Label>

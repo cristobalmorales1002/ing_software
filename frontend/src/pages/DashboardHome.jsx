@@ -256,7 +256,7 @@ const DashboardHome = () => {
     if (loading) return <div className="text-center py-5"><Spinner animation="border" variant="primary"/></div>;
 
     return (
-        <Container fluid className="p-0" style={{ minHeight: '100%' }}>
+        <Container fluid className="p-4" style={{ minHeight: '100%' }}>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="mb-0">DASHBOARD GENERAL</h2>
                 {updating && <Spinner animation="border" size="sm" className="text-primary" />}

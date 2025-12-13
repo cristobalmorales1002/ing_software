@@ -128,7 +128,7 @@ const AuditLog = () => {
     };
 
     return (
-        <Container fluid className="p-0 d-flex flex-column" style={{height: 'calc(100vh - 100px)'}}>
+        <Container fluid className="p-4 d-flex flex-column" style={{height: 'calc(100vh - 100px)'}}>
             <Row className="mb-4 align-items-center flex-shrink-0">
                 <Col md={4}><h2 className="mb-0">REGISTRO DE AUDITORÍA</h2></Col>
                 <Col md={8} className="d-flex justify-content-end gap-3 align-items-center">

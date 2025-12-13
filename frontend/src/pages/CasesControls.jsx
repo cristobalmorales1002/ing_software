@@ -511,7 +511,7 @@ const CasesControls = () => {
         /* Altura fija y overflow hidden al contenedor padre */
         <Container
             fluid
-            className="p-0 page-container-fixed d-flex flex-column"
+            className="p-4 page-container-fixed d-flex flex-column"
             style={{ height: 'calc(100vh - 60px)', overflow: 'hidden' }}
         >
             <style type="text/css">{`

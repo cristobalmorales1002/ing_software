@@ -376,41 +376,44 @@ const Messages = () => {
     };
 
     return (
-        <Container fluid className="p-0 h-100 position-relative">
-            <Row className="g-0 h-100">
-                <Col md={3} lg={2} className="border-end p-3 d-flex flex-column" style={{ minHeight: '80vh' }}>
-                    <Button
-                        variant="primary"
-                        className="mb-4 shadow-sm w-100 d-flex align-items-center justify-content-center gap-2"
-                        onClick={() => { resetComposeForm(); setShowCompose(true); }}
-                    >
-                        <PlusLg /> Redactar
-                    </Button>
-                    <ListGroup variant="flush" className="bg-transparent">
-                        <ListGroup.Item
-                            action
-                            active={activeTab === 'inbox'}
-                            onClick={() => setActiveTab('inbox')}
-                            className="d-flex justify-content-between align-items-center border-0 rounded mb-1"
+        <Container fluid className="p-0 d-flex flex-column" style={{ height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
+            <Row className="g-0 flex-grow-1 h-100">
+                <Col md={3} lg={2} className="border-end border-bottom d-flex flex-column h-100 p-0">
+
+                    {/* Agregamos un contenedor interno con el padding para los botones */}
+                    <div className="px-3 pb-3 pt-5 w-100">
+                        <Button
+                            variant="primary"
+                            className="mb-4 shadow-sm w-100 d-flex align-items-center justify-content-center gap-2"
+                            onClick={() => { resetComposeForm(); setShowCompose(true); }}
                         >
-                            <span><Inbox className="me-2"/> Recibidos</span>
-                            {unreadCount > 0 && (
-                                <Badge bg="danger" pill>{unreadCount}</Badge>
-                            )}
-                        </ListGroup.Item>
-                        <ListGroup.Item
-                            action
-                            active={activeTab === 'sent'}
-                            onClick={() => setActiveTab('sent')}
-                            className="border-0 rounded mb-1"
-                        >
-                            <Send size={24} className="me-2"/> Enviados
-                        </ListGroup.Item>
-                    </ListGroup>
+                            <PlusLg /> Redactar
+                        </Button>
+                        <ListGroup variant="flush" className="bg-transparent">
+                            <ListGroup.Item
+                                action
+                                active={activeTab === 'inbox'}
+                                onClick={() => setActiveTab('inbox')}
+                                className="d-flex justify-content-between align-items-center border-0 rounded mb-1"
+                            >
+                                <span><Inbox className="me-2"/> Recibidos</span>
+                                {unreadCount > 0 && (
+                                    <Badge bg="danger" pill>{unreadCount}</Badge>
+                                )}
+                            </ListGroup.Item>
+                            <ListGroup.Item
+                                action
+                                active={activeTab === 'sent'}
+                                onClick={() => setActiveTab('sent')}
+                                className="border-0 rounded mb-1"
+                            >
+                                <Send size={24} className="me-2"/> Enviados
+                            </ListGroup.Item>
+                        </ListGroup>
+                    </div>
                 </Col>
 
-                <Col md={9} lg={10} className="p-4 d-flex flex-column" style={{ backgroundColor: 'var(--bg-main)', height: '100vh', maxHeight: '100vh', overflow: 'hidden' }}>
-
+                <Col md={9} lg={10} className="px-4 pt-4 pb-0 d-flex flex-column h-100" style={{ backgroundColor: 'var(--bg-main)', overflow: 'hidden' }}>
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 flex-shrink-0">
                         <h4 className="mb-0 ">
                             {activeTab === 'inbox' ? 'BANDEJA DE ENTRADA' : 'MENSAJES ENVIADOS'}
@@ -449,10 +452,11 @@ const Messages = () => {
                         </div>
                     </div>
 
-                    <div className="flex-grow-1 overflow-auto rounded border"
+                    <div className="flex-grow-1 overflow-auto rounded border d-flex flex-column"
                          style={{
-                             borderColor: 'var(--border-color)',
-                             backgroundColor: 'var(--bg-card)'
+                             backgroundColor: 'var(--bg-card)',
+                             scrollBehavior: 'smooth',
+                             marginBottom: '0'
                          }}>
 
                         <ListGroup variant="flush">

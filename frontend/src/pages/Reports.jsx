@@ -48,7 +48,7 @@ const Reports = () => {
     const isAdmin = hasRole(['ROLE_ADMIN']);
 
     return (
-        <Container fluid className="p-0">
+        <Container fluid className="p-4">
             <h2 className="mb-4 text-center">CENTRO DE DOCUMENTOS</h2>
 
             {error && <Alert variant="danger" onClose={() => setError(null)} dismissible>{error}</Alert>}

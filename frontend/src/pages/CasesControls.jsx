@@ -108,7 +108,20 @@ const CasesControls = () => {
     };
 
     const handleOpenMuestraModal = () => {
-        setFormMuestraData({});
+        const dataPrevia = {};
+
+        // Recorremos la configuración de los genes (que tiene los IDs necesarios para el input)
+        muestraGenesConfig.forEach(config => {
+            // Buscamos si ya existe un análisis para este gen comparando el nombre
+            const resultadoExistente = analisisGenetico.find(a => a.nombreGen === config.nombreGen);
+
+            // Si hay resultado, lo asignamos al estado del formulario usando el ID del SNP
+            if (resultadoExistente && resultadoExistente.resultadoPaciente) {
+                dataPrevia[config.id_snp] = resultadoExistente.resultadoPaciente;
+            }
+        });
+
+        setFormMuestraData(dataPrevia);
         setShowMuestraModal(true);
     };
 
@@ -707,18 +720,21 @@ const CasesControls = () => {
                                                                         <tr key={idx}>
                                                                             <td className="ps-4 fw-bold text-secondary">{row.nombreGen}</td>
                                                                             <td className="text-center">
-                                                                                {/* CORRECCIÓN: Badge neutral */}
-                                                                                <Badge bg="secondary" className="border border-secondary border-opacity-25 px-3 py-2">{row.resultadoPaciente}</Badge>
+                                                                                <Badge bg="light" text="dark" className="border px-3 py-2">{row.resultadoPaciente}</Badge>
                                                                             </td>
+
+                                                                            {/* MODELO DOMINANTE */}
                                                                             <td>
                                                                                 {row.interpretacionDominante && row.interpretacionDominante.startsWith("Grupo Riesgo") ?
-                                                                                    <Badge bg="danger" className="bg-opacity-75">RIESGO (Portador)</Badge> :
-                                                                                    <span className="text-muted small">{row.interpretacionDominante}</span>}
+                                                                                    <Badge bg="warning" text="dark">RIESGO</Badge> :
+                                                                                    <Badge bg="success">SIN RIESGO</Badge>}
                                                                             </td>
+
+                                                                            {/* MODELO RECESIVO */}
                                                                             <td>
                                                                                 {row.interpretacionRecesivo && row.interpretacionRecesivo.startsWith("Grupo Riesgo") ?
                                                                                     <Badge bg="danger">ALTO RIESGO</Badge> :
-                                                                                    <span className="text-success small fw-bold">Bajo Riesgo</span>}
+                                                                                    <span className="text-success fw-bold small">BAJO RIESGO</span>}
                                                                             </td>
                                                                         </tr>
                                                                     ))}
@@ -863,7 +879,7 @@ const CasesControls = () => {
                                     onChange={(e) => handleMuestraChange(gen.id_snp, e.target.value)}
                                     aria-label={`Selección para ${gen.nombreGen}`}
                                 >
-                                    <option value="">Seleccionar opción...</option>
+                                    <option value="">-- Seleccionar --</option>
                                     {[gen.opcion1, gen.opcion2, gen.opcion3].filter(Boolean).map(op => (
                                         <option key={op} value={op}>
                                             {op}

@@ -188,7 +188,7 @@ const Messages = () => {
     };
 
     const handleSendMessage = async () => {
-        if (selectedRecipients.length === 0 || !newMessage.subject) return;
+        if (selectedRecipients.length === 0 || !newMessage.subject || !newMessage.body) return;
         setIsSending(true);
 
         const payload = {
@@ -412,7 +412,7 @@ const Messages = () => {
                 <Col md={9} lg={10} className="p-4 d-flex flex-column" style={{ backgroundColor: 'var(--bg-main)', height: '100vh', maxHeight: '100vh', overflow: 'hidden' }}>
 
                     <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3 flex-shrink-0">
-                        <h4 className="mb-0 text-secondary">
+                        <h4 className="mb-0 ">
                             {activeTab === 'inbox' ? 'BANDEJA DE ENTRADA' : 'MENSAJES ENVIADOS'}
                         </h4>
                         <div className="d-flex flex-wrap gap-3 align-items-center justify-content-end">
@@ -686,8 +686,7 @@ const Messages = () => {
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="outline-secondary" className="btn-trash-custom" onClick={() => setShowCompose(false)}><Trash/></Button>
-                    <Button variant="primary" onClick={handleSendMessage} disabled={selectedRecipients.length === 0 || !newMessage.subject || isSending}>
+                    <Button variant="primary" onClick={handleSendMessage} disabled={selectedRecipients.length === 0 || !newMessage.subject || !newMessage.body || isSending}>
                         {isSending ? <Spinner size="sm" animation="border" className="me-2"/> : <Send className="me-2"/>}
                         Enviar mensaje
                     </Button>

@@ -170,7 +170,7 @@ const DashboardHome = () => {
 
         if (min === max) return rawData;
 
-        const step = (max - min) / bins;
+        const step = Math.ceil((max - min) / bins);
         const groups = [];
 
         for (let i = 0; i < bins; i++) {

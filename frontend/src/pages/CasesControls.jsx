@@ -659,7 +659,7 @@ const CasesControls = () => {
                                     </Tab>
 
                                     {/* TAB 2: Muestra (Sin cambios) */}
-                                    <Tab eventKey="muestra" title="Muestras Biológicas" className="h-100 overflow-hidden">
+                                    <Tab eventKey="muestra" title="Muestras biológicas" className="h-100 overflow-hidden">
                                         <div className="h-100 overflow-auto p-4">
                                             {loadingAnalisis ? <div className="text-center py-5"><Spinner animation="border" /></div> : (
                                                 <>
@@ -669,7 +669,7 @@ const CasesControls = () => {
                                                                 {/* Izquierda: Título */}
                                                                 {/* CAMBIO: var(--text-main) */}
                                                                 <h5 className="mb-0" style={{ color: 'var(--text-main)' }}>
-                                                                    <Activity className="me-2"/>Análisis Genético
+                                                                    <Activity className="me-2"/>Análisis genético
                                                                 </h5>
 
                                                                 {/* Derecha: Grupo de Botones */}
@@ -848,21 +848,29 @@ const CasesControls = () => {
 
             {/* --- MODAL DE MUESTRAS --- */}
             <Modal show={showMuestraModal} onHide={() => setShowMuestraModal(false)} centered backdrop="static">
-                <Modal.Header closeButton><Modal.Title><Activity className="me-2"/> Registro de Muestras</Modal.Title></Modal.Header>
+                <Modal.Header closeButton>
+                    <Modal.Title><Activity className="me-2"/> Registro de muestras</Modal.Title>
+                </Modal.Header>
                 <Modal.Body className="p-4">
                     <Form>
                         {muestraGenesConfig.map(gen => (
-                            <Form.Group key={gen.id_snp} className="mb-3 border-bottom pb-2">
+                            <Form.Group key={gen.id_snp} className="mb-1 pb-2">
                                 <Form.Label className="fw-bold text-secondary">{gen.nombreGen}</Form.Label>
-                                <div className="d-flex gap-3">
+
+                                {/* Cambio: Uso de Form.Select en lugar de Radio Buttons */}
+                                <Form.Select
+                                    value={formMuestraData[gen.id_snp] || ""}
+                                    onChange={(e) => handleMuestraChange(gen.id_snp, e.target.value)}
+                                    aria-label={`Selección para ${gen.nombreGen}`}
+                                >
+                                    <option value="">Seleccionar opción...</option>
                                     {[gen.opcion1, gen.opcion2, gen.opcion3].filter(Boolean).map(op => (
-                                        <Form.Check
-                                            key={op} type="radio" label={op} name={`gen-${gen.id_snp}`}
-                                            checked={formMuestraData[gen.id_snp] === op}
-                                            onChange={() => handleMuestraChange(gen.id_snp, op)}
-                                        />
+                                        <option key={op} value={op}>
+                                            {op}
+                                        </option>
                                     ))}
-                                </div>
+                                </Form.Select>
+
                             </Form.Group>
                         ))}
                     </Form>
@@ -880,7 +888,7 @@ const CasesControls = () => {
             <Modal show={showConfigModal} onHide={() => setShowConfigModal(false)} size="lg" centered>
                 <Modal.Header closeButton className="bg-transparent">
                     <Modal.Title className="d-flex align-items-center gap-2">
-                        <Gear /> Configuración de Riesgo Genético
+                        <Gear /> Configuración de riesgo genético
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-0">
@@ -888,7 +896,7 @@ const CasesControls = () => {
                         <div className="alert alert-info border-0 d-flex align-items-center small m-0">
                             <ExclamationCircle className="me-2 fs-5"/>
                             <div>
-                                Defina el <strong>Alelo de Riesgo</strong> (la variante "mala"). El sistema usará esto para calcular automáticamente los grupos Dominante y Recesivo.
+                                Defina el <strong>alelo de riesgo</strong>. El sistema usará esto para calcular automáticamente los grupos dominante y recesivo.
                             </div>
                         </div>
                     </div>
@@ -899,7 +907,6 @@ const CasesControls = () => {
                             <th className="ps-4 py-3 border-0">Gen / SNP</th>
                             <th className="py-3 border-0">Genotipos</th>
                             <th className="py-3 border-0" style={{width:'30%'}}>Alelo de Riesgo</th>
-                            <th className="pe-4 py-3 border-0 text-end">Estado</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -932,12 +939,6 @@ const CasesControls = () => {
                                                     <option key={letra} value={letra}>Alelo "{letra}"</option>
                                                 ))}
                                             </Form.Select>
-                                        </td>
-                                        <td className="text-end pe-4">
-                                            {savingConfigId === conf.id_snp ?
-                                                <Spinner size="sm" animation="border" variant="primary"/> :
-                                                (seleccionado ? <Badge bg="success" className="opacity-75">OK</Badge> : <Badge bg="warning" text="dark">Pendiente</Badge>)
-                                            }
                                         </td>
                                     </tr>
                                 );

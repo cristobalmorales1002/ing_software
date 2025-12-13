@@ -62,160 +62,160 @@ public class InicializadorAdmin implements CommandLineRunner {
 
         // --- 1. IDENTIFICACIÓN ---
         Categoria c1 = crearCategoria("1. Identificación del participante", 1);
-        crearPregunta(c1, "Nombre completo", "Nombre", TipoDato.TEXTO, 1, false, false);
-        crearPregunta(c1, "Teléfono", "Telefono", TipoDato.CELULAR, 2, false, false);
-        crearPregunta(c1, "Correo electrónico", "Email", TipoDato.EMAIL, 3, false, false);
+        crearPregunta(c1, "Nombre completo", "Nombre", TipoDato.TEXTO, 1, false, false, false);
+        crearPregunta(c1, "Teléfono", "Telefono", TipoDato.CELULAR, 2, false, false, false);
+        crearPregunta(c1, "Correo electrónico", "Email", TipoDato.EMAIL, 3, false, false, false);
 
         // --- 2. DATOS SOCIODEMOGRÁFICOS ---
         Categoria c2 = crearCategoria("2. Datos sociodemográficos", 2);
-        crearPregunta(c2, "Edad", "Edad", TipoDato.NUMERO, 1, true, true, 50.0, 60.0);
-        crearPregunta(c2, "Sexo", "Sexo", TipoDato.ENUM, 2, true, true, List.of("Hombre", "Mujer"));
-        crearPregunta(c2, "Nacionalidad", "Nacionalidad", TipoDato.TEXTO, 3, false, false);
-        crearPregunta(c2, "Dirección", "Direccion", TipoDato.TEXTO, 4, false, false);
-        crearPregunta(c2, "Comuna", "Comuna", TipoDato.TEXTO, 5, false, false);
-        crearPregunta(c2, "Ciudad", "Ciudad", TipoDato.TEXTO, 6, false, false);
-        crearPregunta(c2, "Zona", "Zona", TipoDato.ENUM, 7, true, true, List.of("Urbana", "Rural"));
-        crearPregunta(c2, "¿Vive usted en esta zona desde hace más de 5 años?", "Residencia_Urbana5", TipoDato.ENUM, 8, true, true, siNo);
-        crearPregunta(c2, "Nivel educacional", "NivelEduc", TipoDato.ENUM, 9, true, true,
+        crearPregunta(c2, "Edad", "Edad", TipoDato.NUMERO, 1, true, true, false, 50.0, 60.0);
+        crearPregunta(c2, "Sexo", "Sexo", TipoDato.ENUM, 2, true, true, false, List.of("Hombre", "Mujer"));
+        crearPregunta(c2, "Nacionalidad", "Nacionalidad", TipoDato.TEXTO, 3, false, false, false);
+        crearPregunta(c2, "Dirección", "Direccion", TipoDato.TEXTO, 4, false, false, false);
+        crearPregunta(c2, "Comuna", "Comuna", TipoDato.TEXTO, 5, false, false, false);
+        crearPregunta(c2, "Ciudad", "Ciudad", TipoDato.TEXTO, 6, false, false, false);
+        crearPregunta(c2, "Zona", "Zona", TipoDato.ENUM, 7, true, true, false, List.of("Urbana", "Rural"));
+        crearPregunta(c2, "¿Vive usted en esta zona desde hace más de 5 años?", "Residencia_Urbana5", TipoDato.ENUM, 8, true, true, false, siNo);
+        crearPregunta(c2, "Nivel educacional", "NivelEduc", TipoDato.ENUM, 9, true, true, false,
                 List.of("Básico", "Medio", "Superior"), 1.0, 2.0);
-        crearPregunta(c2, "Ocupación actual", "Ocupacion", TipoDato.TEXTO, 10, false, false);
-        crearPregunta(c2, "Previsión de salud actual", "Prevision_FonasaVsOtros", TipoDato.ENUM, 11, true, true,
+        crearPregunta(c2, "Ocupación actual", "Ocupacion", TipoDato.TEXTO, 10, false, false, false);
+        crearPregunta(c2, "Previsión de salud actual", "Prevision_FonasaVsOtros", TipoDato.ENUM, 11, true, true, false,
                 List.of("Fonasa", "Isapre", "Capredena / Dipreca", "Sin previsión", "Otra"), 2.0);
 
         // --- 3. ANTECEDENTES CLÍNICOS ---
         Categoria c3 = crearCategoria("3. Antecedentes clínicos", 3);
         crearPregunta(c3, "Diagnóstico histológico de adenocarcinoma gástrico (solo casos)", "Diag_Adenocarcinoma",
-                TipoDato.ENUM, 1, false, false, siNo);
-        crearPregunta(c3, "Fecha de diagnóstico (solo casos)", "Fecha_Diag", TipoDato.TEXTO, 2, false, false);
+                TipoDato.ENUM, 1, false, false, true, siNo);
+        crearPregunta(c3, "Fecha de diagnóstico (solo casos)", "Fecha_Diag", TipoDato.TEXTO, 2, false, false, true);
 
-        Pregunta caGastrico = crearPregunta(c3, "Antecedentes familiares de cáncer gástrico", "CA_FamiliaGastrico", TipoDato.ENUM, 3, true, true, siNo);
+        Pregunta caGastrico = crearPregunta(c3, "Antecedentes familiares de cáncer gástrico", "CA_FamiliaGastrico", TipoDato.ENUM, 3, true, true, false, siNo);
 
         Pregunta caOtros = crearPreguntaConDependencia(c3, "Antecedentes familiares de otros tipos de cáncer", "CA_FamiliaOtros",
-                TipoDato.ENUM, 4, true, true, siNo,
+                TipoDato.ENUM, 4, true, true, false, siNo,
                 caGastrico, "Sí", "OCULTAR");
 
-        crearPreguntaConDependencia(c3, "¿Cuál(es)? (Otros cánceres)", "CA_FamiliaOtros_Detalle", TipoDato.TEXTO, 5, false, false, null,
+        crearPreguntaConDependencia(c3, "¿Cuál(es)? (Otros cánceres)", "CA_FamiliaOtros_Detalle", TipoDato.TEXTO, 5, false, false, false, null,
                 caOtros, "Sí", "OCULTAR");
 
-        crearPregunta(c3, "Otras enfermedades relevantes (ej. gastritis crónica, úlcera péptica, anemia)", "EnfermedadesRelevantes", TipoDato.TEXTO, 6, false, false);
+        crearPregunta(c3, "Otras enfermedades relevantes (ej. gastritis crónica, úlcera péptica, anemia)", "EnfermedadesRelevantes", TipoDato.TEXTO, 6, false, false, false);
 
         Pregunta usoMeds = crearPregunta(c3, "Uso crónico de medicamentos gastrolesivos (AINES u otros)", "UsoCronico_Medicamentos",
-                TipoDato.ENUM, 7, true, true, siNo);
+                TipoDato.ENUM, 7, true, true, false, siNo);
 
-        crearPreguntaConDependencia(c3, "Especificar cuál (Medicamentos)", "UsoCronico_Detalle", TipoDato.TEXTO, 8, false, false, null,
+        crearPreguntaConDependencia(c3, "Especificar cuál (Medicamentos)", "UsoCronico_Detalle", TipoDato.TEXTO, 8, false, false, false, null,
                 usoMeds, "Sí", "OCULTAR");
 
-        crearPregunta(c3, "Cirugía gástrica previa (gastrectomía parcial)", "CirugiaGastricaPrevia", TipoDato.ENUM, 9, true, true, siNo);
+        crearPregunta(c3, "Cirugía gástrica previa (gastrectomía parcial)", "CirugiaGastricaPrevia", TipoDato.ENUM, 9, true, true, false, siNo);
 
         // --- 4. VARIABLES ANTROPOMÉTRICAS ---
         Categoria c4 = crearCategoria("4. Variables antropométricas", 4);
-        crearPregunta(c4, "Peso (kg)", "Peso", TipoDato.NUMERO, 1, true, true);
-        crearPregunta(c4, "Estatura (m)", "Estatura", TipoDato.NUMERO, 2, true, true);
-        crearPregunta(c4, "Índice de masa corporal (IMC)", "IMC", TipoDato.NUMERO, 3, true, true, 25.0);
+        crearPregunta(c4, "Peso (kg)", "Peso", TipoDato.NUMERO, 1, true, true, false);
+        crearPregunta(c4, "Estatura (m)", "Estatura", TipoDato.NUMERO, 2, true, true, false);
+        crearPregunta(c4, "Índice de masa corporal (IMC)", "IMC", TipoDato.NUMERO, 3, true, true, false, 25.0);
 
         // --- 5. TABAQUISMO (MODIFICADO) ---
         Categoria c5 = crearCategoria("5. Tabaquismo", 5);
 
-        Pregunta estadoTabaco = crearPregunta(c5, "Estado de tabaquismo", "tabaco_estado", TipoDato.ENUM, 1, true, true,
+        Pregunta estadoTabaco = crearPregunta(c5, "Estado de tabaquismo", "tabaco_estado", TipoDato.ENUM, 1, true, true, false,
                 List.of("Nunca fumó (menos de 100 cigarrillos en la vida)", "Exfumador", "Fumador actual"));
 
         // AHORA APARECE SI ES FUMADOR ACTUAL O EXFUMADOR
         crearPreguntaConDependencia(c5, "Cantidad promedio fumada", "tabaco_cantidad",
-                TipoDato.ENUM, 2, true, true,
+                TipoDato.ENUM, 2, true, true, false,
                 List.of("1–9 cigarrillos/día (poco)", "10–19 cigarrillos/día (moderado)", "≥20 cigarrillos/día (mucho)"),
                 estadoTabaco, "Fumador actual|Exfumador", "OCULTAR");
 
         crearPreguntaConDependencia(c5, "Tiempo total fumando", "tabaco_tiempo_total",
-                TipoDato.ENUM, 3, true, true,
+                TipoDato.ENUM, 3, true, true, false,
                 List.of("<10 años", "10–20 años", ">20 años"),
                 estadoTabaco, "Fumador actual|Exfumador", "OCULTAR");
 
         // ESTA SIGUE SOLO PARA EXFUMADOR
         crearPreguntaConDependencia(c5, "Si exfumador: tiempo desde que dejó de fumar",
-                "tabaco_exfumador_tiempo", TipoDato.ENUM, 4, true, true,
+                "tabaco_exfumador_tiempo", TipoDato.ENUM, 4, true, true, false,
                 List.of("<5 años", "5–10 años", ">10 años"),
                 estadoTabaco, "Exfumador", "OCULTAR");
 
         // --- 6. CONSUMO DE ALCOHOL (MODIFICADO) ---
         Categoria c6 = crearCategoria("6. Consumo de alcohol", 6);
 
-        Pregunta estadoAlcohol = crearPregunta(c6, "Estado de consumo", "alcohol_estado", TipoDato.ENUM, 1, true, true,
+        Pregunta estadoAlcohol = crearPregunta(c6, "Estado de consumo", "alcohol_estado", TipoDato.ENUM, 1, true, true, false,
                 List.of("Nunca", "Exconsumidor", "Consumidor actual"));
 
         // AHORA APARECE SI ES CONSUMIDOR ACTUAL O EXCONSUMIDOR
-        crearPreguntaConDependencia(c6, "Frecuencia", "alcohol_frecuencia", TipoDato.ENUM, 2, true, true,
+        crearPreguntaConDependencia(c6, "Frecuencia", "alcohol_frecuencia", TipoDato.ENUM, 2, true, true, false,
                 List.of("Ocasional (menos de 1 vez/semana)", "Regular (1–3 veces/semana)", "Frecuente (≥4 veces/semana)"),
                 estadoAlcohol, "Consumidor actual|Exconsumidor", "OCULTAR");
 
-        crearPreguntaConDependencia(c6, "Cantidad típica por ocasión", "alcohol_cantidad", TipoDato.ENUM, 3, true, true,
+        crearPreguntaConDependencia(c6, "Cantidad típica por ocasión", "alcohol_cantidad", TipoDato.ENUM, 3, true, true, false,
                 List.of("1–2 tragos (poco)", "3–4 tragos (moderado)", "≥5 tragos (mucho)"),
                 estadoAlcohol, "Consumidor actual|Exconsumidor", "OCULTAR");
 
-        crearPreguntaConDependencia(c6, "Años de consumo habitual", "alcohol_tiempo_total", TipoDato.ENUM, 4, true, true,
+        crearPreguntaConDependencia(c6, "Años de consumo habitual", "alcohol_tiempo_total", TipoDato.ENUM, 4, true, true, false,
                 List.of("<10 años", "10–20 años", ">20 años"),
                 estadoAlcohol, "Consumidor actual|Exconsumidor", "OCULTAR");
 
         // ESTA SIGUE SOLO PARA EXCONSUMIDOR
         crearPreguntaConDependencia(c6, "Si exconsumidor: tiempo desde que dejó de beber regularmente",
-                "alcohol_exconsumidor_tiempo", TipoDato.ENUM, 5, true, true,
+                "alcohol_exconsumidor_tiempo", TipoDato.ENUM, 5, true, true, false,
                 List.of("<5 años", "5–10 años", ">10 años"),
                 estadoAlcohol, "Exconsumidor", "OCULTAR");
 
         // --- 7. FACTORES DIETARIOS Y AMBIENTALES ---
         Categoria c7 = crearCategoria("7. Factores dietarios y ambientales", 7);
-        crearPregunta(c7, "Consumo de carnes procesadas/cecinas", "diet_carnes", TipoDato.ENUM, 1, true, true,
+        crearPregunta(c7, "Consumo de carnes procesadas/cecinas", "diet_carnes", TipoDato.ENUM, 1, true, true, false,
                 List.of("≤1/sem", "2/sem", "≥3/sem"));
-        crearPregunta(c7, "Consumo de alimentos muy salados", "diet_sal", TipoDato.ENUM, 2, true, true, siNo);
+        crearPregunta(c7, "Consumo de alimentos muy salados", "diet_sal", TipoDato.ENUM, 2, true, true, false, siNo);
         crearPregunta(c7, "Consumo de porciones de frutas y verduras frescas", "diet_frutas_verduras",
-                TipoDato.ENUM, 3, true, true, List.of("≥5 porciones/día", "3–4 porciones/día", "≤2 porciones/día"));
+                TipoDato.ENUM, 3, true, true, false, List.of("≥5 porciones/día", "3–4 porciones/día", "≤2 porciones/día"));
         crearPregunta(c7, "Consumo frecuente de frituras (≥3 veces por semana)", "diet_frituras",
-                TipoDato.ENUM, 4, true, true, siNo);
+                TipoDato.ENUM, 4, true, true, false, siNo);
         crearPregunta(c7, "Consumo de alimentos muy condimentados", "diet_condimentos",
-                TipoDato.ENUM, 5, true, true, List.of("Casi nunca / Rara vez", "1 a 2 veces por semana", "3 o más veces por semana"));
+                TipoDato.ENUM, 5, true, true, false, List.of("Casi nunca / Rara vez", "1 a 2 veces por semana", "3 o más veces por semana"));
         crearPregunta(c7, "Consumo de infusiones o bebidas muy calientes", "diet_bebidas_calientes",
-                TipoDato.ENUM, 6, true, true, List.of("Nunca/Rara vez", "1–2/sem", "≥3/sem"));
-        crearPregunta(c7, "Exposición ocupacional a pesticidas", "amb_pesticidas", TipoDato.ENUM, 7, true, true, siNo);
+                TipoDato.ENUM, 6, true, true, false, List.of("Nunca/Rara vez", "1–2/sem", "≥3/sem"));
+        crearPregunta(c7, "Exposición ocupacional a pesticidas", "amb_pesticidas", TipoDato.ENUM, 7, true, true, false, siNo);
 
-        Pregunta expoQuimicos = crearPregunta(c7, "Exposición a otros compuestos químicos", "amb_quimicos", TipoDato.ENUM, 8, true, true, siNo);
-        crearPreguntaConDependencia(c7, "¿Cuál(es)? (Químicos)", "amb_quimicos_detalle", TipoDato.TEXTO, 9, false, false, null, expoQuimicos, "Sí", "OCULTAR");
+        Pregunta expoQuimicos = crearPregunta(c7, "Exposición a otros compuestos químicos", "amb_quimicos", TipoDato.ENUM, 8, true, true, false, siNo);
+        crearPreguntaConDependencia(c7, "¿Cuál(es)? (Químicos)", "amb_quimicos_detalle", TipoDato.TEXTO, 9, false, false, false, null, expoQuimicos, "Sí", "OCULTAR");
 
-        crearPregunta(c7, "Humo de leña en el hogar", "amb_lena", TipoDato.ENUM, 10, true, true,
+        crearPregunta(c7, "Humo de leña en el hogar", "amb_lena", TipoDato.ENUM, 10, true, true, false,
                 List.of("Nunca/Rara vez", "Estacional", "Diario"));
-        crearPregunta(c7, "Fuente principal de agua en el hogar", "amb_agua_fuente", TipoDato.ENUM, 11, true, true,
+        crearPregunta(c7, "Fuente principal de agua en el hogar", "amb_agua_fuente", TipoDato.ENUM, 11, true, true, false,
                 List.of("Red pública", "Pozo", "Camión aljibe", "Otra"));
-        crearPregunta(c7, "Tratamiento del agua en casa", "amb_agua_tratamiento", TipoDato.ENUM, 12, true, true,
+        crearPregunta(c7, "Tratamiento del agua en casa", "amb_agua_tratamiento", TipoDato.ENUM, 12, true, true, false,
                 List.of("Ninguno", "Hervir", "Filtro", "Cloro"));
 
         // --- 8. H. PYLORI (MODIFICADO) ---
         Categoria c8 = crearCategoria("8. Infección por Helicobacter pylori", 8);
-        Pregunta hpResultado = crearPregunta(c8, "Resultado del examen para Helicobacter pylori", "hp_resultado", TipoDato.ENUM, 1, true, true,
+        Pregunta hpResultado = crearPregunta(c8, "Resultado del examen para Helicobacter pylori", "hp_resultado", TipoDato.ENUM, 1, true, true, false,
                 List.of("Positivo", "Negativo", "Desconocido"));
 
         // AHORA APARECE SI ES NEGATIVO O DESCONOCIDO
         crearPreguntaConDependencia(c8, "¿Ha tenido alguna vez un resultado POSITIVO para H. pylori en el pasado?", "hp_pasado_positivo",
-                TipoDato.ENUM, 2, true, true, siNoRecuerda,
+                TipoDato.ENUM, 2, true, true, false, siNoRecuerda,
                 hpResultado, "Negativo|Desconocido", "OCULTAR");
 
         crearPreguntaConDependencia(c8, "¿Recibió tratamiento para erradicación de H. pylori?", "hp_tratamiento",
-                TipoDato.ENUM, 3, true, true, siNoRecuerda,
+                TipoDato.ENUM, 3, true, true, false, siNoRecuerda,
                 hpResultado, "Negativo|Desconocido", "OCULTAR");
 
-        crearPregunta(c8, "Tipo de examen realizado", "hp_tipo_examen", TipoDato.ENUM, 4, true, true,
+        crearPregunta(c8, "Tipo de examen realizado", "hp_tipo_examen", TipoDato.ENUM, 4, true, true, false,
                 List.of("Test de aliento", "Antígeno en deposiciones", "Serología (IgG)", "Test rápido", "Histología", "Otro"));
-        crearPregunta(c8, "¿Hace cuánto tiempo se realizó el test?", "hp_tiempo_test", TipoDato.ENUM, 5, true, true,
+        crearPregunta(c8, "¿Hace cuánto tiempo se realizó el test?", "hp_tiempo_test", TipoDato.ENUM, 5, true, true, false,
                 List.of("<1 año", "1–5 años", ">5 años"));
         crearPregunta(c8, "Uso de antibióticos o IBP en las 4 semanas previas al examen", "hp_uso_ibp",
-                TipoDato.ENUM, 6, true, true, siNoRecuerda);
-        crearPregunta(c8, "¿Ha repetido el examen posteriormente?", "hp_repetido", TipoDato.ENUM, 7, true, true, siNo);
+                TipoDato.ENUM, 6, true, true, false, siNoRecuerda);
+        crearPregunta(c8, "¿Ha repetido el examen posteriormente?", "hp_repetido", TipoDato.ENUM, 7, true, true, false, siNo);
 
         // --- 9. HISTOPATOLOGÍA (SOLO CASOS) - ETIQUETAS ACTUALIZADAS ---
         Categoria c9 = crearCategoria("9. Histopatología (solo casos)", 9);
         // Agregamos "(solo casos)" a la etiqueta para que el frontend lo detecte y oculte automáticamente en controles
-        crearPregunta(c9, "Tipo histológico (solo casos)", "Histologia_Tipo", TipoDato.ENUM, 1, true, true,
+        crearPregunta(c9, "Tipo histológico (solo casos)", "Histologia_Tipo", TipoDato.ENUM, 1, true, true, true,
                 List.of("Intestinal", "Difuso", "Mixto", "Otro"));
-        crearPregunta(c9, "Localización tumoral (solo casos)", "Histologia_Localizacion", TipoDato.ENUM, 2, true, true,
+        crearPregunta(c9, "Localización tumoral (solo casos)", "Histologia_Localizacion", TipoDato.ENUM, 2, true, true, true,
                 List.of("Cardias", "Cuerpo", "Antro", "Difuso"));
-        crearPregunta(c9, "Estadio clínico (TNM) (solo casos)", "histo_tnm", TipoDato.TEXTO, 3, true, true);
+        crearPregunta(c9, "Estadio clínico (TNM) (solo casos)", "histo_tnm", TipoDato.TEXTO, 3, true, true, true);
 
         logger.info(">>> Sistema de dependencias configurado correctamente <<<");
     }
@@ -428,13 +428,13 @@ public class InicializadorAdmin implements CommandLineRunner {
     }
 
     private Pregunta crearPregunta(Categoria cat, String etiqueta, String codigoStata, TipoDato tipo, int orden,
-                                   boolean exportable, boolean estadistica, Double... cortesManuales) {
-        return crearPregunta(cat, etiqueta, codigoStata, tipo, orden, exportable, estadistica, null, cortesManuales);
+                                   boolean exportable, boolean estadistica, boolean soloCasos, Double... cortesManuales) {
+        return crearPregunta(cat, etiqueta, codigoStata, tipo, orden, exportable, estadistica, soloCasos, null, cortesManuales);
     }
 
     // Sobrecarga 2: Base completa
     private Pregunta crearPregunta(Categoria cat, String etiqueta, String codigoStata, TipoDato tipo, int orden,
-                                   boolean exportable, boolean estadistica, List<String> opciones, Double... cortesManuales) {
+                                   boolean exportable, boolean estadistica, boolean soloCasos, List<String> opciones, Double... cortesManuales) {
         Optional<Pregunta> existe = preguntaRepositorio.findByEtiqueta(etiqueta);
         if (existe.isPresent()) return existe.get();
 
@@ -448,6 +448,7 @@ public class InicializadorAdmin implements CommandLineRunner {
         p.setActivo(true);
         p.setExportable(exportable);
         p.setGenerarEstadistica(estadistica);
+        p.setSoloCasos(soloCasos);
         p.setDato_sensible(etiqueta.toLowerCase().contains("nombre") || etiqueta.toLowerCase().contains("dirección"));
         p.setDicotomizaciones(new ArrayList<>());
 
@@ -482,7 +483,7 @@ public class InicializadorAdmin implements CommandLineRunner {
     }
 
     private Pregunta crearPreguntaConDependencia(Categoria cat, String etiqueta, String codigoStata, TipoDato tipo, int orden,
-                                                 boolean exportable, boolean estadistica, List<String> opciones,
+                                                 boolean exportable, boolean estadistica, boolean soloCasos, List<String> opciones,
                                                  Pregunta preguntaControladora, String valorEsperado, String accion) {
         Optional<Pregunta> existe = preguntaRepositorio.findByEtiqueta(etiqueta);
         if (existe.isPresent()) return existe.get();
@@ -497,6 +498,7 @@ public class InicializadorAdmin implements CommandLineRunner {
         p.setActivo(true);
         p.setExportable(exportable);
         p.setGenerarEstadistica(estadistica);
+        p.setSoloCasos(soloCasos);
         p.setDato_sensible(false);
         p.setDicotomizaciones(new ArrayList<>());
         p.setTipoCorte(TipoCorte.NINGUNO);

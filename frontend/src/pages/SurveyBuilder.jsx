@@ -233,7 +233,12 @@ const SurveyBuilder = () => {
                                                             <div {...provided.dragHandleProps} className="me-3 text-muted p-2" onClick={(e) => e.stopPropagation()}><GripVertical size={20} /></div>
                                                             <div className="d-flex justify-content-between w-100 me-3 align-items-center">
                                                                 <span className="fw-bold text-info"><span className="me-2">#{index + 1}</span> {cat.nombre}</span>
-                                                                <Badge bg="secondary" pill>{cat.preguntas ? cat.preguntas.length : 0}</Badge>
+                                                                <Badge
+                                                                    pill
+                                                                    className="badge-preguntas"
+                                                                >
+                                                                    {cat.preguntas ? cat.preguntas.length : 0}
+                                                                </Badge>
                                                             </div>
                                                         </div>
                                                     </Accordion.Header>

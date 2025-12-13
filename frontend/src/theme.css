@@ -276,3 +276,38 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
 [data-theme="dark"] .offcanvas-body .form-check-input:not(:checked):hover {
     background-color: #cbd5e1 !important; /* Se ilumina un poco el gris al pasar el mouse */
 }
+
+/* --- Badge de Preguntas (Estilo UNIFICADO) --- */
+.badge-preguntas {
+    /* Fondo CELESTE para ambos modos */
+    background-color: #4da8da !important;
+
+    /* Configuración para que sea un círculo perfecto */
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+
+    /* Centrado del número */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    /* Ajustes de texto */
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0 !important; /* Quitamos padding extra */
+}
+
+[data-theme="dark"] .accordion-button .badge-preguntas,
+[data-theme="dark"] .badge-preguntas,
+[data-theme="light"] .badge-preguntas {
+    color: #ffffff !important; /* BLANCO PURO */
+    -webkit-text-fill-color: #ffffff !important; /* Refuerzo para navegadores webkit */
+}
+
+[data-theme="light"] .accordion-button .text-info {
+    color: #4da8da !important;
+}
+.accordion-button .text-info {
+    color: #4da8da !important; /* El mismo "celestito" del círculo */
+}

@@ -234,7 +234,7 @@ const UserProfile = () => {
     const inputStyle = { borderRight: 'none' };
 
     return (
-        <Container fluid className="p-0">
+        <Container fluid className="p-4">
             <h2 className="mb-4">MI PERFIL</h2>
             {message.text && <Alert variant={message.type} onClose={() => setMessage({ type: '', text: '' })} dismissible>{message.text}</Alert>}
             <Row>

@@ -234,7 +234,7 @@ const UserManagement = () => {
     const formatRoleName = (role) => { switch(role) { case 'ROLE_ADMIN': return 'Administrador'; case 'ROLE_INVESTIGADOR': return 'Investigador'; case 'ROLE_MEDICO': return 'Médico'; case 'ROLE_ESTUDIANTE': return 'Estudiante'; case 'ROLE_VISUALIZADOR': return 'Visualizador'; default: return role; } };
 
     return (
-        <Container fluid className="p-0 page-container-fixed d-flex flex-column">
+        <Container fluid className="p-4 page-container-fixed d-flex flex-column">
 
             <div>
                 <h2 className="mb-0">GESTIÓN DE USUARIOS</h2>

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
     Container, Row, Col, Form, InputGroup, Button, Card, ListGroup,
     Badge, Spinner, Modal, ProgressBar, Table, OverlayTrigger, Tooltip,
-    Tabs, Tab, Accordion
+    Tabs, Tab, Accordion, Toast, ToastContainer
 } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import {
@@ -84,6 +84,9 @@ const CasesControls = () => {
     const [loadingAnalisis, setLoadingAnalisis] = useState(false);
     const [showMuestraModal, setShowMuestraModal] = useState(false);
     const [formMuestraData, setFormMuestraData] = useState({});
+    const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState("");
+    const [toastVariant, setToastVariant] = useState("success");
 
     const currentUserId = currentUser ? (currentUser.idUsuario || currentUser.id || currentUser.usuarioId) : null;
 
@@ -142,10 +145,20 @@ const CasesControls = () => {
                 });
             });
             await Promise.all(promesas);
+
             setShowMuestraModal(false);
             fetchAnalisisGenetico(selectedItem.dbId);
-            alert("Muestras guardadas.");
-        } catch (err) { alert("Error al guardar muestras."); } finally { setIsSaving(false); }
+
+            setToastMessage("¡Muestras guardadas correctamente!");
+            setToastVariant("success"); // Color verde
+            setShowToast(true);         // Mostrar notificación
+
+        } catch (err) {
+            // Manejo de error con Toast rojo
+            setToastMessage("Error al guardar muestras.");
+            setToastVariant("danger");
+            setShowToast(true);
+        } finally { setIsSaving(false); }
     };
 
 
@@ -979,7 +992,25 @@ const CasesControls = () => {
                     <Button variant="primary" onClick={() => setShowConfigModal(false)}>Cerrar</Button>
                 </Modal.Footer>
             </Modal>
-
+            {/* --- NOTIFICACIÓN FLOTANTE (TOAST) --- */}
+            <ToastContainer position="bottom-end" className="p-3" style={{ zIndex: 9999, position: 'fixed' }}>
+                <Toast
+                    onClose={() => setShowToast(false)}
+                    show={showToast}
+                    delay={3000}
+                    autohide
+                    bg={toastVariant} // Se pinta verde o rojo según el caso
+                >
+                    <Toast.Header>
+                        <strong className="me-auto">Sistema</strong>
+                        <small>Justo ahora</small>
+                    </Toast.Header>
+                    {/* Texto blanco para que resalte sobre el fondo verde/rojo */}
+                    <Toast.Body className="text-white">
+                        {toastMessage}
+                    </Toast.Body>
+                </Toast>
+            </ToastContainer>
         </Container>
     );
 };

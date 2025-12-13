@@ -334,3 +334,91 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     background-color: #cbd5e1 !important; /* Se ilumina un poco al pasar el mouse */
     cursor: pointer;
 }
+
+
+
+/* 1. EL CONTENEDOR PRINCIPAL DEL MODAL (Fondo Oscuro) */
+.modal-content {
+    background-color: var(--bg-card) !important; /* Gris oscuro (#15202b) */
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+/* 2. LA TABLA (El culpable del fondo blanco) */
+/* Forzamos que la tabla y todas sus celdas sean transparentes */
+.modal-content table,
+.modal-content thead,
+.modal-content tbody,
+.modal-content tr,
+.modal-content th,
+.modal-content td {
+    background-color: transparent !important; /* CLAVE: Fondo transparente */
+    color: inherit !important;                /* Usa el color de texto del modal */
+    --bs-table-bg: transparent !important;    /* Variable de Bootstrap a transparente */
+    --bs-table-striped-bg: transparent !important;
+    border-color: var(--border-color) !important;
+}
+
+/* 3. EFECTO HOVER EN LA TABLA (Para que no se ponga blanco al pasar el mouse) */
+.modal-content .table-hover > tbody > tr:hover > * {
+    --bs-table-accent-bg: rgba(255, 255, 255, 0.05) !important; /* Gris muy suave */
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-main) !important;
+}
+
+/* 4. LOS SELECTORES (Dropdowns dentro de la tabla) */
+.modal-content .form-select {
+    background-color: var(--bg-input) !important; /* Fondo oscuro del input */
+    color: var(--text-main) !important;           /* Texto claro */
+    border-color: var(--border-color) !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important; /* Flechita gris clara */
+}
+
+/* 5. TEXTOS SECUNDARIOS (Para que no se vean negros) */
+.modal-content .text-secondary {
+    color: var(--text-muted) !important;
+}
+
+/* 6. BOTÓN DE CERRAR (X) */
+.modal-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* --- EXCEPCIÓN: MODO CLARO ---
+   Si el usuario activa el modo claro, devolvemos los colores blancos */
+[data-theme="light"] .modal-content {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+}
+[data-theme="light"] .modal-content table {
+    --bs-table-bg: #ffffff !important;
+    color: #212529 !important;
+}
+[data-theme="light"] .modal-content .form-select {
+    background-color: #fff !important;
+    color: #212529 !important;
+}
+[data-theme="light"] .modal-header .btn-close {
+    filter: none !important;
+}
+
+/* Estilo base (tamaño de letra) */
+.badge-genotipo {
+    font-size: 0.9em;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+/* MODO OSCURO: Fondo transparente/oscuro y texto claro */
+[data-theme="dark"] .badge-genotipo {
+    background-color: rgba(255, 255, 255, 0.08) !important; /* Gris translúcido sutil */
+    color: var(--text-main) !important;          /* Texto blanco/gris claro */
+    border-color: var(--border-color) !important; /* Borde del color del tema */
+}
+
+/* MODO CLARO: Mantenemos el estilo original (Fondo gris claro, texto oscuro) */
+[data-theme="light"] .badge-genotipo {
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+    border-color: #dee2e6 !important;
+}

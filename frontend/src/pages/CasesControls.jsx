@@ -720,7 +720,9 @@ const CasesControls = () => {
                                                                         <tr key={idx}>
                                                                             <td className="ps-4 fw-bold text-secondary">{row.nombreGen}</td>
                                                                             <td className="text-center">
-                                                                                <Badge bg="light" text="dark" className="border px-3 py-2">{row.resultadoPaciente}</Badge>
+                                                                                <Badge className="badge-genotipo border px-3 py-2">
+                                                                                    {row.resultadoPaciente}
+                                                                                </Badge>
                                                                             </td>
 
                                                                             {/* MODELO DOMINANTE */}
@@ -936,10 +938,19 @@ const CasesControls = () => {
                                     <tr key={conf.id_snp}>
                                         <td className="ps-4 fw-bold text-secondary">{conf.nombreGen}</td>
                                         <td>
-                                            <div className="d-flex gap-1">
-                                                {[conf.opcion1, conf.opcion2, conf.opcion3].filter(Boolean).map(op => (
-                                                    <Badge key={op} bg="light" text="dark" className="border fw-normal">{op}</Badge>
-                                                ))}
+                                            <div className="d-flex gap-1 align-items-center flex-wrap">
+                                                {[conf.opcion1, conf.opcion2, conf.opcion3]
+                                                    .filter(Boolean)
+                                                    .sort() /* <--- Esto los ordena alfabéticamente (AA, AG, GG) */
+                                                    .map(op => (
+                                                        <Badge
+                                                            key={op}
+                                                            /* Usamos tu clase personalizada para el modo oscuro */
+                                                            className="badge-genotipo border px-3 py-2"
+                                                        >
+                                                            {op}
+                                                        </Badge>
+                                                    ))}
                                             </div>
                                         </td>
                                         <td>
@@ -948,7 +959,7 @@ const CasesControls = () => {
                                                 value={seleccionado}
                                                 onChange={(e) => handleSaveConfig(conf.id_snp, e.target.value)}
                                                 disabled={savingConfigId === conf.id_snp}
-                                                className={seleccionado ? "border-success text-success fw-bold" : "border-warning text-dark"}
+                                                className={seleccionado ? "border-success text-success fw-bold" : "border-warning"}
                                             >
                                                 <option value="">-- Seleccionar --</option>
                                                 {posibles.map(letra => (

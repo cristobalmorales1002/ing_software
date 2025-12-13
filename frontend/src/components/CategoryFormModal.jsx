@@ -20,16 +20,16 @@ const CategoryFormModal = ({ show, onHide, category, onSave, isEditing }) => {
     return (
         <Modal show={show} onHide={onHide} backdrop="static" centered>
             <Modal.Header closeButton>
-                <Modal.Title>{isEditing ? 'Editar Categoría' : 'Nueva Categoría'}</Modal.Title>
+                <Modal.Title>{isEditing ? 'Editar categoría' : 'Nueva categoría'}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <Form.Group className="mb-3">
-                    <Form.Label>Nombre de la Categoría</Form.Label>
+                    <Form.Label>Nombre de la categoría</Form.Label>
                     <Form.Control
                         type="text"
                         value={nombre}
                         onChange={e => setNombre(e.target.value)}
-                        placeholder="Ej: Antecedentes Generales"
+                        placeholder="Ej: Antecedentes generales"
                         autoFocus
                         onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                     />

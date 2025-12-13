@@ -284,25 +284,25 @@ const UserManagement = () => {
 
             {/* --- FORMULARIO CON NOVALIDATE --- */}
             <Modal show={showFormModal} onHide={() => setShowFormModal(false)} backdrop="static" size="lg">
-                <Modal.Header closeButton><Modal.Title>{isEditing ? 'Editar' : 'Crear'}</Modal.Title></Modal.Header>
+                <Modal.Header closeButton><Modal.Title>{isEditing ? 'Editar usuario' : 'Crear usuario'}</Modal.Title></Modal.Header>
                 {/* 1. AGREGADO noValidate */}
                 <Form onSubmit={handleSaveUser} noValidate>
                     <Modal.Body>
                         <Row>
-                            <Col md={6}><Form.Group className="mb-3"><Form.Label>RUT (*)</Form.Label><Form.Control type="text" name="rut" value={formData.rut} onChange={handleInputChange} isInvalid={!!rutError} maxLength={12} required /><Form.Control.Feedback type="invalid">{rutError}</Form.Control.Feedback></Form.Group></Col>
-                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Email (*)</Form.Label>
+                            <Col md={6}><Form.Group className="mb-3"><Form.Label>RUT</Form.Label><Form.Control type="text" name="rut" value={formData.rut} onChange={handleInputChange} isInvalid={!!rutError} maxLength={12} required /><Form.Control.Feedback type="invalid">{rutError}</Form.Control.Feedback></Form.Group></Col>
+                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Email</Form.Label>
                                 {/* 2. Feedback visual */}
                                 <Form.Control type="email" name="email" value={formData.email} onChange={handleInputChange} isInvalid={!!emailError} required />
                                 <Form.Control.Feedback type="invalid">{emailError}</Form.Control.Feedback>
                             </Form.Group></Col>
                         </Row>
                         <Row>
-                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Nombres (*)</Form.Label><Form.Control type="text" name="nombres" value={formData.nombres} onChange={handleInputChange} required /></Form.Group></Col>
-                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Apellidos (*)</Form.Label><Form.Control type="text" name="apellidos" value={formData.apellidos} onChange={handleInputChange} required /></Form.Group></Col>
+                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Nombres</Form.Label><Form.Control type="text" name="nombres" value={formData.nombres} onChange={handleInputChange} required /></Form.Group></Col>
+                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Apellidos</Form.Label><Form.Control type="text" name="apellidos" value={formData.apellidos} onChange={handleInputChange} required /></Form.Group></Col>
                         </Row>
                         <Row>
                             <Col md={6}><Form.Group className="mb-3"><Form.Label>Teléfono</Form.Label><InputGroup><Form.Select style={{maxWidth:'120px'}} value={phoneData.code} onChange={handlePhoneCodeChange}>{COUNTRY_PHONE_DATA.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}</Form.Select><Form.Control type="text" placeholder={getPhoneConfig(phoneData.code).placeholder} value={phoneData.number} onChange={handlePhoneNumberChange} /></InputGroup></Form.Group></Col>
-                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Rol (*)</Form.Label><Form.Select name="rol" value={formData.rol} onChange={handleInputChange}><option value="ROLE_ADMIN">Administrador</option><option value="ROLE_INVESTIGADOR">Investigador</option><option value="ROLE_MEDICO">Médico</option><option value="ROLE_ESTUDIANTE">Estudiante</option></Form.Select></Form.Group></Col>
+                            <Col md={6}><Form.Group className="mb-3"><Form.Label>Rol</Form.Label><Form.Select name="rol" value={formData.rol} onChange={handleInputChange}><option value="ROLE_ADMIN">Administrador</option><option value="ROLE_INVESTIGADOR">Investigador</option><option value="ROLE_MEDICO">Médico</option><option value="ROLE_ESTUDIANTE">Estudiante</option></Form.Select></Form.Group></Col>
                         </Row>
                     </Modal.Body>
                     <Modal.Footer><Button variant="secondary" onClick={() => setShowFormModal(false)}>Cancelar</Button><Button variant="primary" type="submit">{isEditing ? 'Actualizar' : 'Guardar'}</Button></Modal.Footer>

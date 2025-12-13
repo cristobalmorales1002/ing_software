@@ -337,25 +337,25 @@ const UserProfile = () => {
                 </Col>
             </Row>
             <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)} backdrop="static" centered>
-                <Modal.Header closeButton><Modal.Title>Cambiar Correo Electrónico</Modal.Title></Modal.Header>
+                <Modal.Header closeButton><Modal.Title>Cambiar correo electrónico</Modal.Title></Modal.Header>
                 <Modal.Body>
                     {emailMsg.text && <Alert variant={emailMsg.type} className="mb-3 small">{emailMsg.text}</Alert>}
                     {emailStep === 1 ? (
                         <>
                             <p className="small text-muted">Ingrese su nuevo correo y su contraseña actual para verificar su identidad.</p>
-                            <Form.Group className="mb-3"><Form.Label>Nuevo Correo</Form.Label><Form.Control type="email" placeholder="nuevo@ejemplo.com" value={newEmailData.newEmail} onChange={e => setNewEmailData({...newEmailData, newEmail: e.target.value})} /></Form.Group>
-                            <Form.Group className="mb-3"><Form.Label>Contraseña Actual</Form.Label><Form.Control type="password" placeholder="********" value={newEmailData.currentPassword} onChange={e => setNewEmailData({...newEmailData, currentPassword: e.target.value})} /></Form.Group>
+                            <Form.Group className="mb-3"><Form.Label>Nuevo correo</Form.Label><Form.Control type="email" placeholder="nuevo@ejemplo.com" value={newEmailData.newEmail} onChange={e => setNewEmailData({...newEmailData, newEmail: e.target.value})} /></Form.Group>
+                            <Form.Group className="mb-3"><Form.Label>Contraseña actual</Form.Label><Form.Control type="password" placeholder="********" value={newEmailData.currentPassword} onChange={e => setNewEmailData({...newEmailData, currentPassword: e.target.value})} /></Form.Group>
                         </>
                     ) : (
                         <>
                             <div className="text-center mb-4"><CheckCircle size={40} className="text-success mb-2"/><p className="small text-muted">Hemos enviado un código de 6 dígitos a <strong>{newEmailData.newEmail}</strong>.</p></div>
-                            <Form.Group className="mb-3"><Form.Label className="fw-bold text-center w-100">Código de Verificación</Form.Label><Form.Control type="text" className="text-center fs-4 letter-spacing-2" maxLength={6} placeholder="000000" value={newEmailData.token} onChange={e => setNewEmailData({...newEmailData, token: e.target.value.replace(/\D/g,'')})} /></Form.Group>
+                            <Form.Group className="mb-3"><Form.Label className="fw-bold text-center w-100">Código de verificación</Form.Label><Form.Control type="text" className="text-center fs-4 letter-spacing-2" maxLength={6} placeholder="000000" value={newEmailData.token} onChange={e => setNewEmailData({...newEmailData, token: e.target.value.replace(/\D/g,'')})} /></Form.Group>
                         </>
                     )}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowEmailModal(false)}>Cancelar</Button>
-                    {emailStep === 1 ? <Button variant="primary" onClick={handleEmailRequest} disabled={emailLoading}>{emailLoading ? <Spinner size="sm" animation="border"/> : 'Enviar Código'}</Button> : <Button variant="success" onClick={handleEmailConfirm} disabled={emailLoading}>{emailLoading ? <Spinner size="sm" animation="border"/> : 'Confirmar Cambio'}</Button>}
+                    {emailStep === 1 ? <Button variant="primary" onClick={handleEmailRequest} disabled={emailLoading}>{emailLoading ? <Spinner size="sm" animation="border"/> : 'Enviar código'}</Button> : <Button variant="success" onClick={handleEmailConfirm} disabled={emailLoading}>{emailLoading ? <Spinner size="sm" animation="border"/> : 'Confirmar cambio'}</Button>}
                 </Modal.Footer>
             </Modal>
         </Container>

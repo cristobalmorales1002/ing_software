@@ -88,7 +88,7 @@ const UserDetails = () => {
                 <Button variant="link" className="p-0 text-secondary" onClick={() => navigate(-1)} title="Volver">
                     <ArrowLeft size={28}/>
                 </Button>
-                <h2 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Detalles del Usuario</h2>
+                <h2 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Detalles del usuario</h2>
             </div>
 
             <Row className="g-4">
@@ -152,7 +152,7 @@ const UserDetails = () => {
                 <Col md={7} lg={8}>
                     <Card className="shadow-sm border-0 h-100" style={{ backgroundColor: 'var(--bg-card)' }}>
                         <Card.Header className="py-3 bg-transparent border-bottom" style={{ borderColor: 'var(--border-color)' }}>
-                            <h5 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Información de Contacto</h5>
+                            <h5 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Información de contacto</h5>
                         </Card.Header>
                         <Card.Body className="p-4">
                             <Form>

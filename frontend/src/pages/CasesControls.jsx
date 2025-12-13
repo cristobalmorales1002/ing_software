@@ -630,7 +630,7 @@ const CasesControls = () => {
                                     >
                                         {/* CORRECCIÓN: Quitamos bg-card que no existe, dejamos transparente */}
                                         <div
-                                            className="overflow-auto p-3 position-relative accordion-scroll-container border rounded shadow-sm"
+                                            className="overflow-auto p-3 position-relative accordion-scroll-container rounded shadow-sm"
                                             style={{
                                                 maxHeight: 'calc(100vh - 250px)',
                                                 overflowY: 'auto',
@@ -761,7 +761,7 @@ const CasesControls = () => {
                                                         <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5 text-muted opacity-75">
                                                             <Activity size={48} className="mb-3 text-secondary"/>
                                                             <h5>No hay muestras registradas</h5>
-                                                            <Button variant="primary" className="mt-3" onClick={handleOpenMuestraModal}><PlusLg className="me-2"/> Registrar Muestra</Button>
+                                                            <Button variant="primary" className="mt-3" onClick={handleOpenMuestraModal}><PlusLg className="me-2"/> Registrar muestra</Button>
                                                         </div>
                                                     )}
                                                 </>

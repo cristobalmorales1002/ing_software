@@ -162,6 +162,7 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
     box-shadow: none !important;
     border-radius: 6px !important;
     margin-bottom: 0.5rem;
+    padding: 0.75rem 1rem;
 }
 
 /* Forzar que los elementos internos (iconos, spans muted) también sean celestes */

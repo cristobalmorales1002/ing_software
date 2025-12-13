@@ -160,7 +160,7 @@ const AuditLog = () => {
             <div className="table-responsive rounded border border-secondary border-opacity-25 flex-grow-1">
                 <Table hover className="mb-0 align-middle text-nowrap" style={{backgroundColor: 'transparent'}}>
                     <thead className="bg-light bg-opacity-10">
-                    <tr><th>Fecha / Hora</th><th>Usuario</th><th>Acción</th><th>Detalles</th><th>ID Ref.</th></tr>
+                    <tr><th>Fecha / Hora</th><th>Usuario</th><th>Acción</th><th>Detalles</th></tr>
                     </thead>
                     <tbody>
                     {isLoading ? <tr><td colSpan="5" className="text-center py-5"><Spinner animation="border" variant="info"/></td></tr> :
@@ -171,7 +171,6 @@ const AuditLog = () => {
                                     <td className="fw-bold">{log.nombreUsuario}</td>
                                     <td>{getActionBadge(log.accion)}</td>
                                     <td className="text-wrap" style={{maxWidth:'400px', whiteSpace: 'normal'}}><small>{log.detalles}</small></td>
-                                    <td>{log.idRespuestaAfectada || '-'}</td>
                                 </tr>
                             ))}
                     </tbody>

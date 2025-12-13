@@ -37,4 +37,8 @@ public class PreguntaDto {
     private Long preguntaControladoraId;
     private String valorEsperadoControladora;
     private String accionSiNoCumple;
+
+    // --- NUEVO CAMPO ---
+    private boolean soloCasos;
+    // -------------------
 }

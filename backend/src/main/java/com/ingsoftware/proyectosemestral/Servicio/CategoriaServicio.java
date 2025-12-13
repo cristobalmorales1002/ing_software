@@ -115,6 +115,10 @@ public class CategoriaServicio {
         dto.setOrden(entidad.getOrden());
         dto.setCategoriaId(entidad.getCategoria().getId_cat());
 
+        // --- AGREGAR ESTA LÍNEA ---
+        dto.setSoloCasos(entidad.isSoloCasos());
+        // --------------------------
+
         // --- MAPEO LISTA DICOTOMIZACIONES ---
         if (entidad.getDicotomizaciones() != null) {
             List<DicotomizacionDto> listaDic = entidad.getDicotomizaciones().stream().map(d -> {

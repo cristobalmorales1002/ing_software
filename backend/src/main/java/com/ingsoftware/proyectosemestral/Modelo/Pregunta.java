@@ -53,4 +53,9 @@ public class Pregunta {
 
     @Column(length = 20)
     private String accionSiNoCumple;
+
+    // --- NUEVO CAMPO ---
+    @Column(columnDefinition = "boolean default false")
+    private boolean soloCasos = false;
+    // -------------------
 }

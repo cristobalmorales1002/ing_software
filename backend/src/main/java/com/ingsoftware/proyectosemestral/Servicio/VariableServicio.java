@@ -116,6 +116,11 @@ public class VariableServicio {
         p.setTipo_dato(dto.getTipo_dato());
         p.setDato_sensible(dto.isDato_sensible());
         p.setActivo(dto.isActivo());
+
+        // --- NUEVO MAPEO ---
+        p.setSoloCasos(dto.isSoloCasos());
+        // -------------------
+
         p.setExportable(dto.isExportable());
         if(dto.getOrden() > 0) p.setOrden(dto.getOrden());
         p.setGenerarEstadistica(dto.isGenerarEstadistica());

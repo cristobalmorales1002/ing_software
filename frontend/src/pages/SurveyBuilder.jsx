@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Container, Accordion, Button, Card, Badge, Spinner } from 'react-bootstrap';
-import { PlusLg, PencilSquare, Trash, GripVertical, Scissors } from 'react-bootstrap-icons';
+import { Container, Accordion, Button, Card, Badge, Spinner, Modal } from 'react-bootstrap';
+import { PlusLg, PencilSquare, Trash, GripVertical, Scissors, ExclamationCircle } from 'react-bootstrap-icons';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 // Importamos Axios configurado (Esto arregla la conexión)
@@ -23,6 +23,13 @@ const SurveyBuilder = () => {
     const [editingQuestion, setEditingQuestion] = useState(null);
     const [targetCatId, setTargetCatId] = useState(null);
 
+    //Modales de eliminar Categoria
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [catToDelete, setCatToDelete] = useState(null);
+
+    //Modales de eliminar pregunta
+    const [showDeleteQuestionModal, setShowDeleteQuestionModal] = useState(false);
+    const [questionToDelete, setQuestionToDelete] = useState(null)
     // --- CARGA INICIAL ---
     const fetchEncuesta = async () => {
         setLoading(true);
@@ -142,12 +149,19 @@ const SurveyBuilder = () => {
         }
     };
 
-    const handleDeleteCategory = async (catId) => {
-        if(!window.confirm("¿Eliminar categoría y sus preguntas?")) return;
+    const requestDeleteCategory = (catId) => {
+        setCatToDelete(catId);
+        setShowDeleteModal(true);
+    };
+
+    // 2. Ejecuta la eliminación (conectado al botón "Eliminar" del modal)
+    const confirmDeleteCategory = async () => {
+        if (!catToDelete) return;
         try {
-            // CAMBIO: fetch -> api.delete
-            await api.delete(`/api/categorias/${catId}`);
+            await api.delete(`/api/categorias/${catToDelete}`);
             fetchEncuesta();
+            setShowDeleteModal(false);
+            setCatToDelete(null);
         } catch (err) {
             console.error(err);
             alert("Error al eliminar categoría");
@@ -196,19 +210,29 @@ const SurveyBuilder = () => {
         }
     };
 
-    const handleDeleteQuestion = async (catId, qId) => {
-        if(!window.confirm("¿Eliminar esta pregunta?")) return;
+    const requestDeleteQuestion = (catId, qId) => {
+        setQuestionToDelete({ catId, qId });
+        setShowDeleteQuestionModal(true);
+    };
+
+    const confirmDeleteQuestion = async () => {
+        if (!questionToDelete) return;
+        const { qId } = questionToDelete;
         try {
-            // CAMBIO: fetch -> api.delete
             await api.delete(`/api/variables/${qId}`);
             fetchEncuesta();
-        } catch (err) { console.error(err); }
+            setShowDeleteQuestionModal(false);
+            setQuestionToDelete(null);
+        } catch (err) {
+            console.error(err);
+            alert("Error al eliminar la pregunta");
+        }
     };
 
     if (loading && categories.length === 0) return <div className="text-center mt-5"><Spinner animation="border" variant="primary" /> <p>Cargando datos...</p></div>;
 
     return (
-        <Container fluid className="p-0">
+        <Container fluid className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h2 className="mb-0">FORMULARIO</h2>
@@ -246,7 +270,7 @@ const SurveyBuilder = () => {
                                                         <div className="d-flex justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
                                                             <div className="d-flex gap-2">
                                                                 <Button variant="outline-secondary" size="sm" onClick={() => openCatModal(cat)}><PencilSquare /> Editar</Button>
-                                                                <Button variant="outline-danger" size="sm" onClick={() => handleDeleteCategory(cat.id_cat)}><Trash /></Button>
+                                                                <Button variant="outline-danger" size="sm" onClick={() => requestDeleteCategory(cat.id_cat)}><Trash /></Button>
                                                             </div>
                                                             <Button variant="outline-info" size="sm" onClick={() => openQuestionModal(cat.id_cat)}><PlusLg /> Pregunta</Button>
                                                         </div>
@@ -275,7 +299,7 @@ const SurveyBuilder = () => {
                                                                                             }
                                                                                             <Badge bg="dark" className="border border-secondary">{q.tipo_dato}</Badge>
                                                                                             <Button variant="link" className="text-muted p-0" onClick={() => openQuestionModal(cat.id_cat, q)}><PencilSquare /></Button>
-                                                                                            <Button variant="link" className="text-danger p-0 ms-2" onClick={() => handleDeleteQuestion(cat.id_cat, q.pregunta_id)}><Trash /></Button>
+                                                                                            <Button variant="link" className="text-danger p-0 ms-2" onClick={() => requestDeleteQuestion(cat.id_cat, q.pregunta_id)}><Trash /></Button>
                                                                                         </div>
                                                                                     </Card.Body>
                                                                                 </Card>
@@ -315,6 +339,48 @@ const SurveyBuilder = () => {
                 isEditing={!!editingQuestion}
                 allQuestions={categories.flatMap(cat => cat.preguntas || [])}
             />
+            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+                <Modal.Header closeButton className="border-0 pb-0">
+                    <Modal.Title className="text-danger d-flex align-items-center gap-2">
+                        <ExclamationCircle /> Eliminar categoría
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="text-center pt-4 pb-4 px-5">
+                    <p className="mb-1 fw-bold fs-5">¿Estás seguro de eliminar esta categoría?</p>
+                    <p className="text-muted small">
+                        Esta acción eliminará la categoría y <strong>todas las preguntas</strong> que contiene. No se puede deshacer.
+                    </p>
+                </Modal.Body>
+                <Modal.Footer className="border-0 justify-content-center pb-4 gap-3">
+                    <Button variant="light" onClick={() => setShowDeleteModal(false)}>
+                        Cancelar
+                    </Button>
+                    <Button variant="danger" onClick={confirmDeleteCategory}>
+                        Sí, eliminar
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+            <Modal show={showDeleteQuestionModal} onHide={() => setShowDeleteQuestionModal(false)} centered>
+                <Modal.Header closeButton className="border-0 pb-0">
+                    <Modal.Title className="text-danger d-flex align-items-center gap-2">
+                        <ExclamationCircle /> Eliminar pregunta
+                    </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="text-center pt-4 pb-4 px-5">
+                    <p className="mb-1 fw-bold fs-5">¿Estás seguro de eliminar esta pregunta?</p>
+                    <p className="text-muted small">
+                        Esta acción eliminará la variable y <strong>todos los datos recolectados</strong> asociados a ella.
+                    </p>
+                </Modal.Body>
+                <Modal.Footer className="border-0 justify-content-center pb-4 gap-3">
+                    <Button variant="light" onClick={() => setShowDeleteQuestionModal(false)}>
+                        Cancelar
+                    </Button>
+                    <Button variant="danger" onClick={confirmDeleteQuestion}>
+                        Sí, eliminar
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </Container>
     );
 };

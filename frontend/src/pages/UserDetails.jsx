@@ -82,7 +82,7 @@ const UserDetails = () => {
     const RoleIcon = roleInfo.icon;
 
     return (
-        <Container fluid className="p-0">
+        <Container fluid className="p-4">
             {/* HEADER */}
             <div className="d-flex align-items-center gap-3 mb-4">
                 <Button variant="link" className="p-0 text-secondary" onClick={() => navigate(-1)} title="Volver">

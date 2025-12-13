@@ -412,14 +412,48 @@ body, .card, .sidebar, .form-control, table, .logo-container, .badge {
 
 /* MODO OSCURO: Fondo transparente/oscuro y texto claro */
 [data-theme="dark"] .badge-genotipo {
-    background-color: rgba(255, 255, 255, 0.08) !important; /* Gris translúcido sutil */
-    color: var(--text-main) !important;          /* Texto blanco/gris claro */
-    border-color: var(--border-color) !important; /* Borde del color del tema */
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
 }
 
-/* MODO CLARO: Mantenemos el estilo original (Fondo gris claro, texto oscuro) */
+/* Mantenemos el estilo original (Fondo gris claro, texto oscuro) */
 [data-theme="light"] .badge-genotipo {
     background-color: #f8f9fa !important;
     color: #212529 !important;
     border-color: #dee2e6 !important;
+}
+/* 1. Fondo y Borde de los botones (1, 2, 3, Next, Prev) */
+[data-theme="dark"] .pagination .page-link {
+    background-color: var(--bg-card) !important;   /* Fondo oscuro (igual a las tarjetas) */
+    border-color: var(--border-color) !important;  /* Borde sutil del tema */
+    color: var(--text-muted) !important;           /* Texto gris suave por defecto */
+}
+
+/* 2. Botón ACTIVO (La página actual) */
+[data-theme="dark"] .pagination .page-item.active .page-link {
+    background-color: var(--accent-color) !important; /* Tu celeste (#4da8da) */
+    border-color: var(--accent-color) !important;
+    color: #ffffff !important;                        /* Texto blanco */
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(77, 168, 218, 0.3);     /* Un brillo suave opcional */
+}
+
+/* 3. Botón HOVER (Al pasar el mouse) */
+[data-theme="dark"] .pagination .page-link:hover {
+    background-color: var(--hover-bg) !important;     /* Fondo azulito muy suave */
+    color: var(--text-main) !important;               /* Texto más brillante */
+    border-color: var(--accent-color) !important;
+}
+
+/* 4. Botón DESHABILITADO (Ej: "Anterior" en la pág 1) */
+[data-theme="dark"] .pagination .page-item.disabled .page-link {
+    background-color: rgba(255, 255, 255, 0.05) !important; /* Muy transparente */
+    border-color: var(--border-color) !important;
+    color: rgba(255, 255, 255, 0.2) !important;             /* Texto casi invisible */
+}
+
+/* 5. Quitar el foco azul feo de Bootstrap al hacer clic */
+[data-theme="dark"] .pagination .page-link:focus {
+    box-shadow: none !important;
 }

@@ -252,7 +252,7 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing, allQuest
                             <Row>
                                 <Col md={6}>
                                     <Form.Group>
-                                        <Form.Label className="small text-primary fw-bold">Mostrar solo si...</Form.Label>
+                                        <Form.Label className="small text-primary fw-bold">No mostrar cuando...</Form.Label>
                                         <Form.Select
                                             value={form.preguntaControladoraId || ''}
                                             onChange={handleParentChange}

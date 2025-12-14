@@ -1,9 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert, Spinner, InputGroup, Modal } from 'react-bootstrap';
-import { PersonCircle, Envelope, Phone, Save, PersonVcard, Eye, EyeSlash, CameraFill, PencilSquare, CheckCircle } from 'react-bootstrap-icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { Container, Row, Col, Card, Form, Button, Alert, Spinner, InputGroup, Modal, Badge } from 'react-bootstrap';
+import {
+    PersonCircle, Envelope, Phone, Save, PersonVcard, Eye, EyeSlash, CameraFill, PencilSquare, CheckCircle,
+    ShieldLock, HeartPulse, Search, Book, Person
+} from 'react-bootstrap-icons';
 import api from '../api/axios';
 
 import { COUNTRY_PHONE_DATA, getPhoneConfig } from '../utils/phoneUtils';
+import { formatRut } from "../utils/rutUtils.js";
 
 const UserProfile = () => {
     const [currentUser, setCurrentUser] = useState({
@@ -37,6 +41,27 @@ const UserProfile = () => {
     const [message, setMessage] = useState({ type: '', text: '' });
 
     const fileInputRef = useRef(null);
+
+    // --- LÓGICA DE ROLES ---
+    const getRoleLabel = (rol) => {
+        const iconMap = {
+            'ROLE_ADMIN': ShieldLock,
+            'ROLE_MEDICO': HeartPulse,
+            'ROLE_INVESTIGADOR': Search,
+            'ROLE_ESTUDIANTE': Book,
+            'ROLE_VISUALIZADOR': Eye
+        };
+        const IconComponent = iconMap[rol] || Person;
+
+        switch (rol) {
+            case 'ROLE_ADMIN': return { label: 'Administrador', colorVar: 'var(--role-admin-bg)', icon: IconComponent };
+            case 'ROLE_MEDICO': return { label: 'Médico', colorVar: 'var(--role-medico-bg)', icon: IconComponent };
+            case 'ROLE_INVESTIGADOR': return { label: 'Investigador', colorVar: 'var(--role-investigador-bg)', icon: IconComponent };
+            case 'ROLE_ESTUDIANTE': return { label: 'Estudiante', colorVar: 'var(--role-estudiante-bg)', icon: IconComponent };
+            case 'ROLE_VISUALIZADOR': return { label: 'Visualizador', colorVar: 'var(--role-visualizador-bg)', icon: IconComponent };
+            default: return { label: rol ? rol.replace('ROLE_', '') : 'Usuario', colorVar: 'var(--role-visualizador-bg)', icon: IconComponent };
+        }
+    };
 
     const getCurrentPlaceholder = () => {
         const config = getPhoneConfig(phoneData.code);
@@ -219,77 +244,142 @@ const UserProfile = () => {
             setEmailLoading(false);
         }
     };
-    const getRoleLabel = (rol) => {
-        switch (rol) {
-            case 'ROLE_ADMIN': return 'Administrador';
-            case 'ROLE_MEDICO': return 'Médico';
-            case 'ROLE_INVESTIGADOR': return 'Investigador';
-            case 'ROLE_ESTUDIANTE': return 'Estudiante';
-            case 'ROLE_VISUALIZADOR': return 'Visualizador';
-            default: return rol ? rol.replace('ROLE_', '') : '';
-        }
-    };
 
+    // Estilos comunes para inputs (Modo oscuro compatible)
+    const baseInputStyle = { backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-main)' };
     const eyeButtonStyle = { backgroundColor: 'transparent', borderLeft: 'none', borderColor: 'var(--border-color)', color: 'var(--text-muted)' };
-    const inputStyle = { borderRight: 'none' };
+    const passwordInputStyle = { borderRight: 'none', ...baseInputStyle };
+
+    // Obtenemos la info del rol antes del return
+    const roleInfo = getRoleLabel(currentUser.rol);
+    const RoleIcon = roleInfo.icon;
 
     return (
         <Container fluid className="p-4">
-            <h2 className="mb-4">MI PERFIL</h2>
+            <h2 className="mb-4 fw-bold" style={{color: 'var(--text-main)'}}>MI PERFIL</h2>
             {message.text && <Alert variant={message.type} onClose={() => setMessage({ type: '', text: '' })} dismissible>{message.text}</Alert>}
-            <Row>
-                <Col md={4} className="mb-4">
-                    <Card className="h-100 shadow-sm border-0">
-                        <Card.Body className="text-center py-5">
-                            <div className="position-relative d-inline-block mb-4">
-                                <div className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center bg-light" style={{ width: '120px', height: '120px', border: '4px solid var(--bg-main)' }}>
-                                    {currentUser.fotoBase64 ? (
-                                        <img src={`data:image/jpeg;base64,${currentUser.fotoBase64}`} alt="Perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    ) : (
-                                        <PersonCircle size={120} className="text-secondary opacity-50" />
-                                    )}
+
+            <Row className="g-4">
+                {/* --- LADO IZQUIERDO: TARJETA DE PERFIL --- */}
+                <Col md={5} lg={4}>
+                    <Card className="h-100 shadow-sm border-0" style={{ backgroundColor: 'var(--bg-card)' }}>
+                        <Card.Body className="text-center p-4 d-flex flex-column align-items-center justify-content-center">
+
+                            {/* FOTO DE PERFIL */}
+                            <div className="mb-4 text-center">
+                                <div className="position-relative d-inline-block">
+                                    <div className="rounded-circle overflow-hidden d-flex align-items-center justify-content-center shadow-sm"
+                                         style={{
+                                             width: '150px',
+                                             height: '150px',
+                                             border: `5px solid var(--bg-main)`,
+                                             backgroundColor: 'var(--bg-input)'
+                                         }}>
+                                        {currentUser.fotoBase64 ? (
+                                            <img
+                                                src={`data:image/jpeg;base64,${currentUser.fotoBase64}`}
+                                                alt="Perfil"
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : (
+                                            <PersonCircle size={150} style={{ color: 'var(--text-main)', opacity: 0.3 }} />
+                                        )}
+                                    </div>
+
+                                    {/* BOTÓN CÁMARA */}
+                                    <div
+                                        className="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 shadow-sm"
+                                        style={{
+                                            cursor: 'pointer',
+                                            width: '40px',
+                                            height: '40px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            border: '2px solid var(--bg-card)',
+                                            zIndex: 10
+                                        }}
+                                        onClick={() => fileInputRef.current.click()}
+                                        title="Cambiar foto"
+                                    >
+                                        <CameraFill size={20} />
+                                    </div>
+
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        style={{ display: 'none' }}
+                                        accept="image/*"
+                                        onChange={handlePhotoUpload}
+                                    />
                                 </div>
-                                <div className="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 shadow-sm" style={{ cursor: 'pointer', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => fileInputRef.current.click()} title="Cambiar foto">
-                                    <CameraFill size={16} />
-                                </div>
-                                <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handlePhotoUpload} />
                             </div>
-                            <h4 className="fw-bold mb-1">{currentUser.nombres} {currentUser.apellidos}</h4>
-                            <p className="mb-3" style={{ color: 'var(--text-muted)' }}>{getRoleLabel(currentUser.rol)}</p>
-                            <hr className="my-4 opacity-25"/>
-                            <div className="text-start px-3">
-                                <div className="mb-3">
-                                    <label className="small fw-bold text-uppercase" style={{ color: 'var(--text-muted)' }}>RUT</label>
-                                    <div className="d-flex align-items-center gap-2 fs-5"><PersonVcard className="text-primary"/><span>{currentUser.rut}</span></div>
-                                </div>
+
+                            {/* NOMBRE */}
+                            <h4 className="fw-bold mb-3 text-center" style={{color: 'var(--text-main)'}}>
+                                {currentUser.nombres} {currentUser.apellidos}
+                            </h4>
+
+                            {/* BADGE DE ROL */}
+                            <div className="mb-4">
+                                <Badge
+                                    className="px-3 py-2 rounded-pill text-uppercase d-inline-flex align-items-center gap-2 shadow-sm"
+                                    style={{
+                                        backgroundColor: roleInfo.colorVar,
+                                        color: 'var(--role-text-color)',
+                                        letterSpacing: '1px',
+                                        fontWeight: '600'
+                                    }}
+                                >
+                                    <RoleIcon size={16} />
+                                    {roleInfo.label}
+                                </Badge>
                             </div>
+
+                            {/* RUT */}
+                            <div className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill border"
+                                 style={{ backgroundColor: 'var(--bg-input)', borderColor: 'var(--border-color)' }}>
+                                <PersonVcard className="text-primary"/>
+                                <span className="fw-medium" style={{ color: 'var(--text-main)' }}>
+                                    {currentUser.rut ? formatRut(currentUser.rut) : 'Sin RUT'}
+                                </span>
+                            </div>
+
                         </Card.Body>
                     </Card>
                 </Col>
-                <Col md={8}>
-                    <Card className="shadow-sm border-0 h-100">
-                        <Card.Header className="bg-transparent py-3"><h5 className="mb-0">Editar información</h5></Card.Header>
+
+                {/* --- LADO DERECHO: FORMULARIO (Estilizado) --- */}
+                <Col md={7} lg={8}>
+                    <Card className="shadow-sm border-0 h-100" style={{ backgroundColor: 'var(--bg-card)' }}>
+                        <Card.Header className="bg-transparent py-3 border-bottom" style={{ borderColor: 'var(--border-color)' }}>
+                            <h5 className="mb-0 fw-bold" style={{color: 'var(--text-main)'}}>Editar información</h5>
+                        </Card.Header>
                         <Card.Body className="p-4">
                             <Form onSubmit={handleSubmit}>
                                 <Row>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label className="fw-bold"><Envelope className="me-2"/>Correo electrónico</Form.Label>
+                                    <Col md={12} lg={6} className="mb-3">
+                                        <Form.Group>
+                                            <Form.Label className="fw-bold small text-muted text-uppercase"><Envelope className="me-2"/>Correo electrónico</Form.Label>
                                             <InputGroup>
-                                                <Form.Control type="email" value={currentUser.email} disabled style={{backgroundColor: 'var(--hover-bg)'}} />
+                                                <Form.Control
+                                                    type="email"
+                                                    value={currentUser.email}
+                                                    disabled
+                                                    style={{ backgroundColor: 'var(--hover-bg)', borderColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+                                                />
                                                 <Button variant="outline-primary" onClick={openEmailModal}><PencilSquare /> Cambiar</Button>
                                             </InputGroup>
-                                            <Form.Text className="text-muted">Para cambiarlo se requiere verificación.</Form.Text>
                                         </Form.Group>
                                     </Col>
-                                    <Col md={6}>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label className="fw-bold"><Phone className="me-2"/>Teléfono</Form.Label>
+                                    <Col md={12} lg={6} className="mb-3">
+                                        <Form.Group>
+                                            <Form.Label className="fw-bold small text-muted text-uppercase"><Phone className="me-2"/>Teléfono</Form.Label>
                                             <InputGroup>
                                                 <Form.Select
                                                     value={phoneData.code}
-                                                    onChange={handleCountryChange} // Usamos el nuevo handler
-                                                    style={{ maxWidth: '140px', borderRight: 'none', backgroundColor: 'var(--bg-input)', color: 'var(--text-main)' }}
+                                                    onChange={handleCountryChange}
+                                                    style={{ maxWidth: '120px', ...baseInputStyle }}
                                                 >
                                                     {COUNTRY_PHONE_DATA.map((country) => (
                                                         <option key={country.code} value={country.code}>
@@ -302,40 +392,68 @@ const UserProfile = () => {
                                                     placeholder={getCurrentPlaceholder()}
                                                     value={phoneData.number}
                                                     onChange={handlePhoneChange}
-                                                    maxLength={15} // Seguridad extra
-                                                    style={{ borderLeft: '1px solid var(--border-color)' }}
+                                                    maxLength={15}
+                                                    style={baseInputStyle}
                                                 />
                                             </InputGroup>
-                                            <Form.Text className="text-muted">Solo números, sin espacios.</Form.Text>
+                                            <Form.Text className="text-muted small">Solo números, sin espacios.</Form.Text>
                                         </Form.Group>
                                     </Col>
                                 </Row>
-                                <hr className="my-4 opacity-25"/>
-                                <h6 className="text-primary mb-3 fw-bold">Cambiar contraseña</h6>
+
+                                <hr className="my-4 opacity-25" style={{ borderColor: 'var(--border-color)' }}/>
+                                <h6 className="mb-3 fw-bold" style={{color: 'var(--text-main)'}}>Seguridad</h6>
+
                                 <Row>
                                     <Col md={6}>
-                                        <Form.Group className="mb-3"><Form.Label>Nueva contraseña</Form.Label>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label className="small text-muted text-uppercase fw-bold">Nueva contraseña</Form.Label>
                                             <InputGroup>
-                                                <Form.Control type={showNewPass ? "text" : "password"} name="password" value={formData.password} onChange={handleInputChange} placeholder="Dejar en blanco para mantener" style={inputStyle}/>
-                                                <Button variant="outline-secondary" onClick={() => setShowNewPass(!showNewPass)} style={eyeButtonStyle} tabIndex="-1">{showNewPass ? <EyeSlash/> : <Eye/>}</Button>
+                                                <Form.Control
+                                                    type={showNewPass ? "text" : "password"}
+                                                    name="password"
+                                                    value={formData.password}
+                                                    onChange={handleInputChange}
+                                                    placeholder="Dejar en blanco para mantener"
+                                                    style={passwordInputStyle}
+                                                />
+                                                <Button variant="outline-secondary" onClick={() => setShowNewPass(!showNewPass)} style={eyeButtonStyle} tabIndex="-1">
+                                                    {showNewPass ? <EyeSlash/> : <Eye/>}
+                                                </Button>
                                             </InputGroup>
                                         </Form.Group>
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Group className="mb-3"><Form.Label>Repetir nueva contraseña</Form.Label>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label className="small text-muted text-uppercase fw-bold">Repetir nueva contraseña</Form.Label>
                                             <InputGroup>
-                                                <Form.Control type={showConfirmPass ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} placeholder="Confirmar contraseña" disabled={!formData.password} style={inputStyle}/>
-                                                <Button variant="outline-secondary" onClick={() => setShowConfirmPass(!showConfirmPass)} style={eyeButtonStyle} disabled={!formData.password} tabIndex="-1">{showConfirmPass ? <EyeSlash/> : <Eye/>}</Button>
+                                                <Form.Control
+                                                    type={showConfirmPass ? "text" : "password"}
+                                                    name="confirmPassword"
+                                                    value={formData.confirmPassword}
+                                                    onChange={handleInputChange}
+                                                    placeholder="Confirmar contraseña"
+                                                    disabled={!formData.password}
+                                                    style={passwordInputStyle}
+                                                />
+                                                <Button variant="outline-secondary" onClick={() => setShowConfirmPass(!showConfirmPass)} style={eyeButtonStyle} disabled={!formData.password} tabIndex="-1">
+                                                    {showConfirmPass ? <EyeSlash/> : <Eye/>}
+                                                </Button>
                                             </InputGroup>
                                         </Form.Group>
                                     </Col>
                                 </Row>
-                                <div className="d-flex justify-content-end mt-4"><Button variant="primary" type="submit" size="lg" disabled={isLoading}>{isLoading ? <Spinner animation="border" size="sm"/> : <><Save className="me-2"/> Guardar cambios</>}</Button></div>
+                                <div className="d-flex justify-content-end mt-4">
+                                    <Button variant="primary" type="submit" size="lg" disabled={isLoading} className="px-4">
+                                        {isLoading ? <Spinner animation="border" size="sm"/> : <><Save className="me-2"/> Guardar cambios</>}
+                                    </Button>
+                                </div>
                             </Form>
                         </Card.Body>
                     </Card>
                 </Col>
             </Row>
+
             <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)} backdrop="static" centered>
                 <Modal.Header closeButton><Modal.Title>Cambiar correo electrónico</Modal.Title></Modal.Header>
                 <Modal.Body>

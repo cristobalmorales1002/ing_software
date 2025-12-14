@@ -16,6 +16,7 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing, allQuest
         activo: true,
         dicotomizaciones: [],
         exportable: true,
+        soloCasos: false,
         generarEstadistica: false,
         opciones: [],
         // --- CAMBIO: Campos para lógica de dependencia
@@ -195,7 +196,7 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing, allQuest
                     />
                 </Form.Group>
 
-                {form.tipo_dato === 'ENUM' && (
+                {(form.tipo_dato === 'ENUM' || form.tipo_dato === 'NUMERO')&& (
                     <div className="enum-box">
                         <label className="mb-2 text-info small fw-bold">
                             <ListCheck /> OPCIONES DE SELECCIÓN
@@ -240,57 +241,62 @@ const QuestionFormModal = ({ show, onHide, question, onSave, isEditing, allQuest
 
                 <div className="d-flex gap-4 mt-3 p-2 border rounded border-secondary border-opacity-25 bg-secondary bg-opacity-10">
                     <Form.Check type="switch" name="dato_sensible" label="Dato sensible" checked={form.dato_sensible} onChange={handleChange} />
+                    <Form.Check type="switch" name="soloCasos" label="Solo para casos" checked={form.soloCasos} onChange={handleChange} />
+                    <Form.Check type="switch" name="exportable" label="Incluir en excel" checked={form.exportable} onChange={handleChange} />
+
                 </div>
 
                 {/* --- CAMBIO PRINCIPAL: SECCIÓN DEPENDENCIA (Arriba de dicotomización) --- */}
-                <Accordion className="mt-3 border-0">
-                    <Accordion.Item eventKey="0" className="bg-transparent border-0">
-                        <Accordion.Header>
-                            <span className="small text-muted fw-bold"><Diagram3 className="me-2" /> Lógica de Dependencia</span>
-                        </Accordion.Header>
-                        <Accordion.Body className="bg-da bg-opacity-10 border border-secondary border-opacity-25 rounded">
-                            <Row>
-                                <Col md={6}>
-                                    <Form.Group>
-                                        <Form.Label className="small text-primary fw-bold">No mostrar cuando...</Form.Label>
-                                        <Form.Select
-                                            value={form.preguntaControladoraId || ''}
-                                            onChange={handleParentChange}
-                                            size="sm"
-                                        >
-                                            <option value="">-- Siempre visible --</option>
-                                            {possibleParents.map(p => (
-                                                <option key={p.pregunta_id} value={p.pregunta_id}>
-                                                    {p.etiqueta.length > 40 ? p.etiqueta.substring(0,40)+'...' : p.etiqueta}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                        <Form.Text className="text-muted small" style={{fontSize: '0.7rem'}}>
-                                            Seleccione una pregunta tipo "Selección" anterior.
-                                        </Form.Text>
-                                    </Form.Group>
-                                </Col>
-                                <Col md={6}>
-                                    <Form.Group>
-                                        <Form.Label className="small text-primary fw-bold">La respuesta es...</Form.Label>
-                                        <Form.Select
-                                            name="valorEsperadoControladora"
-                                            value={form.valorEsperadoControladora}
-                                            onChange={handleChange}
-                                            size="sm"
-                                            disabled={!form.preguntaControladoraId}
-                                        >
-                                            <option value="">-- Seleccione valor --</option>
-                                            {selectedParentQuestion?.opciones?.map((opt, idx) => (
-                                                <option key={idx} value={opt}>{opt}</option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-                        </Accordion.Body>
-                    </Accordion.Item>
-                </Accordion>
+                {form.tipo_dato === 'ENUM' && (
+                    <Accordion className="mt-3 border-0">
+                        <Accordion.Item eventKey="0" className="bg-transparent border-0">
+                            <Accordion.Header>
+                                <span className="small text-muted fw-bold"><Diagram3 className="me-2" /> Lógica de Dependencia</span>
+                            </Accordion.Header>
+                            <Accordion.Body className="bg-da bg-opacity-10 border border-secondary border-opacity-25 rounded">
+                                <Row>
+                                    <Col md={6}>
+                                        <Form.Group>
+                                            <Form.Label className="small text-primary fw-bold">No mostrar cuando...</Form.Label>
+                                            <Form.Select
+                                                value={form.preguntaControladoraId || ''}
+                                                onChange={handleParentChange}
+                                                size="sm"
+                                            >
+                                                <option value="">-- Siempre visible --</option>
+                                                {possibleParents.map(p => (
+                                                    <option key={p.pregunta_id} value={p.pregunta_id}>
+                                                        {p.etiqueta.length > 40 ? p.etiqueta.substring(0,40)+'...' : p.etiqueta}
+                                                    </option>
+                                                ))}
+                                            </Form.Select>
+                                            <Form.Text className="text-muted small" style={{fontSize: '0.7rem'}}>
+                                                Seleccione una pregunta tipo "Selección" anterior.
+                                            </Form.Text>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Group>
+                                            <Form.Label className="small text-primary fw-bold">La respuesta es...</Form.Label>
+                                            <Form.Select
+                                                name="valorEsperadoControladora"
+                                                value={form.valorEsperadoControladora}
+                                                onChange={handleChange}
+                                                size="sm"
+                                                disabled={!form.preguntaControladoraId}
+                                            >
+                                                <option value="">-- Seleccione valor --</option>
+                                                {selectedParentQuestion?.opciones?.map((opt, idx) => (
+                                                    <option key={idx} value={opt}>{opt}</option>
+                                                ))}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                </Row>
+                            </Accordion.Body>
+                        </Accordion.Item>
+                    </Accordion>
+                )}
                 {/* ------------------------------------------------------------- */}
 
                 {/* SECCIÓN DICOTOMIZACIÓN */}

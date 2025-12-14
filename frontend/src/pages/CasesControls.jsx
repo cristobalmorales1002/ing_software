@@ -94,6 +94,8 @@ const CasesControls = () => {
     const fetchGenesConfig = async () => {
         try {
             const res = await api.get('/api/genetica/configuraciones');
+            const data = res.data || [];
+            data.sort((a, b) => a.nombreGen.localeCompare(b.nombreGen));
             setMuestraGenesConfig(res.data || []);
         } catch (err) { console.error("Error config genética:", err); }
     };
@@ -103,6 +105,10 @@ const CasesControls = () => {
         setLoadingAnalisis(true);
         try {
             const res = await api.get(`/api/genetica/analisis/${pacienteId}`);
+
+            const data = res.data || [];
+            data.sort((a, b) => a.nombreGen.localeCompare(b.nombreGen));
+
             setAnalisisGenetico(res.data || []);
         } catch (err) {
             console.error(err);
@@ -255,6 +261,9 @@ const CasesControls = () => {
     const userRole = currentUser?.rol;
     const hasRole = (allowedRoles) => userRole && allowedRoles.includes(userRole);
 
+    const canEditConfig = hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR']);
+    const canViewConfig = hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR', 'ROLE_MEDICO', 'ROLE_ESTUDIANTE', 'ROLE_VISUALIZADOR']);
+
     const canEdit = (item) => {
         if (!currentUser || !item) return false;
         const itemCreatorId = item.creadorId;
@@ -267,7 +276,7 @@ const CasesControls = () => {
         return false;
     };
 
-    const canDelete = () => userRole === 'ROLE_ADMIN';
+    const canDelete = () => userRole === 'ROLE_ADMIN'  || userRole === 'ROLE_INVESTIGADOR';
     const canDownload = hasRole(['ROLE_ADMIN', 'ROLE_INVESTIGADOR']);
 
     const filteredItems = useMemo(() => {
@@ -700,11 +709,13 @@ const CasesControls = () => {
 
                                                                 {/* Derecha: Grupo de Botones */}
                                                                 <div>
-                                                                    <Button size="sm" variant="outline-primary" onClick={handleOpenMuestraModal}>
+                                                                    {hasRole('ROLE_MEDICO') && (
+                                                                        <Button size="sm" variant="outline-primary" onClick={handleOpenMuestraModal}>
                                                                         <Pencil className="me-1"/> Editar
                                                                     </Button>
+                                                                    )}
 
-                                                                    {hasRole(['ROLE_ADMIN']) && (
+                                                                    {canViewConfig && (
                                                                         <Button
                                                                             size="sm"
                                                                             variant="secondary"
@@ -761,7 +772,7 @@ const CasesControls = () => {
                                                         <div className="d-flex flex-column align-items-center justify-content-center h-100 py-5 text-muted opacity-75">
                                                             <Activity size={48} className="mb-3 text-secondary"/>
                                                             <h5>No hay muestras registradas</h5>
-                                                            <Button variant="primary" className="mt-3" onClick={handleOpenMuestraModal}><PlusLg className="me-2"/> Registrar muestra</Button>
+                                                            {(userRole === 'ROLE_MEDICO' && <Button variant="primary" className="mt-3" onClick={handleOpenMuestraModal}><PlusLg className="me-2"/> Registrar muestra</Button>)}
                                                         </div>
                                                     )}
                                                 </>
@@ -793,6 +804,10 @@ const CasesControls = () => {
                             <h5 className="mb-4 border-bottom pb-2" style={{ color: 'var(--text-main)' }}>{currentCat?.nombre}</h5>
                             <Row>
                                 {currentCat?.preguntas.map(q => {
+                                    if(!isCase && q.soloCasos){
+                                        return null;
+                                    }
+
                                     if (q.preguntaControladoraId) {
                                         const valorPadre = formData[q.preguntaControladoraId];
                                         if (valorPadre == q.valorEsperadoControladora) {
@@ -916,23 +931,33 @@ const CasesControls = () => {
 
             {/* --- MODAL DE CONFIGURACIÓN (ADMIN) --- */}
             {/* CORRECCIÓN: Header bg-transparent en lugar de bg-light */}
+            {/* --- MODAL DE CONFIGURACIÓN (ADMIN / VISTA) --- */}
             <Modal show={showConfigModal} onHide={() => setShowConfigModal(false)} size="lg" centered>
                 <Modal.Header closeButton className="bg-transparent">
                     <Modal.Title className="d-flex align-items-center gap-2">
-                        <Gear /> Configuración de riesgo genético
+                        <Gear /> {canEditConfig ? "Configuración de riesgo genético" : "Esquema de riesgo genético"}
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-0">
                     <div className="p-3">
-                        <div className="alert alert-info border-0 d-flex align-items-center small m-0">
-                            <ExclamationCircle className="me-2 fs-5"/>
-                            <div>
-                                Defina el <strong>alelo de riesgo</strong>. El sistema usará esto para calcular automáticamente los grupos dominante y recesivo.
+                        {/* Solo mostramos la instrucción de editar si tienen permiso */}
+                        {canEditConfig ? (
+                            <div className="alert alert-info border-0 d-flex align-items-center small m-0">
+                                <ExclamationCircle className="me-2 fs-5"/>
+                                <div>
+                                    Defina el <strong>alelo de riesgo</strong>. El sistema usará esto para calcular automáticamente los grupos dominante y recesivo.
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="alert alert-light border d-flex align-items-center small m-0 text-muted">
+                                <ExclamationCircle className="me-2 fs-5"/>
+                                <div>
+                                    Visualizando la configuración actual de alelos de riesgo definida por los investigadores.
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <Table hover responsive className="mb-0 align-middle">
-                        {/* CORRECCIÓN: Header sin bg-light, solo border-bottom */}
                         <thead className="text-secondary small text-uppercase border-bottom">
                         <tr>
                             <th className="ps-4 py-3 border-0">Gen / SNP</th>
@@ -947,6 +972,7 @@ const CasesControls = () => {
                             muestraGenesConfig.map(conf => {
                                 const posibles = [...new Set((conf.opcion1 + conf.opcion2 + conf.opcion3).split(''))].sort();
                                 const seleccionado = conf.aleloRiesgo || "";
+
                                 return (
                                     <tr key={conf.id_snp}>
                                         <td className="ps-4 fw-bold text-secondary">{conf.nombreGen}</td>
@@ -954,11 +980,10 @@ const CasesControls = () => {
                                             <div className="d-flex gap-1 align-items-center flex-wrap">
                                                 {[conf.opcion1, conf.opcion2, conf.opcion3]
                                                     .filter(Boolean)
-                                                    .sort() /* <--- Esto los ordena alfabéticamente (AA, AG, GG) */
+                                                    .sort()
                                                     .map(op => (
                                                         <Badge
                                                             key={op}
-                                                            /* Usamos tu clase personalizada para el modo oscuro */
                                                             className="badge-genotipo border px-3 py-2"
                                                         >
                                                             {op}
@@ -967,18 +992,31 @@ const CasesControls = () => {
                                             </div>
                                         </td>
                                         <td>
-                                            <Form.Select
-                                                size="sm"
-                                                value={seleccionado}
-                                                onChange={(e) => handleSaveConfig(conf.id_snp, e.target.value)}
-                                                disabled={savingConfigId === conf.id_snp}
-                                                className={seleccionado ? "border-success text-success fw-bold" : "border-warning"}
-                                            >
-                                                <option value="">-- Seleccionar --</option>
-                                                {posibles.map(letra => (
-                                                    <option key={letra} value={letra}>Alelo "{letra}"</option>
-                                                ))}
-                                            </Form.Select>
+                                            {/* AQUÍ ESTÁ LA LÓGICA CLAVE */}
+                                            {canEditConfig ? (
+                                                // SI PUEDE EDITAR: Muestra el Select
+                                                <Form.Select
+                                                    size="sm"
+                                                    value={seleccionado}
+                                                    onChange={(e) => handleSaveConfig(conf.id_snp, e.target.value)}
+                                                    disabled={savingConfigId === conf.id_snp}
+                                                    className={seleccionado ? "border-success text-success fw-bold" : "border-warning"}
+                                                >
+                                                    <option value="">-- Seleccionar --</option>
+                                                    {posibles.map(letra => (
+                                                        <option key={letra} value={letra}>Alelo "{letra}"</option>
+                                                    ))}
+                                                </Form.Select>
+                                            ) : (
+                                                // SI SOLO PUEDE VER: Muestra un Badge o Texto
+                                                seleccionado ? (
+                                                    <div className="d-flex align-items-center text-danger fw-bold bg-opacity-10px-3 py-2 fit-content">
+                                                        Alelo "{seleccionado}"
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted fst-italic small">No configurado</span>
+                                                )
+                                            )}
                                         </td>
                                     </tr>
                                 );
@@ -987,7 +1025,6 @@ const CasesControls = () => {
                         </tbody>
                     </Table>
                 </Modal.Body>
-                {/* CORRECCIÓN: Footer bg-transparent */}
                 <Modal.Footer className="bg-transparent border-top-0">
                     <Button variant="primary" onClick={() => setShowConfigModal(false)}>Cerrar</Button>
                 </Modal.Footer>

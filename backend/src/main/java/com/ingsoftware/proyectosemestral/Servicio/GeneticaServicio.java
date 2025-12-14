@@ -34,14 +34,26 @@ public class GeneticaServicio {
     // 2. Guardar muestra del paciente
     @Transactional
     public void guardarMuestra(RegistroMuestraDto dto) {
+        // 1. Buscamos la configuración del Gen (esto ya lo tenías bien)
         SnpConfig config = snpRepo.findById(dto.getSnpConfigId())
                 .orElseThrow(() -> new RuntimeException("Configuración SNP no encontrada"));
 
-        MuestraGenetica muestra = new MuestraGenetica();
-        muestra.setParticipanteId(dto.getParticipanteId());
-        muestra.setSnpConfig(config);
+        // 2. CORRECCIÓN: Buscamos si ya existe la muestra
+        MuestraGenetica muestra = muestraRepo.findByParticipanteIdAndSnpConfig(dto.getParticipanteId(), config)
+                .orElse(new MuestraGenetica()); // Si no existe, crea una nueva instancia vacía
+
+        // 3. Asignamos los datos
+        // Si es nueva, estos campos estarán vacíos y se llenarán.
+        // Si ya existía, se sobreescriben (no pasa nada porque son los mismos IDs)
+        if (muestra.getId_muestra() == null) {
+            muestra.setParticipanteId(dto.getParticipanteId());
+            muestra.setSnpConfig(config);
+        }
+
+        // 4. Actualizamos el resultado (Lo más importante: cambia de AA a AG, etc.)
         muestra.setResultado(dto.getResultado());
 
+        // 5. Guardamos (Save detecta si tiene ID o no para hacer Update o Insert)
         muestraRepo.save(muestra);
     }
 

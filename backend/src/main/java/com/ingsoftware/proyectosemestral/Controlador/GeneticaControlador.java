@@ -27,7 +27,7 @@ public class GeneticaControlador {
 
     // Guardar una muestra (desde el formulario CRF)
     @PostMapping("/muestra")
-    @PreAuthorize("hasRole('ROLE_ADMIN')") // O el rol que corresponda
+    @PreAuthorize("hasRole('MEDICO')")
     public ResponseEntity<Void> guardarMuestra(@RequestBody RegistroMuestraDto dto) {
         geneticaServicio.guardarMuestra(dto);
         return ResponseEntity.ok().build();
@@ -41,7 +41,7 @@ public class GeneticaControlador {
     }
 
     @PutMapping("/configuracion/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INVESTIGADOR')")
     public ResponseEntity<SnpConfig> actualizarConfig(@PathVariable Long id, @RequestBody String aleloRiesgo) {
         // A veces el body llega con comillas extra, las limpiamos por seguridad
         String limpio = aleloRiesgo.replace("\"", "").trim();

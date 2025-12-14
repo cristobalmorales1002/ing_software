@@ -103,9 +103,9 @@ const AuditLog = () => {
     const getActionBadge = (accion) => {
         const baseClass = "badge-audit-fixed";
         if (accion.includes('CREAR')) return <Badge className={`${baseClass} badge-audit-create`}>{accion}</Badge>;
-        if (accion.includes('EDITAR') || accion.includes('ACTUALIZAR')) return <Badge bg="warning" text="dark" className={baseClass}>{accion}</Badge>;
+        if (accion.includes('EDITAR') || accion.includes('ACTUALIZAR')) return <Badge bg="warning" className={baseClass}>{accion}</Badge>;
         if (accion.includes('ELIMINAR') || accion.includes('ARCHIVAR')) return <Badge bg="danger" className={baseClass}>{accion}</Badge>;
-        if (accion.includes('CAMBIO_EMAIL')) return <Badge bg="info" text="dark" className={baseClass}>{accion}</Badge>;
+        if (accion.includes('CAMBIO_EMAIL')) return <Badge bg="info" className={baseClass}>{accion}</Badge>;
         return <Badge bg="secondary" className={baseClass}>{accion}</Badge>;
     };
 

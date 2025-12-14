@@ -250,7 +250,8 @@ public class UsuarioServicio {
             helper.setTo(usuario.getEmail());
             helper.setSubject("Bienvenido a la Plataforma - Credenciales de Acceso");
 
-            String urlLogin = "http://localhost:3000/";
+            // Apuntamos al puerto 8028 (Frontend) de la IP del servidor
+            String urlLogin = "http://190.13.177.173:8028/";
             String htmlMsg = String.format(
                     "<div style='font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; max-width: 600px; margin: 0 auto; background-color: #ffffff;'>" +
                             "  <h2 style='color: #333; text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px;'>Bienvenido/a %s</h2>" +

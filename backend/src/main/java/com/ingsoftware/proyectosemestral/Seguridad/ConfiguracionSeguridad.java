@@ -59,7 +59,8 @@ public class ConfiguracionSeguridad {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000")); 
+        // AHORA (Permitimos la IP del servidor y el puerto del frontend):
+        configuration.setAllowedOrigins(List.of("http://190.13.177.173:8028", "http://localhost:3000"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

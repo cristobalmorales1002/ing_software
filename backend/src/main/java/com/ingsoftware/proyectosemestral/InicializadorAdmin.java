@@ -40,7 +40,7 @@ public class InicializadorAdmin implements CommandLineRunner {
 
         crearSistemaDeSeguridad();
         Usuario admin = crearUsuariosDePrueba();
-        Usuario medico = usuarioRepositorio.findByRut("22.222.222-2")
+        Usuario medico = usuarioRepositorio.findByRut("20.629.545-7")
                 .orElseThrow(() -> new RuntimeException("Médico no encontrado"));
 
         inicializarConfiguracionGenetica();
@@ -389,10 +389,10 @@ public class InicializadorAdmin implements CommandLineRunner {
 
     private Usuario crearUsuariosDePrueba() {
         crearUsuario("11.111.111-1", "admin", "Admin", "General", "admin@hospital.cl", "ROLE_ADMIN");
-        crearUsuario("22.222.222-2", "medico", "Dr. Juan", "Pérez", "medico@hospital.cl", "ROLE_MEDICO");
-        crearUsuario("33.333.333-3", "investigador", "Ana", "Silva", "investigacion@ubiobio.cl", "ROLE_INVESTIGADOR");
-        crearUsuario("44.444.444-4", "estudiante", "Pedro", "Estudiante", "pedro@alumnos.cl", "ROLE_ESTUDIANTE");
-        crearUsuario("55.555.555-5", "visualizador", "Juanito", "XD", "pedro@alumnos.cl", "ROLE_VISUALIZADOR");
+        crearUsuario("20.629.545-7", "medico", "Matias", "Medico", "matias.aguilera2101@alumnos.ubiobio.cl", "ROLE_MEDICO");
+        crearUsuario("21.503.053-9", "investigador", "Bairon", "Investigador", "bairon.munoz2201@alumnos.ubiobio.cl", "ROLE_INVESTIGADOR");
+        crearUsuario("21.416.129-k", "estudiante", "Cristian", "Estudiante", "cristian.jimenez2201@alumnos.ubiobio.cl", "ROLE_ESTUDIANTE");
+        crearUsuario("21.232.674-7", "visualizador", "Cristobal", "Visualizador", "cristobal.morales2201@alumnos.ubiobio.cl", "ROLE_VISUALIZADOR");
         return usuarioRepositorio.findByRut("11.111.111-1").orElseThrow();
     }
 

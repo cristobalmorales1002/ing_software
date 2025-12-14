@@ -1,51 +1,57 @@
 version: '3.8'
 
+# Definimos la red interna para que los contenedores se hablen entre sí de forma segura
+networks:
+  red_interna_proyecto:
+    driver: bridge
+
 services:
-  # --- BASE DE DATOS (MySQL) ---
-  mysqldb:
+  # 1. BASE DE DATOS
+  db:
     image: mysql:8.0
-    container_name: mysql_container
+    container_name: db_mysql
     restart: always
-    ports:
-      - "3307:3306"
+    # SIN PORTS: Solo accesible internamente por el backend (Seguridad)
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: proyecto_semestral
     volumes:
-      # Persistencia de datos (donde Docker guarda la BD viva)
-      - mysql_data:/var/lib/mysql
-      # IMPORTANTE: Mapeo para inicializar la BD con tu archivo SQL
+      - db_data:/var/lib/mysql
       - ./mysql_init:/docker-entrypoint-initdb.d
+    networks:
+      - red_interna_proyecto
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # --- BACKEND (Spring Boot) ---
+  # 2. BACKEND
   backend:
-    build: ./backend
-    container_name: spring_backend
-    restart: on-failure
+    # CORRECCIÓN: Usuario 'cristianjimenez7'
+    image: cristianjimenez7/proyecto-backend:latest
+    container_name: backend_app
+    restart: always
     ports:
-      - "8081:8080"
+      - "8031:8080" # Puerto Pacheco (8031) -> Puerto SpringBoot (8080)
     depends_on:
-      mysqldb:
+      db:
         condition: service_healthy
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysqldb:3306/proyecto_semestral?allowPublicKeyRetrieval=true&useSSL=false
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    networks:
+      - red_interna_proyecto
 
-  # --- FRONTEND (React) ---
+  # 3. FRONTEND
   frontend:
-    build: ./frontend
-    container_name: react_frontend
+    # CORRECCIÓN: Usuario 'cristianjimenez7'
+    image: cristianjimenez7/proyecto-frontend:latest
+    container_name: frontend_app
+    restart: always
     ports:
-      - "3000:80"
+      - "8028:80" # Puerto Pacheco (8028) -> Puerto Nginx (80)
     depends_on:
       - backend
+    networks:
+      - red_interna_proyecto
 
 volumes:
-  mysql_data:
+  db_data:

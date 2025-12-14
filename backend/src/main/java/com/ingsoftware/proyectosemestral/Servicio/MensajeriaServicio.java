@@ -107,7 +107,7 @@ public class MensajeriaServicio {
                             "  " +
                             "  <p style='font-size: 14px; color: #555;'>Para responder, por favor ingresa a tu cuenta.</p>" +
                             "  <div style='text-align: center; margin-top: 25px;'>" +
-                            "    <a href='http://localhost:3000/login' style='background-color: #0056b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Ir a la Plataforma</a>" +
+                            "    <a href='http://190.13.177.173:8028/' style='background-color: #0056b3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Ir a la Plataforma</a>" +
                             "  </div>" +
                             "  <hr style='border: 0; border-top: 1px solid #eee; margin: 30px 0;'>" +
                             "  <p style='font-size: 12px; color: #999; text-align: center;'>Proyecto Cáncer Gástrico - Notificaciones Automáticas</p>" +
